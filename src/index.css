@@ -1,0 +1,245 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 15 100% 50%; /* #ff4400 */
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 30 100% 53%; /* #ff920e */
+    --secondary-foreground: 240 10% 3.9%;
+
+    --muted: 30 100% 96%;
+    --muted-foreground: 240 5% 45%;
+
+    --accent: 45 100% 50%; /* #ffe700 */
+    --accent-foreground: 240 10% 3.9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 30 100% 65% / 20%;
+    --input: 30 100% 65% / 20%;
+    --ring: 15 100% 50%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 15 100% 50%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 15 100% 96%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 30 100% 65% / 20%;
+    --sidebar-ring: 15 100% 50%;
+  }
+
+  .dark {
+    --background: 240 10% 5%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 7%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 7%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 15 100% 50%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 30 100% 53%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 45 100% 50%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5% 26%;
+    --input: 240 5% 26%;
+    --ring: 15 100% 50%;
+    
+    --sidebar-background: 240 10% 5%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 15 100% 50%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 5% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 5% 26%;
+    --sidebar-ring: 15 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  
+  /* Improve focus styles for better accessibility */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-background transition-all;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-secondary/30 dark:bg-secondary/20 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary/50 dark:bg-primary/40;
+}
+
+/* Glass effect components */
+.glass-effect {
+  @apply bg-white/70 dark:bg-slate-900/80 backdrop-blur-glass shadow-glass border border-white/20 dark:border-slate-800/50;
+}
+
+.neo-effect {
+  @apply bg-white dark:bg-slate-900 shadow-elevation dark:shadow-elevation-dark border border-slate-200/50 dark:border-slate-800/50;
+}
+
+/* Animations */
+.smooth-transition {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.page-transition-enter {
+  @apply opacity-0;
+}
+
+.page-transition-enter-active {
+  @apply opacity-100 transition-opacity duration-300;
+}
+
+.page-transition-exit {
+  @apply opacity-100;
+}
+
+.page-transition-exit-active {
+  @apply opacity-0 transition-opacity duration-200;
+}
+
+/* Image loading blur effect */
+.image-blur-loading {
+  @apply transition-all duration-500 animate-pulse bg-muted;
+}
+
+.image-loaded {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Brand colors utility classes */
+.bg-brand-primary {
+  @apply bg-[#ff4400];
+}
+
+.bg-brand-secondary {
+  @apply bg-[#ff920e];
+}
+
+.bg-brand-accent {
+  @apply bg-[#ffe700];
+}
+
+.bg-brand-blue {
+  @apply bg-[#006bf7];
+}
+
+.text-brand-primary {
+  @apply text-[#ff4400];
+}
+
+.text-brand-secondary {
+  @apply text-[#ff920e];
+}
+
+.text-brand-accent {
+  @apply text-[#ffe700];
+}
+
+.text-brand-blue {
+  @apply text-[#006bf7];
+}
+
+/* Brand gradients */
+.bg-brand-gradient {
+  @apply bg-gradient-to-r from-[#ff4400] to-[#ff920e];
+}
+
+.bg-brand-gradient-alt {
+  @apply bg-gradient-to-r from-[#006bf7] to-[#ffe700];
+}
+
+/* Dark mode refinements */
+.dark .glass-card {
+  @apply bg-slate-800/30 backdrop-blur-sm border border-slate-700/50;
+}
+
+.glass-card {
+  @apply bg-white/80 backdrop-blur-sm border border-slate-200/70 shadow-subtle;
+}
+
+/* Improved inputs for dark mode */
+.dark input, .dark textarea, .dark select {
+  @apply bg-slate-800/70 border-slate-700;
+}
+
+/* Better button hover states */
+.button-hover-effect {
+  @apply transition-all hover:shadow-md active:scale-95;
+}
+
+/* Animation for feedback */
+.success-animation {
+  @apply animate-scale-in text-green-500;
+}
+
+.error-animation {
+  @apply animate-scale-in text-red-500;
+}
+
+/* Better accessibility for interactive elements */
+.interactive-element {
+  @apply transition-colors hover:bg-secondary/20 active:bg-secondary/30 cursor-pointer;
+}
+
+/* Dark mode specific text shadow for better readability */
+.dark .text-shadow {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Improved card hover effects */
+.card-hover {
+  @apply transition-all duration-300 hover:translate-y-[-5px] hover:shadow-lg;
+}
