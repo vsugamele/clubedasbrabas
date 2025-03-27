@@ -37,6 +37,7 @@ export interface FetchPostsOptions {
   communityId?: string | null;
   categoryId?: string | null;
   userId?: string | null;
+  searchTerm?: string | null;
 }
 
 export interface CategoryForm {
@@ -264,6 +265,7 @@ export const fetchPosts = async (
       communityId = null,
       categoryId = null,
       userId = null,
+      searchTerm = null,
     } = options;
 
     const offset = (page - 1) * limit;
@@ -300,6 +302,12 @@ export const fetchPosts = async (
     if (userId) {
       console.log(`Filtrando por usuário: ${userId}`);
       query = query.eq('user_id', userId);
+    }
+    
+    // Aplicar filtro de busca apenas se especificado
+    if (searchTerm) {
+      console.log(`Filtrando por busca: ${searchTerm}`);
+      query = query.ilike('content', `%${searchTerm}%`);
     }
     
     // Aplicar ordenação

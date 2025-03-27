@@ -5,6 +5,9 @@ import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
 import Admin from "@/pages/Admin";
 import Events from "@/pages/Events";
+import Search from "@/pages/Search"; // Adicionado import da página de busca
+import CreatePost from "@/pages/CreatePost";
+import Notifications from "@/pages/Notifications";
 import { useAuth } from "./context/auth";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
@@ -286,6 +289,9 @@ const App = () => {
       <Route path="/profile/:id" element={<ProtectedRoute element={<Profile />} />} />
       <Route path="/eventos" element={<ProtectedRoute element={<Events />} />} />
       <Route path="/eventos/:id" element={<ProtectedRoute element={<Events />} />} />
+      <Route path="/search" element={<ProtectedRoute element={<Search />} />} />
+      <Route path="/create-post" element={<ProtectedRoute element={<CreatePost />} />} />
+      <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

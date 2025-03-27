@@ -54,3 +54,32 @@ export const searchUsersForMention = async (searchTerm: string): Promise<UserMen
     return [];
   }
 };
+
+/**
+ * Busca usuários baseado em um termo de busca
+ * @param searchTerm Termo para buscar usuários
+ * @returns Lista de usuários que correspondem ao termo de busca
+ */
+export const fetchUsers = async (searchTerm: string) => {
+  console.log("Buscando usuários com termo:", searchTerm);
+  
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url, bio')
+      .or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`)
+      .limit(20)
+      .order('full_name', { ascending: true });
+    
+    if (error) {
+      console.error("Erro ao buscar usuários:", error);
+      return [];
+    }
+    
+    console.log("Usuários encontrados:", data?.length || 0);
+    return data || [];
+  } catch (error) {
+    console.error("Erro ao buscar usuários:", error);
+    return [];
+  }
+};

@@ -1,7 +1,7 @@
-
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
+import MobileNavbar from "@/components/navigation/MobileNavbar";
 import { ReactNode, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -36,11 +36,12 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         <div className="flex flex-1 w-full">
           <Sidebar />
           <main className="flex-1 transition-opacity duration-300 ease-in-out opacity-100">
-            <div className="container py-6 animate-slide-up">
+            <div className="container py-6 pb-20 md:pb-6 animate-slide-up">
               {children}
             </div>
           </main>
         </div>
+        <MobileNavbar />
       </div>
     </SidebarProvider>
   );
