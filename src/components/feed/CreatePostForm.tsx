@@ -561,347 +561,345 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
   }
   
   return (
-    <Card>
+    <Card className="mb-4 overflow-hidden">
       <CardContent className="p-4">
         <form onSubmit={handleSubmit}>
-          <div className="flex gap-3">
-            <Avatar className="h-10 w-10">
+          <div className="flex items-start gap-3 mb-4">
+            <Avatar>
               <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "User"} />
               <AvatarFallback>
-                {getInitials(profile?.full_name || user.email?.split('@')[0] || "User")}
+                {profile?.full_name ? getInitials(profile.full_name) : "U"}
               </AvatarFallback>
             </Avatar>
             
-            <div className="flex-1 space-y-4">
-              <div className="relative">
-                <textarea
-                  ref={textareaRef}
-                  className="min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Compartilhe algo interessante... Use @ para mencionar usuários"
-                  value={content}
-                  onChange={handleTextareaChange}
-                  disabled={isSubmitting}
-                ></textarea>
-                
-                {mentionSearch !== null && (
-                  <div className="absolute top-full left-0 right-0 mt-1 z-50">
-                    <div className="bg-white dark:bg-gray-800 shadow-lg rounded-md border border-gray-200 dark:border-gray-700 w-full max-h-60 overflow-y-auto">
-                      {isMentionLoading ? (
-                        <div className="p-2 text-sm text-gray-500 dark:text-gray-400">
-                          Buscando usuários...
-                        </div>
-                      ) : mentionUsers.length === 0 ? (
-                        <div className="p-2 text-sm text-gray-500 dark:text-gray-400">
-                          Nenhum usuário encontrado
-                        </div>
-                      ) : (
-                        <ul className="py-1">
-                          {mentionUsers.map((user, index) => (
-                            <li 
-                              key={user.id}
-                              className="px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={() => handleSelectMention(user)}
-                            >
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={user.avatar_url || undefined} alt={user.full_name} />
-                                <AvatarFallback>
-                                  {getInitials(user.full_name || user.username)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-medium text-sm">{user.full_name || user.username}</div>
-                                {user.username && (
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">@{user.username}</div>
-                                )}
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {selectedGif && (
-                <div className="relative rounded-md overflow-hidden">
-                  <img 
-                    src={selectedGif} 
-                    alt="Selected GIF" 
-                    className="w-full max-h-[200px] object-contain bg-muted"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-6 w-6"
-                    onClick={() => setSelectedGif(null)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
-              
-              <AttachmentsPreview 
-                attachments={attachments} 
-                onRemove={removeAttachment} 
+            <div className="flex-1 relative">
+              <textarea
+                ref={textareaRef}
+                placeholder="Compartilhe algo interessante... Use @ para mencionar usuários"
+                value={content}
+                onChange={handleTextareaChange}
+                className="w-full border rounded-md p-3 min-h-[80px] max-h-[200px] resize-none focus:outline-none focus:ring-1 focus:ring-brand-500 bg-transparent"
+                disabled={isSubmitting}
               />
               
-              {showGifSearch && (
-                <div className="p-3 border rounded-md bg-muted/50">
-                  <div className="flex gap-2 mb-3">
-                    <Input
-                      placeholder="Pesquisar GIFs..."
-                      value={gifSearchQuery}
-                      onChange={(e) => setGifSearchQuery(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button 
-                      type="button" 
-                      size="sm"
-                      variant="secondary" 
-                      onClick={handleGifSearch}
-                    >
-                      <Search className="h-4 w-4 mr-1" />
-                      Buscar
-                    </Button>
-                    <Button 
-                      type="button" 
-                      size="sm"
-                      variant="ghost" 
-                      onClick={() => setShowGifSearch(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
-                    {/* Placeholder GIFs - in a real app, these would come from an API */}
-                    <img 
-                      src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM29zcjdvYjM2NTQ1eW1ucXp3N2x3NnhqdzRkMHBkOXFiZG5lYzhmeSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41JMg1yXmGNDHSHm/giphy.gif" 
-                      alt="GIF 1"
-                      className="w-full h-40 object-cover rounded cursor-pointer hover:ring-2 ring-primary"
-                      onClick={() => handleGifSelect("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM29zcjdvYjM2NTQ1eW1ucXp3N2x3NnhqdzRkMHBkOXFiZG5lYzhmeSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41JMg1yXmGNDHSHm/giphy.gif")}
-                    />
-                    <img 
-                      src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjYyZG0wbDJqajExaXVnY2FubG92ZHkzbzluaGdkdTB5cXM5NzM4MCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3oEjHGr1Fhz0kyv8Ig/giphy.gif" 
-                      alt="GIF 2"
-                      className="w-full h-40 object-cover rounded cursor-pointer hover:ring-2 ring-primary"
-                      onClick={() => handleGifSelect("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjYyZG0wbDJqajExaXVnY2FubG92ZHkzbzluaGdkdTB5cXM5NzM4MCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3oEjHGr1Fhz0kyv8Ig/giphy.gif")}
-                    />
+              {mentionSearch !== null && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-50">
+                  <div className="bg-white dark:bg-gray-800 shadow-lg rounded-md border border-gray-200 dark:border-gray-700 w-full max-h-60 overflow-y-auto">
+                    {isMentionLoading ? (
+                      <div className="p-2 text-sm text-gray-500 dark:text-gray-400">
+                        Buscando usuários...
+                      </div>
+                    ) : mentionUsers.length === 0 ? (
+                      <div className="p-2 text-sm text-gray-500 dark:text-gray-400">
+                        Nenhum usuário encontrado
+                      </div>
+                    ) : (
+                      <ul className="py-1">
+                        {mentionUsers.map((user, index) => (
+                          <li 
+                            key={user.id}
+                            className="px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                            onClick={() => handleSelectMention(user)}
+                          >
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={user.avatar_url || undefined} alt={user.full_name} />
+                              <AvatarFallback>
+                                {getInitials(user.full_name || user.username)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium text-sm">{user.full_name || user.username}</div>
+                              {user.username && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400">@{user.username}</div>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+          
+          {selectedGif && (
+            <div className="relative rounded-md overflow-hidden">
+              <img 
+                src={selectedGif} 
+                alt="Selected GIF" 
+                className="w-full max-h-[200px] object-contain bg-muted"
+              />
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2 h-6 w-6"
+                onClick={() => setSelectedGif(null)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+          
+          <AttachmentsPreview 
+            attachments={attachments} 
+            onRemove={removeAttachment} 
+          />
+          
+          {showGifSearch && (
+            <div className="p-3 border rounded-md bg-muted/50">
+              <div className="flex gap-2 mb-3">
+                <Input
+                  placeholder="Pesquisar GIFs..."
+                  value={gifSearchQuery}
+                  onChange={(e) => setGifSearchQuery(e.target.value)}
+                  className="flex-1"
+                />
+                <Button 
+                  type="button" 
+                  size="sm"
+                  variant="secondary" 
+                  onClick={handleGifSearch}
+                >
+                  <Search className="h-4 w-4 mr-1" />
+                  Buscar
+                </Button>
+                <Button 
+                  type="button" 
+                  size="sm"
+                  variant="ghost" 
+                  onClick={() => setShowGifSearch(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
               
-              {showPollCreator && (
-                <div className="p-3 border rounded-md bg-muted/50">
-                  <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
+                {/* Placeholder GIFs - in a real app, these would come from an API */}
+                <img 
+                  src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM29zcjdvYjM2NTQ1eW1ucXp3N2x3NnhqdzRkMHBkOXFiZG5lYzhmeSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41JMg1yXmGNDHSHm/giphy.gif" 
+                  alt="GIF 1"
+                  className="w-full h-40 object-cover rounded cursor-pointer hover:ring-2 ring-primary"
+                  onClick={() => handleGifSelect("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM29zcjdvYjM2NTQ1eW1ucXp3N2x3NnhqdzRkMHBkOXFiZG5lYzhmeSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41JMg1yXmGNDHSHm/giphy.gif")}
+                />
+                <img 
+                  src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjYyZG0wbDJqajExaXVnY2FubG92ZHkzbzluaGdkdTB5cXM5NzM4MCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3oEjHGr1Fhz0kyv8Ig/giphy.gif" 
+                  alt="GIF 2"
+                  className="w-full h-40 object-cover rounded cursor-pointer hover:ring-2 ring-primary"
+                  onClick={() => handleGifSelect("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjYyZG0wbDJqajExaXVnY2FubG92ZHkzbzluaGdkdTB5cXM5NzM4MCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3oEjHGr1Fhz0kyv8Ig/giphy.gif")}
+                />
+              </div>
+            </div>
+          )}
+          
+          {showPollCreator && (
+            <div className="p-3 border rounded-md bg-muted/50">
+              <div className="space-y-3">
+                <Input
+                  placeholder="Pergunta da enquete..."
+                  value={pollQuestion}
+                  onChange={(e) => setPollQuestion(e.target.value)}
+                  className="w-full"
+                />
+                
+                {pollOptions.map((option, index) => (
+                  <div key={index} className="flex gap-2">
                     <Input
-                      placeholder="Pergunta da enquete..."
-                      value={pollQuestion}
-                      onChange={(e) => setPollQuestion(e.target.value)}
-                      className="w-full"
+                      placeholder={`Opção ${index + 1}`}
+                      value={option}
+                      onChange={(e) => updatePollOption(index, e.target.value)}
+                      className="flex-1"
                     />
+                    {pollOptions.length > 2 && (
+                      <Button 
+                        type="button" 
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removePollOption(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                
+                {pollOptions.length < 5 && (
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addPollOption}
+                    className="w-full"
+                  >
+                    Adicionar opção
+                  </Button>
+                )}
+                
+                <div className="flex justify-end">
+                  <Button 
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowPollCreator(false)}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="flex flex-wrap gap-3 justify-between mt-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-gray-500"
+                disabled={isSubmitting}
+                onClick={handleAttachmentUpload}
+              >
+                <Image className="h-4 w-4 mr-1" />
+                Foto
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-gray-500"
+                disabled={isSubmitting}
+                onClick={handleAttachmentUpload}
+              >
+                <Video className="h-4 w-4 mr-1" />
+                Vídeo
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-gray-500"
+                disabled={isSubmitting || showPollCreator}
+                onClick={() => setShowGifSearch(prev => !prev)}
+              >
+                <Smile className="h-4 w-4 mr-1" />
+                GIF
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-gray-500"
+                disabled={isSubmitting || showGifSearch}
+                onClick={() => setShowPollCreator(prev => !prev)}
+              >
+                <BarChart3 className="h-4 w-4 mr-1" />
+                Enquete
+              </Button>
+              
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*,video/*"
+                multiple
+                className="hidden"
+              />
+            </div>
+            
+            <div className="flex flex-wrap gap-2 w-full md:w-auto mt-3 md:mt-0">
+              {!communityId && (
+                <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-full md:w-[240px] justify-between"
+                      disabled={isSubmitting || isLoadingOptions}
+                    >
+                      {isLoadingOptions ? (
+                        <span className="flex items-center">
+                          <div className="h-4 w-4 rounded-full border-2 border-muted-foreground border-t-transparent animate-spin mr-2"></div>
+                          Carregando...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          {getSelectedText()}
+                        </span>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-[240px] max-h-[400px] overflow-y-auto p-2">
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 cursor-pointer rounded-md"
+                      onClick={() => handleCommunitySelect('none', 'none')}
+                    >
+                      Feed Principal
+                    </DropdownMenuItem>
                     
-                    {pollOptions.map((option, index) => (
-                      <div key={index} className="flex gap-2">
-                        <Input
-                          placeholder={`Opção ${index + 1}`}
-                          value={option}
-                          onChange={(e) => updatePollOption(index, e.target.value)}
-                          className="flex-1"
-                        />
-                        {pollOptions.length > 2 && (
-                          <Button 
-                            type="button" 
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => removePollOption(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                    <DropdownMenuSeparator />
+                    
+                    {categories.map((category) => (
+                      <div key={category.id}>
+                        <DropdownMenuLabel 
+                          className="flex items-center gap-2 cursor-pointer rounded-md hover:bg-muted px-2 py-1.5"
+                          onClick={() => handleCommunitySelect(category.id, 'category')}
+                        >
+                          <Folder className="h-4 w-4" />
+                          <span>{category.name}</span>
+                        </DropdownMenuLabel>
+                        
+                        {category.communities.length > 0 && (
+                          <div className="pl-6 space-y-1 my-1">
+                            {category.communities.map(community => (
+                              <DropdownMenuItem 
+                                key={community.id}
+                                className="flex items-center gap-2 cursor-pointer rounded-md"
+                                onClick={() => handleCommunitySelect(community.id, 'community')}
+                              >
+                                <Hash className="h-3 w-3" />
+                                <span>{community.name}</span>
+                              </DropdownMenuItem>
+                            ))}
+                          </div>
                         )}
                       </div>
                     ))}
                     
-                    {pollOptions.length < 5 && (
-                      <Button 
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addPollOption}
-                        className="w-full"
-                      >
-                        Adicionar opção
-                      </Button>
+                    {communitiesWithoutCategory.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Sem categoria</DropdownMenuLabel>
+                        
+                        <div className="space-y-1 my-1">
+                          {communitiesWithoutCategory.map(community => (
+                            <DropdownMenuItem 
+                              key={community.id}
+                              className="flex items-center gap-2 cursor-pointer rounded-md pl-6"
+                              onClick={() => handleCommunitySelect(community.id, 'community')}
+                            >
+                              <Hash className="h-3 w-3" />
+                              <span>{community.name}</span>
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
+                      </>
                     )}
-                    
-                    <div className="flex justify-end">
-                      <Button 
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowPollCreator(false)}
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
               
-              <div className="flex flex-wrap gap-3 justify-between">
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-gray-500"
-                    disabled={isSubmitting}
-                    onClick={handleAttachmentUpload}
-                  >
-                    <Image className="h-4 w-4 mr-1" />
-                    Foto
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-gray-500"
-                    disabled={isSubmitting}
-                    onClick={handleAttachmentUpload}
-                  >
-                    <Video className="h-4 w-4 mr-1" />
-                    Vídeo
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-gray-500"
-                    disabled={isSubmitting || showPollCreator}
-                    onClick={() => setShowGifSearch(prev => !prev)}
-                  >
-                    <Smile className="h-4 w-4 mr-1" />
-                    GIF
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-gray-500"
-                    disabled={isSubmitting || showGifSearch}
-                    onClick={() => setShowPollCreator(prev => !prev)}
-                  >
-                    <BarChart3 className="h-4 w-4 mr-1" />
-                    Enquete
-                  </Button>
-                  
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*,video/*"
-                    multiple
-                    className="hidden"
-                  />
-                </div>
-                
-                <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                  {!communityId && (
-                    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          className="w-full md:w-[240px] justify-between"
-                          disabled={isSubmitting || isLoadingOptions}
-                        >
-                          {isLoadingOptions ? (
-                            <span className="flex items-center">
-                              <div className="h-4 w-4 rounded-full border-2 border-muted-foreground border-t-transparent animate-spin mr-2"></div>
-                              Carregando...
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-2">
-                              {getSelectedText()}
-                            </span>
-                          )}
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[240px] max-h-[400px] overflow-y-auto p-2">
-                        <DropdownMenuItem 
-                          className="flex items-center gap-2 cursor-pointer rounded-md"
-                          onClick={() => handleCommunitySelect('none', 'none')}
-                        >
-                          Feed Principal
-                        </DropdownMenuItem>
-                        
-                        <DropdownMenuSeparator />
-                        
-                        {categories.map((category) => (
-                          <div key={category.id}>
-                            <DropdownMenuLabel 
-                              className="flex items-center gap-2 cursor-pointer rounded-md hover:bg-muted px-2 py-1.5"
-                              onClick={() => handleCommunitySelect(category.id, 'category')}
-                            >
-                              <Folder className="h-4 w-4" />
-                              <span>{category.name}</span>
-                            </DropdownMenuLabel>
-                            
-                            {category.communities.length > 0 && (
-                              <div className="pl-6 space-y-1 my-1">
-                                {category.communities.map(community => (
-                                  <DropdownMenuItem 
-                                    key={community.id}
-                                    className="flex items-center gap-2 cursor-pointer rounded-md"
-                                    onClick={() => handleCommunitySelect(community.id, 'community')}
-                                  >
-                                    <Hash className="h-3 w-3" />
-                                    <span>{community.name}</span>
-                                  </DropdownMenuItem>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        
-                        {communitiesWithoutCategory.length > 0 && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel>Sem categoria</DropdownMenuLabel>
-                            
-                            <div className="space-y-1 my-1">
-                              {communitiesWithoutCategory.map(community => (
-                                <DropdownMenuItem 
-                                  key={community.id}
-                                  className="flex items-center gap-2 cursor-pointer rounded-md pl-6"
-                                  onClick={() => handleCommunitySelect(community.id, 'community')}
-                                >
-                                  <Hash className="h-3 w-3" />
-                                  <span>{community.name}</span>
-                                </DropdownMenuItem>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                  
-                  <Button 
-                    type="submit" 
-                    className="bg-[#ff4400] hover:bg-[#ff4400]/90 ml-auto"
-                    disabled={(!content.trim() && !selectedGif && !showPollCreator) || isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></div>
-                    ) : (
-                      <PlusCircle className="h-4 w-4 mr-1" />
-                    )}
-                    Publicar
-                  </Button>
-                </div>
-              </div>
+              <Button 
+                type="submit" 
+                className="bg-[#ff4400] hover:bg-[#ff4400]/90 ml-auto"
+                disabled={(!content.trim() && !selectedGif && !showPollCreator) || isSubmitting}
+              >
+                {isSubmitting ? (
+                  <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></div>
+                ) : (
+                  <PlusCircle className="h-4 w-4 mr-1" />
+                )}
+                Publicar
+              </Button>
             </div>
           </div>
         </form>
