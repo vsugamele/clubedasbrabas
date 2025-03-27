@@ -77,7 +77,7 @@ const Navbar = () => {
     path: "/messages"
   }];
   
-  return <header className="sticky top-0 z-40 w-full border-b bg-background shadow-sm">
+  return <header className="sticky top-0 z-40 w-full border-b bg-background shadow-sm hidden md:block">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
           <Link to="/" className="flex items-center">
@@ -96,7 +96,7 @@ const Navbar = () => {
           {/* Admin panel link - only show if user is admin */}
           {isAdmin && <Button variant="ghost" asChild className={location.pathname === "/admin" ? "font-medium text-[#ff4400]" : "text-muted-foreground hover:text-[#ff4400]/80"}>
               <Link to="/admin">
-                <Shield className="mr-1 h-4 w-4" />
+                <Shield className="mr-1 h-4 w-4 text-[#ff4400]" />
                 Admin
               </Link>
             </Button>}

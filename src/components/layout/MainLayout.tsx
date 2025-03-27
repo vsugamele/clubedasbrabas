@@ -2,6 +2,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import MobileNavbar from "@/components/navigation/MobileNavbar";
+import MobileTopNav from "@/components/navigation/MobileTopNav";
 import { ReactNode, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -33,6 +34,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     <SidebarProvider>
       <div className="min-h-screen flex flex-col w-full overflow-hidden bg-orange-50/30">
         <Navbar />
+        <MobileTopNav />
         <div className="flex flex-1 w-full">
           <Sidebar />
           <main className="flex-1 transition-opacity duration-300 ease-in-out opacity-100">
