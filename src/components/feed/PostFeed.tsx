@@ -1,32 +1,43 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import { fetchPosts, PostData, FetchPostsOptions } from "@/services/postService";
+import { fetchPosts, PostData, FetchPostsOptions, deletePost, togglePinPost } from "@/services/postService";
 import PostCard from "./PostCard";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import CreatePostForm from "./CreatePostForm";
+import { useAuth } from "@/context/auth";
 
 export interface PostFeedProps {
   communityId?: string;
+  categoryId?: string;
   isLoading?: boolean;
 }
 
-const PostFeed = ({ communityId, isLoading: initialLoading }: PostFeedProps) => {
+const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFeedProps) => {
   const [posts, setPosts] = useState<PostData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(initialLoading || true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const { user } = useAuth();
+  
+  // Verificar se o usuário é administrador
+  const userEmail = user?.email;
+  const isAdmin = userEmail === "souzadecarvalho1986@gmail.com" || 
+                  userEmail === "vsugamele@gmail.com" ||
+                  userEmail === "admin@example.com";
+  
+  // Por enquanto, consideramos que administradores são moderadores de todas as comunidades
+  const isModerator = isAdmin;
 
   useEffect(() => {
     loadPosts();
-  }, [communityId, retryCount]);
+  }, [communityId, categoryId, retryCount]);
 
   const loadPosts = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      console.log(`Carregando posts ${communityId ? `para comunidade ${communityId}` : 'do feed principal'}`);
+      console.log(`Carregando posts ${communityId ? `para comunidade ${communityId}` : 'do feed principal'} ${categoryId ? `na categoria ${categoryId}` : ''}`);
       
       // Pass proper FetchPostsOptions object
       const options: FetchPostsOptions = {
@@ -35,6 +46,12 @@ const PostFeed = ({ communityId, isLoading: initialLoading }: PostFeedProps) => 
       
       if (communityId) {
         options.communityId = communityId;
+        console.log(`PostFeed - Filtrando por comunidade: ${communityId}`);
+      }
+      
+      if (categoryId) {
+        options.categoryId = categoryId;
+        console.log(`PostFeed - Filtrando por categoria: ${categoryId}`);
       }
       
       console.log("Fetching posts with options:", options);
@@ -47,6 +64,7 @@ const PostFeed = ({ communityId, isLoading: initialLoading }: PostFeedProps) => 
       } else {
         console.log("Nenhum post encontrado");
         setError("Não há publicações para exibir");
+        setPosts([]);
       }
     } catch (err) {
       console.error("Erro ao carregar posts:", err);
@@ -66,9 +84,81 @@ const PostFeed = ({ communityId, isLoading: initialLoading }: PostFeedProps) => 
     loadPosts();
   };
 
+  const handleDeletePost = async (postId: string) => {
+    try {
+      const success = await deletePost(postId);
+      if (success) {
+        // Remover o post da lista de posts
+        setPosts(currentPosts => currentPosts.filter(post => post.id !== postId));
+        toast.success("Publicação excluída com sucesso", {
+          position: "bottom-right",
+        });
+      } else {
+        toast.error("Não foi possível excluir a publicação", {
+          position: "bottom-right",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao excluir post:", error);
+      toast.error("Erro ao excluir a publicação", {
+        position: "bottom-right",
+      });
+    }
+  };
+  
+  const handlePinPost = async (postId: string, isPinned: boolean) => {
+    try {
+      const success = await togglePinPost(postId, isPinned);
+      if (success) {
+        // Atualizar o estado do post na lista
+        setPosts(currentPosts => 
+          currentPosts.map(post => 
+            post.id === postId 
+              ? { ...post, isPinned } 
+              : post
+          )
+        );
+        
+        toast.success(
+          isPinned 
+            ? "Publicação fixada com sucesso" 
+            : "Publicação desafixada com sucesso", 
+          { position: "bottom-right" }
+        );
+        
+        // Recarregar posts para garantir a ordem correta
+        loadPosts();
+      } else {
+        toast.error(
+          isPinned 
+            ? "Não foi possível fixar a publicação" 
+            : "Não foi possível desafixar a publicação", 
+          { position: "bottom-right" }
+        );
+      }
+    } catch (error) {
+      console.error(`Erro ao ${isPinned ? 'fixar' : 'desafixar'} post:`, error);
+      toast.error(`Erro ao ${isPinned ? 'fixar' : 'desafixar'} a publicação`, {
+        position: "bottom-right",
+      });
+    }
+  };
+
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
   };
+  
+  // Ordenar posts para mostrar os fixados primeiro
+  const sortedPosts = useMemo(() => {
+    return [...posts].sort((a, b) => {
+      // Primeiro critério: posts fixados vêm primeiro
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      
+      // Segundo critério: posts mais recentes primeiro
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [posts]);
 
   if (isLoading) {
     return (
@@ -119,8 +209,15 @@ const PostFeed = ({ communityId, isLoading: initialLoading }: PostFeedProps) => 
   return (
     <div className="space-y-4">
       <CreatePostForm communityId={communityId} onPostCreated={handlePostCreated} />
-      {posts.map((post) => (
-        <PostCard key={post.id} post={post} onPostUpdated={loadPosts} />
+      {sortedPosts.map((post) => (
+        <PostCard 
+          key={post.id} 
+          post={post} 
+          onPostUpdated={loadPosts} 
+          onDeletePost={handleDeletePost}
+          onPinPost={handlePinPost}
+          isModerator={isModerator}
+        />
       ))}
     </div>
   );

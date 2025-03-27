@@ -35,6 +35,7 @@ export interface FetchPostsOptions {
   page?: number;
   sort?: "newest" | "oldest";
   communityId?: string | null;
+  categoryId?: string | null;
   userId?: string | null;
 }
 
@@ -222,17 +223,23 @@ export const fetchCategories = async (): Promise<Array<{id: string, name: string
   }
 };
 
-export const fetchCommunities = async (): Promise<Array<{id: string, name: string}>> => {
+export const fetchCommunities = async (): Promise<Array<{id: string, name: string, posting_restrictions: string}>> => {
   try {
     const { data, error } = await supabase
       .from('communities')
-      .select('id, name');
+      .select('id, name, posting_restrictions')
+      .order('name');
       
     if (error) {
-      throw error;
+      console.error("Error fetching communities:", error);
+      return [];
     }
     
-    return data || [];
+    return data.map(community => ({
+      id: community.id,
+      name: community.name,
+      posting_restrictions: community.posting_restrictions || 'all_members'
+    }));
   } catch (error) {
     console.error("Error fetching communities:", error);
     return [];
@@ -255,13 +262,14 @@ export const fetchPosts = async (
       page = 1,
       sort = "newest",
       communityId = null,
+      categoryId = null,
       userId = null,
     } = options;
 
     const offset = (page - 1) * limit;
     
-    // Query posts with a comprehensive select statement
-    const { data: postsData, error, count } = await supabase
+    // Iniciar a consulta
+    let query = supabase
       .from("posts")
       .select(
         `
@@ -271,18 +279,68 @@ export const fetchPosts = async (
         categories:category_id (id, name)
       `,
         { count: "exact" }
-      )
-      .order("created_at", { ascending: sort === "oldest" });
+      );
+    
+    // Aplicar filtro de comunidade - SEMPRE aplicar este filtro primeiro e de forma independente
+    if (communityId) {
+      console.log(`Filtrando por comunidade: ${communityId}`);
+      query = query.eq('community_id', communityId);
+      
+      // Log adicional para depuração
+      console.log(`Query com filtro de comunidade: ${communityId}`);
+    }
+    
+    // Aplicar filtro de categoria apenas se especificado
+    if (categoryId) {
+      console.log(`Filtrando por categoria: ${categoryId}`);
+      query = query.eq('category_id', categoryId);
+    }
+    
+    // Aplicar filtro de usuário apenas se especificado
+    if (userId) {
+      console.log(`Filtrando por usuário: ${userId}`);
+      query = query.eq('user_id', userId);
+    }
+    
+    // Aplicar ordenação
+    query = query.order("created_at", { ascending: sort === "oldest" });
+    
+    // Aplicar paginação
+    if (limit > 0) {
+      query = query.range(offset, offset + limit - 1);
+    }
+    
+    // Executar a consulta
+    const { data: postsData, error, count } = await query;
 
     if (error) {
       console.error("Error fetching posts:", error);
       throw error;
     }
     
+    // Log detalhado dos posts encontrados
+    console.log("Posts data fetched:", postsData?.length || 0, "posts");
+    if (postsData && postsData.length > 0) {
+      console.log("Detalhes dos posts encontrados:");
+      postsData.forEach(post => {
+        console.log(`Post ID: ${post.id}, Comunidade: ${post.community_id}, Categoria: ${post.category_id}, Conteúdo: ${post.content?.substring(0, 30)}...`);
+      });
+    }
+    
     console.log("Posts data fetched:", postsData?.length || 0, "posts");
     
     if (!postsData || postsData.length === 0) {
       console.log("No posts found");
+      
+      // Se não encontrou posts e estamos filtrando por comunidade Marketing (ID 5), tentar buscar sem filtro de categoria
+      if (communityId === "5" && categoryId) {
+        console.log("Tentando buscar posts da comunidade Marketing sem filtro de categoria");
+        return fetchPosts({
+          ...options,
+          categoryId: null
+        });
+      }
+      
       return { posts: [], totalCount: 0 };
     }
 
@@ -457,11 +515,17 @@ export const addCategory = async (category: CategoryForm): Promise<any> => {
 export const updateCategory = async (id: string, category: CategoryForm): Promise<any> => {
   try {
     const { data, error } = await supabase
-      .from('categories')
-      .update(category)
-      .eq('id', id);
+      .from("community_categories")
+      .update({
+        name: category.name,
+        description: category.description || "",
+        slug: category.slug
+      })
+      .eq("id", id)
+      .select();
       
     if (error) {
+      console.error("Error updating category:", error);
       throw error;
     }
     
@@ -469,5 +533,88 @@ export const updateCategory = async (id: string, category: CategoryForm): Promis
   } catch (error) {
     console.error("Error updating category:", error);
     throw error;
+  }
+};
+
+/**
+ * Exclui um post do banco de dados
+ * @param postId ID do post a ser excluído
+ * @returns true se o post foi excluído com sucesso, false caso contrário
+ */
+export const deletePost = async (postId: string): Promise<boolean> => {
+  try {
+    // Obter o usuário atual
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    const userEmail = userData?.user?.email;
+    
+    if (!userId) {
+      console.error("User not authenticated");
+      return false;
+    }
+    
+    // Verificar se o usuário é o autor do post
+    const { data: post, error: postError } = await supabase
+      .from("posts")
+      .select("user_id")
+      .eq("id", postId)
+      .single();
+    
+    if (postError) {
+      console.error("Error fetching post:", postError);
+      return false;
+    }
+    
+    const isAuthor = post?.user_id === userId;
+    
+    // Lista de emails de administradores conhecidos
+    // Esta abordagem evita a verificação de papéis que causa recursão infinita
+    const isAdmin = userEmail === "souzadecarvalho1986@gmail.com" || 
+                    userEmail === "vsugamele@gmail.com" ||
+                    userEmail === "admin@example.com";
+    
+    // Verificar se o usuário pode excluir o post (é admin ou autor)
+    if (!isAdmin && !isAuthor) {
+      console.error("User does not have permission to delete this post");
+      return false;
+    }
+    
+    // Excluir o post
+    const { error } = await supabase
+      .from("posts")
+      .delete()
+      .eq("id", postId);
+    
+    if (error) {
+      console.error("Error deleting post:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    return false;
+  }
+};
+
+export const togglePinPost = async (postId: string, isPinned: boolean): Promise<boolean> => {
+  try {
+    console.log(`${isPinned ? 'Fixando' : 'Desafixando'} post ${postId}`);
+    
+    const { data, error } = await supabase
+      .from('posts')
+      .update({ is_pinned: isPinned })
+      .eq('id', postId);
+      
+    if (error) {
+      console.error(`Erro ao ${isPinned ? 'fixar' : 'desafixar'} post:`, error);
+      return false;
+    }
+    
+    console.log(`Post ${isPinned ? 'fixado' : 'desafixado'} com sucesso`);
+    return true;
+  } catch (error) {
+    console.error(`Erro ao ${isPinned ? 'fixar' : 'desafixar'} post:`, error);
+    return false;
   }
 };

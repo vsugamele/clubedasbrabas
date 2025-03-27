@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -13,7 +12,7 @@ interface MessageType {
   is_read: boolean;
 }
 
-interface ContactType {
+export interface ContactType {
   id: string;
   full_name: string;
   username: string;
@@ -26,10 +25,12 @@ interface MessagesContextProps {
   selectedContact: ContactType | null;
   setSelectedContact: React.Dispatch<React.SetStateAction<ContactType | null>>;
   contacts: ContactType[];
+  allMembers: ContactType[];
   messages: MessageType[];
   newMessage: string;
   setNewMessage: React.Dispatch<React.SetStateAction<string>>;
   loading: boolean;
+  loadingMembers: boolean;
   searchQuery: string;
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   sendMessage: (e: React.FormEvent) => Promise<void>;
@@ -38,13 +39,23 @@ interface MessagesContextProps {
 
 const MessagesContext = createContext<MessagesContextProps | undefined>(undefined);
 
-export const MessagesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface MessagesProviderProps {
+  children: React.ReactNode;
+  initialSelectedContact?: ContactType;
+}
+
+export const MessagesProvider: React.FC<MessagesProviderProps> = ({ 
+  children, 
+  initialSelectedContact 
+}) => {
   const { user } = useAuth();
-  const [selectedContact, setSelectedContact] = useState<ContactType | null>(null);
+  const [selectedContact, setSelectedContact] = useState<ContactType | null>(initialSelectedContact || null);
   const [contacts, setContacts] = useState<ContactType[]>([]);
+  const [allMembers, setAllMembers] = useState<ContactType[]>([]);
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMembers, setLoadingMembers] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -73,6 +84,11 @@ export const MessagesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           ...receivedMessages.map(msg => msg.sender_id)
         ]);
 
+        // Adicionar o contato inicial se não estiver na lista
+        if (initialSelectedContact && !userIds.has(initialSelectedContact.id)) {
+          userIds.add(initialSelectedContact.id);
+        }
+
         // Fetch user profiles
         if (userIds.size > 0) {
           const { data: profilesData, error: profilesError } = await supabase
@@ -92,69 +108,63 @@ export const MessagesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 .eq("receiver_id", user.id)
                 .eq("is_read", false);
 
+              if (countError) throw countError;
+
               return {
-                ...profile,
-                unread_count: countError ? 0 : (count || 0)
-              } as ContactType;
+                id: profile.id,
+                full_name: profile.full_name,
+                username: profile.username,
+                avatar_url: profile.avatar_url,
+                unread_count: count || 0
+              };
             })
           );
 
           setContacts(contactsWithUnread);
         }
+
+        setLoading(false);
       } catch (error) {
-        console.error("Error loading contacts:", error);
+        console.error("Error fetching contacts:", error);
         toast.error("Erro ao carregar contatos");
-      } finally {
         setLoading(false);
       }
     };
 
     fetchContacts();
+    fetchAllMembers();
+  }, [user, initialSelectedContact]);
 
-    // Subscribe to new messages
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'direct_messages',
-          filter: `receiver_id=eq.${user.id}`
-        },
-        async (payload) => {
-          // Update messages if currently viewing chat with sender
-          if (selectedContact && payload.new.sender_id === selectedContact.id) {
-            setMessages(prev => [...prev, payload.new as MessageType]);
-            
-            // Mark as read
-            await supabase
-              .from("direct_messages")
-              .update({ is_read: true })
-              .eq("id", payload.new.id);
-          }
-          
-          // Update contacts/unread count
-          fetchContacts();
-          
-          // Show notification
-          if (payload.new.sender_id !== user.id) {
-            const { data: sender } = await supabase
-              .from("profiles")
-              .select("full_name")
-              .eq("id", payload.new.sender_id)
-              .single();
-              
-            toast(`Nova mensagem de ${sender?.full_name || "Usuário"}`);
-          }
-        }
-      )
-      .subscribe();
+  // Função para buscar todos os membros ativos
+  const fetchAllMembers = async () => {
+    if (!user) return;
+    
+    setLoadingMembers(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .neq("id", user.id) // Excluir o usuário atual
+        .order("full_name", { ascending: true });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, selectedContact]);
+      if (error) throw error;
+
+      const membersWithUnreadCount = data.map(profile => ({
+        id: profile.id,
+        full_name: profile.full_name,
+        username: profile.username,
+        avatar_url: profile.avatar_url,
+        unread_count: 0 // Inicialmente zero, podemos atualizar depois se necessário
+      }));
+
+      setAllMembers(membersWithUnreadCount);
+      setLoadingMembers(false);
+    } catch (error) {
+      console.error("Erro ao buscar membros:", error);
+      toast.error("Erro ao carregar membros");
+      setLoadingMembers(false);
+    }
+  };
 
   useEffect(() => {
     if (!user || !selectedContact) return;
@@ -167,56 +177,88 @@ export const MessagesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedContact.id}),and(sender_id.eq.${selectedContact.id},receiver_id.eq.${user.id})`)
           .order("created_at", { ascending: true });
 
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
 
         setMessages(data || []);
 
         // Mark messages as read
-        await supabase
-          .from("direct_messages")
-          .update({ is_read: true })
-          .eq("sender_id", selectedContact.id)
-          .eq("receiver_id", user.id)
-          .eq("is_read", false);
-          
-        // Update unread count
-        setContacts(prev => 
-          prev.map(contact => 
-            contact.id === selectedContact.id 
-              ? { ...contact, unread_count: 0 } 
-              : contact
-          )
+        const unreadMessages = data?.filter(
+          msg => msg.sender_id === selectedContact.id && !msg.is_read
         );
+
+        if (unreadMessages && unreadMessages.length > 0) {
+          await supabase
+            .from("direct_messages")
+            .update({ is_read: true })
+            .in("id", unreadMessages.map(msg => msg.id));
+
+          // Update unread count in contacts
+          setContacts(prev => 
+            prev.map(contact => 
+              contact.id === selectedContact.id 
+                ? { ...contact, unread_count: 0 } 
+                : contact
+            )
+          );
+        }
       } catch (error) {
-        console.error("Error loading messages:", error);
+        console.error("Error fetching messages:", error);
         toast.error("Erro ao carregar mensagens");
       }
     };
 
     fetchMessages();
+
+    // Setup realtime subscription
+    const channel = supabase
+      .channel("direct_messages")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "direct_messages",
+          filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedContact.id}),and(sender_id=eq.${selectedContact.id},receiver_id=eq.${user.id}))`,
+        },
+        (payload) => {
+          const newMessage = payload.new as MessageType;
+          
+          setMessages(prev => [...prev, newMessage]);
+          
+          // If message is from the selected contact, mark as read
+          if (newMessage.sender_id === selectedContact.id) {
+            supabase
+              .from("direct_messages")
+              .update({ is_read: true })
+              .eq("id", newMessage.id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user, selectedContact]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user || !selectedContact) return;
+    
+    if (!user || !selectedContact || !newMessage.trim()) return;
 
     try {
       const { data, error } = await supabase
         .from("direct_messages")
         .insert({
+          content: newMessage.trim(),
           sender_id: user.id,
           receiver_id: selectedContact.id,
-          content: newMessage.trim()
+          is_read: false
         })
         .select();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      setMessages(prev => [...prev, data[0] as MessageType]);
       setNewMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
@@ -224,9 +266,15 @@ export const MessagesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  // Filter contacts based on search query
   const filteredContacts = contacts.filter(contact => 
     contact.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     contact.username.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredMembers = allMembers.filter(member =>
+    member.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -235,10 +283,12 @@ export const MessagesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         selectedContact,
         setSelectedContact,
         contacts,
+        allMembers: filteredMembers,
         messages,
         newMessage,
         setNewMessage,
         loading,
+        loadingMembers,
         searchQuery,
         setSearchQuery,
         sendMessage,
@@ -257,5 +307,3 @@ export const useMessages = () => {
   }
   return context;
 };
-
-export type { MessageType, ContactType };

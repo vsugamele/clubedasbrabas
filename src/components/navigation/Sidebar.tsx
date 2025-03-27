@@ -9,7 +9,9 @@ import {
   ExternalLink,
   Hash,
   Folder,
-  RefreshCw
+  RefreshCw,
+  Crown, // Ícone para Área de Membro
+  BookOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,6 +41,7 @@ interface NavItemProps {
   active?: boolean;
   onClick?: () => void;
   external?: boolean;
+  highlighted?: boolean;
 }
 
 interface SidebarCategory {
@@ -57,22 +60,27 @@ interface ExternalLink {
   name: string;
   url: string;
   order_index: number;
+  highlighted?: boolean;
 }
 
-const NavItem = ({ href, icon, label, active, onClick, external }: NavItemProps) => {
+const NavItem = ({ href, icon, label, active, onClick, external, highlighted }: NavItemProps) => {
   // Componente comum para estilização
   const commonClassNames = cn(
     "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
-    active 
-      ? "bg-gradient-to-r from-orange-100/80 to-orange-50/50 text-orange-600 dark:from-orange-900/30 dark:to-orange-800/20 dark:text-orange-400" 
-      : "hover:bg-gray-100/80 text-gray-700 dark:hover:bg-gray-800/50 dark:text-gray-300"
+    highlighted 
+      ? "bg-gradient-to-r from-blue-100 to-blue-50 text-blue-600 dark:from-blue-900/30 dark:to-blue-800/20 dark:text-blue-400 font-semibold shadow-sm"
+      : active 
+        ? "bg-gradient-to-r from-orange-100/80 to-orange-50/50 text-orange-600 dark:from-orange-900/30 dark:to-orange-800/20 dark:text-orange-400" 
+        : "hover:bg-gray-100/80 text-gray-700 dark:hover:bg-gray-800/50 dark:text-gray-300"
   );
   
   const iconClassNames = cn(
     "p-1.5 rounded-md transition-colors",
-    active 
-      ? "text-orange-600 dark:text-orange-400" 
-      : "text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300"
+    highlighted
+      ? "text-blue-600 dark:text-blue-400"
+      : active 
+        ? "text-orange-600 dark:text-orange-400" 
+        : "text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300"
   );
   
   // Renderizar um elemento <a> para links externos
@@ -88,7 +96,7 @@ const NavItem = ({ href, icon, label, active, onClick, external }: NavItemProps)
         <span className={iconClassNames}>
           {icon}
         </span>
-        <span className="font-medium">{label}</span>
+        <span className={cn("font-medium", highlighted && "font-semibold")}>{label}</span>
         <ExternalLink className="h-3.5 w-3.5 ml-auto opacity-70" />
       </a>
     );
@@ -104,7 +112,7 @@ const NavItem = ({ href, icon, label, active, onClick, external }: NavItemProps)
       <span className={iconClassNames}>
         {icon}
       </span>
-      <span className="font-medium">{label}</span>
+      <span className={cn("font-medium", highlighted && "font-semibold")}>{label}</span>
     </Link>
   );
 };
@@ -157,7 +165,7 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
             const { data: communitiesData, error: communitiesError } = await retryOperation(async () => {
               return await supabase
                 .from('communities')
-                .select('id, name, icon')
+                .select('id, name, icon, category_id')
                 .eq('category_id', category.id);
             }, 3);
                 
@@ -170,6 +178,8 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
                 communities: []
               };
             }
+            
+            console.log(`Comunidades da categoria ${category.name} (ID: ${category.id}):`, communitiesData);
             
             // Adicionamos ícones padrão apenas para comunidades que não têm ícone definido
             const communitiesWithIcons = communitiesData?.map(community => {
@@ -196,7 +206,7 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
               };
             }) || [];
             
-            console.log(`Comunidades na categoria ${category.name}:`, communitiesWithIcons);
+            console.log(`Comunidades na categoria ${category.name} (ID: ${category.id}):`, communitiesWithIcons);
             
             return {
               id: category.id,
@@ -222,42 +232,48 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
       }
       
       // Carregamos todas as comunidades sem categoria
-      const { data: communitiesData, error: communitiesError } = await retryOperation(async () => {
+      const { data: communitiesWithoutCategoryData, error: communitiesError } = await retryOperation(async () => {
         return await supabase
           .from('communities')
           .select('id, name, icon')
           .is('category_id', null);
       }, 3);
-          
-      if (communitiesError) throw communitiesError;
       
-      // Adicionamos ícones padrão apenas para comunidades que não têm ícone definido
-      const communitiesWithoutCategoryWithIcons = communitiesData?.map(community => {
-        // Usamos type assertion para acessar a propriedade icon com segurança
-        const communityWithIcon = community as any;
+      if (communitiesError) {
+        console.error("Erro ao buscar comunidades sem categoria:", communitiesError);
+        setCommunitiesWithoutCategory([]);
+      } else {
+        console.log("Comunidades sem categoria:", communitiesWithoutCategoryData);
         
-        // Se a comunidade já tiver um ícone, usamos ele
-        if (communityWithIcon.icon) {
-          return communityWithIcon;
-        }
-        
-        // Verificamos se é a comunidade "Sejam Bem Vindas" para atribuir o emoji de coração
-        if (communityWithIcon.name === "Sejam Bem Vindas") {
+        // Adicionar ícones padrão para comunidades sem categoria
+        const communitiesWithIcons = communitiesWithoutCategoryData?.map(community => {
+          // Usamos type assertion para acessar a propriedade icon com segurança
+          const communityWithIcon = community as any;
+          
+          // Se a comunidade já tiver um ícone, usamos ele
+          if (communityWithIcon.icon) {
+            return communityWithIcon;
+          }
+          
+          // Verificamos se é a comunidade "Sejam Bem Vindas" para atribuir o emoji de coração
+          if (communityWithIcon.name === "Sejam Bem Vindas") {
+            console.log("Encontrada comunidade 'Sejam Bem Vindas' sem categoria");
+            return {
+              ...communityWithIcon,
+              icon: '❤️' // Emoji de coração
+            };
+          }
+          
+          // Caso contrário, geramos um ícone com base no nome
           return {
             ...communityWithIcon,
-            icon: '❤️' // Emoji de coração
+            icon: getDefaultIcon(communityWithIcon.name)
           };
-        }
+        }) || [];
         
-        // Caso contrário, geramos um ícone com base no nome
-        return {
-          ...communityWithIcon,
-          icon: getDefaultIcon(communityWithIcon.name)
-        };
-      }) || [];
-      
-      console.log("Comunidades sem categoria:", communitiesWithoutCategoryWithIcons);
-      setCommunitiesWithoutCategory(communitiesWithoutCategoryWithIcons);
+        console.log("Comunidades sem categoria com ícones:", communitiesWithIcons);
+        setCommunitiesWithoutCategory(communitiesWithIcons);
+      }
       
       // Removida a consulta aos links externos, pois agora usamos o ExternalLinksProvider
       
@@ -434,8 +450,12 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
                           category.communities.map(community => (
                             <Link 
                               key={community.id} 
-                              to={`/?community=${community.id}`}
-                              onClick={onClose}
+                              to={`/?community=${community.id}&category=${category.id}`}
+                              onClick={() => {
+                                console.log(`Navegando para comunidade ${community.name} (ID: ${community.id}) na categoria ${category.name} (ID: ${category.id})`);
+                                console.log(`Link gerado: /?community=${community.id}&category=${category.id}`);
+                                if (onClose) onClose();
+                              }}
                             >
                               <div 
                                 className={cn(
@@ -479,7 +499,12 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
                           <Link 
                             key={community.id} 
                             to={`/?community=${community.id}`}
-                            onClick={onClose}
+                            onClick={() => {
+                              console.log(`Navegando para comunidade sem categoria ${community.name} (ID: ${community.id})`);
+                              console.log(`Comunidade sem categoria: ${community.name} (ID: ${community.id})`);
+                              console.log(`Link gerado: /?community=${community.id}`);
+                              if (onClose) onClose();
+                            }}
                           >
                             <div 
                               className={cn(
@@ -510,10 +535,13 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
                   <NavItem
                     key={link.id}
                     href={link.url}
-                    icon={<ExternalLink className="h-5 w-5" />}
+                    icon={link.name === "Área de Membro" ? 
+                          <Crown className="h-5 w-5" /> : 
+                          <ExternalLink className="h-5 w-5" />}
                     label={link.name}
                     onClick={onClose}
                     external={true}
+                    highlighted={link.highlighted}
                   />
                 ))}
               </div>

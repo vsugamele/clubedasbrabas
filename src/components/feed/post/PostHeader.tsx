@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/context/auth";
 
 interface PostHeaderProps {
   author: {
@@ -55,6 +55,22 @@ export const PostHeader = ({
     return <div className="p-4">Post information is incomplete</div>;
   }
 
+  // Obter informações do usuário logado
+  const { user } = useAuth();
+  
+  // Verificar se o usuário atual é o autor do post
+  const isAuthor = user && user.id === author.id;
+  
+  // Verificar se o usuário é administrador (usando email)
+  // Esta abordagem evita a verificação de papéis que causa recursão infinita
+  const userEmail = user?.email;
+  const isAdmin = userEmail === "souzadecarvalho1986@gmail.com" || 
+                  userEmail === "vsugamele@gmail.com" ||
+                  userEmail === "admin@example.com";
+  
+  // Verificar se o usuário pode excluir o post (é administrador, moderador ou autor)
+  const canDelete = onDelete && (isAdmin || isModerator || isAuthor);
+
   return (
     <div className="p-4 flex flex-row items-start justify-between space-y-0">
       <div className="flex items-start gap-3">
@@ -66,7 +82,7 @@ export const PostHeader = ({
         </Avatar>
         <div>
           <div className="flex items-center gap-2">
-            <Link to={`/perfil/${author.id}`} className="font-medium hover:underline">
+            <Link to={`/profile/${author.id}`} className="font-medium hover:underline text-gray-800 dark:text-gray-200">
               {author.name}
             </Link>
             {author.role && (
@@ -110,6 +126,34 @@ export const PostHeader = ({
             <Flag className="mr-2 h-4 w-4" />
             Denunciar publicação
           </DropdownMenuItem>
+          
+          {/* Botão de excluir para autor do post ou moderadores */}
+          {canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-500">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Excluir publicação
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir publicação</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja excluir esta publicação? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={onDelete}>
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          
+          {/* Opções adicionais apenas para moderadores */}
           {isModerator && (
             <>
               <DropdownMenuSeparator />
@@ -123,31 +167,6 @@ export const PostHeader = ({
                   <Pin className="mr-2 h-4 w-4" />
                   {isPinned ? "Desafixar publicação" : "Fixar publicação"}
                 </DropdownMenuItem>
-              )}
-              
-              {onDelete && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-500">
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Excluir publicação
-                    </DropdownMenuItem>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Excluir publicação</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tem certeza que deseja excluir esta publicação? Esta ação não pode ser desfeita.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={onDelete}>
-                        Excluir
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
               )}
             </>
           )}

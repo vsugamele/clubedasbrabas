@@ -4,6 +4,7 @@ import Profile from "@/pages/Profile";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
 import Admin from "@/pages/Admin";
+import Events from "@/pages/Events";
 import { useAuth } from "./context/auth";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
@@ -283,6 +284,8 @@ const App = () => {
       <Route path="/messages" element={<ProtectedRoute element={<Messages />} />} />
       <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
       <Route path="/profile/:id" element={<ProtectedRoute element={<Profile />} />} />
+      <Route path="/eventos" element={<ProtectedRoute element={<Events />} />} />
+      <Route path="/eventos/:id" element={<ProtectedRoute element={<Events />} />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

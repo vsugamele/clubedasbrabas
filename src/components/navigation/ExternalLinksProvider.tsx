@@ -7,23 +7,25 @@ export interface ExternalLink {
   name: string;
   url: string;
   order_index: number;
+  highlighted?: boolean; // Novo campo para indicar se o link deve ser destacado
 }
 
 // Definir os links padrão que queremos ter sempre disponíveis
 const defaultLinks: Omit<ExternalLink, 'id'>[] = [
   {
+    name: 'Área de Membro',
+    url: 'https://plataforma.haireducation.com.br/',
+    order_index: 1,
+    highlighted: true // Destacar este link
+  },
+  {
     name: 'Formação JP Hair Education',
     url: 'https://jphaireducation.com/',
-    order_index: 1
+    order_index: 2
   },
   {
     name: 'JP Hair Collection',
     url: 'https://jpcollections.com.br/',
-    order_index: 2
-  },
-  {
-    name: 'Área de Membro',
-    url: 'https://plataforma.haireducation.com.br/',
     order_index: 3
   },
   {

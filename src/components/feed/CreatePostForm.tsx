@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +15,8 @@ import {
   Hash
 } from "lucide-react";
 import {
-  Avatar,
-  AvatarImage,
+  Avatar, 
+  AvatarImage, 
   AvatarFallback,
 } from "@/components/ui/Avatar";
 import {
@@ -45,6 +45,16 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
+import MentionSuggestions from "./MentionSuggestions";
+import { searchUsersForMention, UserMention } from "@/services/userService";
+
+// Interface para usuários mencionados
+// interface UserMention {
+//   id: string;
+//   username: string;
+//   full_name: string;
+//   avatar_url: string | null;
+// }
 
 const getInitials = (name: string) => {
   return name
@@ -67,6 +77,7 @@ interface Category {
   communities: {
     id: string;
     name: string;
+    posting_restrictions?: string;
   }[];
 }
 
@@ -79,7 +90,7 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [categories, setCategories] = useState<Category[]>([]);
-  const [communitiesWithoutCategory, setCommunitiesWithoutCategory] = useState<{id: string, name: string}[]>([]);
+  const [communitiesWithoutCategory, setCommunitiesWithoutCategory] = useState<{id: string, name: string, posting_restrictions?: string}[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   
@@ -97,6 +108,88 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
   
+  // Menção de usuários
+  const [mentionSearch, setMentionSearch] = useState<string | null>(null);
+  const [mentionUsers, setMentionUsers] = useState<UserMention[]>([]);
+  const [isMentionLoading, setIsMentionLoading] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Estado para armazenar se o usuário é admin
+  const [userIsAdmin, setUserIsAdmin] = useState(false);
+
+  // Verificar se o usuário é administrador
+  const isAdmin = useCallback(async () => {
+    if (!user?.id) return false;
+    
+    try {
+      // Solução alternativa para contornar o problema de recursão infinita
+      // Verificar se o email do usuário está na lista de emails de administradores conhecidos
+      const adminEmails = ['souzadecarvalho1986@gmail.com', 'vsugamele@gmail.com', 'admin@example.com'];
+      
+      if (user.email && adminEmails.includes(user.email)) {
+        console.log("Usuário é administrador (verificado por email)");
+        return true;
+      }
+      
+      // Tentar verificar diretamente na tabela profiles se o usuário é admin
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
+          
+        if (!profileError && profileData && 'is_admin' in profileData && profileData.is_admin) {
+          console.log("Usuário é administrador (verificado por is_admin)");
+          return true;
+        }
+      } catch (profileErr) {
+        console.error("Erro ao verificar is_admin:", profileErr);
+      }
+      
+      // Apenas se as verificações anteriores falharem, tentar a verificação original
+      // que pode causar o erro de recursão infinita
+      try {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (error) {
+          console.error("Erro ao verificar papel do usuário:", error);
+          return false;
+        }
+        
+        return data?.role === 'admin';
+      } catch (err) {
+        console.error("Erro ao verificar papel do usuário:", err);
+        return false;
+      }
+    } catch (err) {
+      console.error("Erro ao verificar papel do usuário:", err);
+      return false;
+    }
+  }, [user?.id, user?.email]);
+
+  // Função para verificar se o usuário pode postar em uma comunidade
+  const canPostInCommunity = useCallback((posting_restrictions?: string) => {
+    if (!posting_restrictions || posting_restrictions === 'all_members') {
+      return true;
+    }
+    return userIsAdmin;
+  }, [userIsAdmin]);
+  
+  // Carregar o status de admin do usuário
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const adminStatus = await isAdmin();
+      setUserIsAdmin(adminStatus);
+    };
+    
+    checkAdminStatus();
+  }, [isAdmin]);
+  
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -108,16 +201,18 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
         // Carregamos todas as comunidades
         const { data: communitiesData, error: communitiesError } = await supabase
           .from('communities')
-          .select('id, name, category_id');
+          .select('id, name, category_id, posting_restrictions');
           
         if (communitiesError) throw communitiesError;
         
-        // Comunidades sem categoria
+        // Comunidades sem categoria - filtrando por permissões
         const communitiesWithoutCat = communitiesData
           .filter(community => !community.category_id)
+          .filter(community => canPostInCommunity(community.posting_restrictions))
           .map(community => ({
             id: community.id,
-            name: community.name
+            name: community.name,
+            posting_restrictions: community.posting_restrictions
           }));
             
         setCommunitiesWithoutCategory(communitiesWithoutCat);
@@ -126,9 +221,11 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
         const categoriesWithCommunities: Category[] = categoriesData.map(category => {
           const communitiesInCategory = communitiesData
             .filter(community => community.category_id === category.id)
+            .filter(community => canPostInCommunity(community.posting_restrictions))
             .map(community => ({
               id: community.id,
-              name: community.name
+              name: community.name,
+              posting_restrictions: community.posting_restrictions
             }));
             
           return {
@@ -140,12 +237,12 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
         });
         
         // Filtro para mostrar apenas categorias que têm comunidades
-        // const filteredCategories = categoriesWithCommunities.filter(
-        //   category => category.communities.length > 0
-        // );
+        const filteredCategories = categoriesWithCommunities.filter(
+          category => category.communities.length > 0
+        );
         
-        // Mostramos todas as categorias, mesmo as vazias
-        setCategories(categoriesWithCommunities);
+        // Mostramos apenas categorias que têm comunidades onde o usuário pode postar
+        setCategories(filteredCategories);
         
         if (categoriesData.length > 0 && !categoryId) {
           setCategoryId(categoriesData[0].id);
@@ -163,7 +260,7 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
     };
     
     loadData();
-  }, [communityId]);
+  }, [communityId, canPostInCommunity]);
   
   const handleAttachmentUpload = () => {
     if (fileInputRef.current) {
@@ -220,6 +317,23 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
     if (type === 'community') {
       setSelectedCommunityId(value);
       setSelectedOption(value);
+      
+      // Encontrar a categoria da comunidade selecionada
+      for (const category of categories) {
+        const community = category.communities.find(c => c.id === value);
+        if (community) {
+          console.log(`Comunidade ${community.name} encontrada na categoria ${category.name} (ID: ${category.id})`);
+          setCategoryId(category.id);
+          return;
+        }
+      }
+      
+      // Se a comunidade não estiver em nenhuma categoria, verificar nas comunidades sem categoria
+      const communityWithoutCategory = communitiesWithoutCategory.find(c => c.id === value);
+      if (communityWithoutCategory) {
+        console.log(`Comunidade ${communityWithoutCategory.name} não está em nenhuma categoria`);
+        setCategoryId("");
+      }
     } else if (type === 'category') {
       setCategoryId(value);
       setSelectedCommunityId(null);
@@ -340,6 +454,99 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
     }
   };
   
+  // Função para lidar com a digitação no textarea
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    setContent(newContent);
+    
+    // Verificar se o usuário está tentando mencionar alguém
+    const cursorPosition = e.target.selectionStart;
+    const textBeforeCursor = newContent.substring(0, cursorPosition);
+    
+    // Encontrar a última ocorrência de @ antes do cursor
+    const lastAtSymbol = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtSymbol !== -1) {
+      // Verificar se há um espaço entre o último @ e o cursor
+      const textBetweenAtAndCursor = textBeforeCursor.substring(lastAtSymbol + 1);
+      
+      // Condição simplificada: se @ está no início ou precedido por espaço/quebra de linha
+      const isValidMention = lastAtSymbol === 0 || 
+                            textBeforeCursor[lastAtSymbol - 1] === ' ' || 
+                            textBeforeCursor[lastAtSymbol - 1] === '\n';
+      
+      if (!textBetweenAtAndCursor.includes(' ') && isValidMention) {
+        // Usuário está digitando uma menção
+        const searchTerm = textBetweenAtAndCursor;
+        setMentionSearch(searchTerm);
+        return;
+      }
+    }
+    
+    // Se chegou aqui, não está digitando uma menção
+    setMentionSearch(null);
+  };
+  
+  // Buscar usuários para menção
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (mentionSearch === null) {
+        setMentionUsers([]);
+        return;
+      }
+      
+      console.log("Buscando usuários para menção com termo:", mentionSearch);
+      setIsMentionLoading(true);
+      
+      try {
+        const users = await searchUsersForMention(mentionSearch);
+        setMentionUsers(users);
+      } catch (error) {
+        console.error("Erro ao processar menções:", error);
+        setMentionUsers([]);
+      } finally {
+        setIsMentionLoading(false);
+      }
+    };
+    
+    // Executar imediatamente para @ sem termo
+    fetchUsers();
+  }, [mentionSearch]);
+  
+  // Função para selecionar um usuário mencionado
+  const handleSelectMention = (selectedUser: UserMention) => {
+    if (textareaRef.current) {
+      const cursorPosition = textareaRef.current.selectionStart;
+      const textBeforeCursor = content.substring(0, cursorPosition);
+      const textAfterCursor = content.substring(cursorPosition);
+      
+      // Encontrar a última ocorrência de @ antes do cursor
+      const lastAtSymbol = textBeforeCursor.lastIndexOf('@');
+      
+      if (lastAtSymbol !== -1) {
+        // Substituir o texto entre @ e o cursor pela menção
+        const textBeforeAt = textBeforeCursor.substring(0, lastAtSymbol);
+        const newContent = `${textBeforeAt}@${selectedUser.username} ${textAfterCursor}`;
+        
+        setContent(newContent);
+        
+        // Calcular a nova posição do cursor após a menção
+        const newCursorPosition = textBeforeAt.length + selectedUser.username.length + 2; // +2 para @ e espaço
+        
+        // Definir o foco e a posição do cursor após a renderização
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
+          }
+        }, 0);
+      }
+    }
+    
+    // Limpar a busca de menção
+    setMentionSearch(null);
+  };
+  
   if (!user) {
     return (
       <Card>
@@ -366,13 +573,55 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
             </Avatar>
             
             <div className="flex-1 space-y-4">
-              <textarea
-                className="min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Compartilhe algo interessante..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                disabled={isSubmitting}
-              ></textarea>
+              <div className="relative">
+                <textarea
+                  ref={textareaRef}
+                  className="min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Compartilhe algo interessante... Use @ para mencionar usuários"
+                  value={content}
+                  onChange={handleTextareaChange}
+                  disabled={isSubmitting}
+                ></textarea>
+                
+                {mentionSearch !== null && (
+                  <div className="absolute top-full left-0 right-0 mt-1 z-50">
+                    <div className="bg-white dark:bg-gray-800 shadow-lg rounded-md border border-gray-200 dark:border-gray-700 w-full max-h-60 overflow-y-auto">
+                      {isMentionLoading ? (
+                        <div className="p-2 text-sm text-gray-500 dark:text-gray-400">
+                          Buscando usuários...
+                        </div>
+                      ) : mentionUsers.length === 0 ? (
+                        <div className="p-2 text-sm text-gray-500 dark:text-gray-400">
+                          Nenhum usuário encontrado
+                        </div>
+                      ) : (
+                        <ul className="py-1">
+                          {mentionUsers.map((user, index) => (
+                            <li 
+                              key={user.id}
+                              className="px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                              onClick={() => handleSelectMention(user)}
+                            >
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={user.avatar_url || undefined} alt={user.full_name} />
+                                <AvatarFallback>
+                                  {getInitials(user.full_name || user.username)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium text-sm">{user.full_name || user.username}</div>
+                                {user.username && (
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">@{user.username}</div>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               
               {selectedGif && (
                 <div className="relative rounded-md overflow-hidden">

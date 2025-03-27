@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -25,6 +24,7 @@ const formSchema = z.object({
   timeStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:MM)"),
   timeEnd: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:MM)"),
   location: z.string().optional(),
+  link: z.string().url("O link deve ser uma URL válida").optional(),
 });
 
 interface EventFormDialogProps {
@@ -48,8 +48,35 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSuccess }: EventF
       timeStart: event?.timeStart || "09:00",
       timeEnd: event?.timeEnd || "17:00",
       location: event?.location || "",
+      link: event?.link || "",
     },
   });
+  
+  useEffect(() => {
+    if (event) {
+      form.reset({
+        title: event.title,
+        description: event.description,
+        presenter: event.presenter,
+        date: new Date(event.date),
+        timeStart: event.timeStart,
+        timeEnd: event.timeEnd,
+        location: event.location || "",
+        link: event.link || "",
+      });
+    } else {
+      form.reset({
+        title: "",
+        description: "",
+        presenter: "",
+        date: new Date(),
+        timeStart: "09:00",
+        timeEnd: "17:00",
+        location: "",
+        link: "",
+      });
+    }
+  }, [event, form]);
   
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setLoading(true);
@@ -62,6 +89,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSuccess }: EventF
         timeStart: values.timeStart,
         timeEnd: values.timeEnd,
         location: values.location,
+        link: values.link,
       };
       
       if (isEditing && event) {
@@ -205,6 +233,24 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSuccess }: EventF
                 )}
               />
             </div>
+            
+            <FormField
+              control={form.control}
+              name="link"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Link (opcional)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Link do evento"
+                      className="border-[#ff920e]/20 focus-visible:ring-[#ff4400]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField

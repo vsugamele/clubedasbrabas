@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Event, EventForm, mapEventFromSupabase } from "../communities/types";
 import { toast } from "sonner";
@@ -49,7 +48,8 @@ export const addEvent = async (form: EventForm): Promise<Event> => {
       date: form.date.toISOString(),
       time_start: form.timeStart,
       time_end: form.timeEnd,
-      location: form.location
+      location: form.location,
+      link: form.link
     };
     
     // Use fetchWithTimeout para evitar problemas de conexão
@@ -90,6 +90,7 @@ export const addEvent = async (form: EventForm): Promise<Event> => {
       timeStart: form.timeStart,
       timeEnd: form.timeEnd,
       location: form.location,
+      link: form.link,
       createdAt: new Date().toISOString()
     };
   }
@@ -105,7 +106,8 @@ export const updateEvent = async (id: string, form: EventForm): Promise<Event> =
       date: form.date.toISOString(),
       time_start: form.timeStart,
       time_end: form.timeEnd,
-      location: form.location
+      location: form.location,
+      link: form.link
     };
     
     // Use fetchWithTimeout para evitar problemas de conexão
@@ -147,6 +149,7 @@ export const updateEvent = async (id: string, form: EventForm): Promise<Event> =
       timeStart: form.timeStart,
       timeEnd: form.timeEnd,
       location: form.location,
+      link: form.link,
       createdAt: new Date().toISOString()
     };
   }

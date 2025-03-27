@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { useAuth } from "@/context/auth";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -11,12 +12,27 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, MapPin, AtSign, Calendar, Globe, Settings, LogOut } from "lucide-react";
+import SendMessageButton from "@/components/profile/SendMessageButton";
+
+interface ProfileData {
+  id: string;
+  username: string;
+  full_name: string;
+  headline: string;
+  bio: string;
+  location: string;
+  avatar_url: string;
+  language: string;
+}
 
 const Profile = () => {
+  const { id } = useParams<{ id: string }>();
   const { user, profile, updateProfile, signOut } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [devMode, setDevMode] = useState(false);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [isOwnProfile, setIsOwnProfile] = useState(true);
   const [formData, setFormData] = useState({
     username: "",
     full_name: "",
@@ -48,7 +64,11 @@ const Profile = () => {
   }, []);
 
   useEffect(() => {
-    if (profile) {
+    // Se temos um id na URL, vamos buscar o perfil desse usuário
+    if (id) {
+      fetchProfileById(id);
+    } else if (profile) {
+      // Se não temos id na URL, mostramos o perfil do usuário logado
       setFormData({
         username: profile.username || "",
         full_name: profile.full_name || "",
@@ -58,8 +78,52 @@ const Profile = () => {
         avatar_url: profile.avatar_url || "",
         language: profile.language || "Português"
       });
+      setProfileData(profile);
     }
-  }, [profile]);
+  }, [id, profile, user]);
+
+  useEffect(() => {
+    // Verificar se o usuário atual é o dono do perfil
+    if (id && user) {
+      setIsOwnProfile(id === user.id);
+    } else if (!id && user) {
+      setIsOwnProfile(true);
+    } else {
+      setIsOwnProfile(false);
+    }
+  }, [id, user]);
+
+  const fetchProfileById = async (id: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setProfileData(data);
+        setFormData({
+          username: data.username || "",
+          full_name: data.full_name || "",
+          headline: data.headline || "",
+          bio: data.bio || "",
+          location: data.location || "",
+          avatar_url: data.avatar_url || "",
+          language: data.language || "Português"
+        });
+
+      }
+    } catch (error) {
+      console.error("Erro ao buscar perfil:", error);
+      toast.error("Não foi possível carregar o perfil do usuário.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -201,147 +265,162 @@ const Profile = () => {
               </div>
               
               <div className="absolute right-4 bottom-4 flex gap-2">
-                <Sheet open={isEditing} onOpenChange={setIsEditing}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" className="bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Editar Perfil
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-white dark:bg-gray-800">
-                    <SheetHeader>
-                      <SheetTitle className="dark:text-white">Editar Perfil</SheetTitle>
-                      <SheetDescription className="dark:text-gray-300">
-                        Faça alterações no seu perfil aqui. Clique em salvar quando terminar.
-                      </SheetDescription>
-                    </SheetHeader>
-                    
-                    <form onSubmit={handleSubmit} className="space-y-6 mt-6">
-                      <div className="flex flex-col items-center gap-4">
-                        <Avatar className="w-24 h-24 border-2 border-brand-200 dark:border-gray-700">
-                          <AvatarImage 
-                            src={avatarPreview || formData.avatar_url || 'https://via.placeholder.com/150'} 
-                            alt={formData.full_name || 'User'} 
-                          />
-                          <AvatarFallback>
-                            {formData.full_name?.substring(0, 2).toUpperCase() || 'UT'}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="relative">
-                          <input
-                            type="file"
-                            id="avatar"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleAvatarChange}
-                          />
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => document.getElementById('avatar')?.click()}
-                            className="dark:text-white dark:border-gray-600"
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Alterar foto
-                          </Button>
-                        </div>
-                      </div>
+                {isOwnProfile ? (
+                  <Sheet open={isEditing} onOpenChange={setIsEditing}>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" className="bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Editar Perfil
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-white dark:bg-gray-800">
+                      <SheetHeader>
+                        <SheetTitle className="dark:text-white">Editar Perfil</SheetTitle>
+                        <SheetDescription className="dark:text-gray-300">
+                          Faça alterações no seu perfil aqui. Clique em salvar quando terminar.
+                        </SheetDescription>
+                      </SheetHeader>
                       
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                      <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+                        <div className="flex flex-col items-center gap-4">
+                          <Avatar className="w-24 h-24 border-2 border-brand-200 dark:border-gray-700">
+                            <AvatarImage 
+                              src={avatarPreview || formData.avatar_url || 'https://via.placeholder.com/150'} 
+                              alt={formData.full_name || 'User'} 
+                            />
+                            <AvatarFallback>
+                              {formData.full_name?.substring(0, 2).toUpperCase() || 'UT'}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          <div className="relative">
+                            <input
+                              type="file"
+                              id="avatar"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleAvatarChange}
+                            />
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => document.getElementById('avatar')?.click()}
+                              className="dark:text-white dark:border-gray-600"
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Alterar foto
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="full_name" className="dark:text-white">Nome completo</Label>
+                              <Input
+                                id="full_name"
+                                name="full_name"
+                                value={formData.full_name}
+                                onChange={handleChange}
+                                placeholder="Seu nome completo"
+                                className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="username" className="dark:text-white">Nome de usuário</Label>
+                              <Input
+                                id="username"
+                                name="username"
+                                value={formData.username}
+                                onChange={handleChange}
+                                placeholder="Seu username"
+                                className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                              />
+                            </div>
+                          </div>
+                          
                           <div className="space-y-2">
-                            <Label htmlFor="full_name" className="dark:text-white">Nome completo</Label>
+                            <Label htmlFor="headline" className="dark:text-white">Título profissional</Label>
                             <Input
-                              id="full_name"
-                              name="full_name"
-                              value={formData.full_name}
+                              id="headline"
+                              name="headline"
+                              value={formData.headline}
                               onChange={handleChange}
-                              placeholder="Seu nome completo"
+                              placeholder="Ex: Desenvolvedor Full Stack"
                               className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
                             />
                           </div>
                           
                           <div className="space-y-2">
-                            <Label htmlFor="username" className="dark:text-white">Nome de usuário</Label>
-                            <Input
-                              id="username"
-                              name="username"
-                              value={formData.username}
+                            <Label htmlFor="bio" className="dark:text-white">Biografia</Label>
+                            <Textarea
+                              id="bio"
+                              name="bio"
+                              value={formData.bio}
                               onChange={handleChange}
-                              placeholder="Seu username"
+                              placeholder="Conte um pouco sobre você"
+                              rows={4}
+                              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="location" className="dark:text-white">Localização</Label>
+                            <Input
+                              id="location"
+                              name="location"
+                              value={formData.location}
+                              onChange={handleChange}
+                              placeholder="Ex: São Paulo, Brasil"
+                              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="language" className="dark:text-white">Idioma</Label>
+                            <Input
+                              id="language"
+                              name="language"
+                              value={formData.language}
+                              onChange={handleChange}
+                              placeholder="Ex: Português"
                               className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
                             />
                           </div>
                         </div>
                         
-                        <div className="space-y-2">
-                          <Label htmlFor="headline" className="dark:text-white">Título profissional</Label>
-                          <Input
-                            id="headline"
-                            name="headline"
-                            value={formData.headline}
-                            onChange={handleChange}
-                            placeholder="Ex: Desenvolvedor Full Stack"
-                            className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                          />
+                        <div className="flex justify-end gap-2 pt-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsEditing(false)}
+                            className="dark:text-white dark:border-gray-600"
+                          >
+                            Cancelar
+                          </Button>
+                          <Button type="submit" disabled={loading}>
+                            {loading ? "Salvando..." : "Salvar alterações"}
+                          </Button>
                         </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="bio" className="dark:text-white">Biografia</Label>
-                          <Textarea
-                            id="bio"
-                            name="bio"
-                            value={formData.bio}
-                            onChange={handleChange}
-                            placeholder="Conte um pouco sobre você"
-                            rows={4}
-                            className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="location" className="dark:text-white">Localização</Label>
-                          <Input
-                            id="location"
-                            name="location"
-                            value={formData.location}
-                            onChange={handleChange}
-                            placeholder="Ex: São Paulo, Brasil"
-                            className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="language" className="dark:text-white">Idioma</Label>
-                          <Input
-                            id="language"
-                            name="language"
-                            value={formData.language}
-                            onChange={handleChange}
-                            placeholder="Ex: Português"
-                            className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end gap-2 pt-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsEditing(false)}
-                          className="dark:text-white dark:border-gray-600"
-                        >
-                          Cancelar
-                        </Button>
-                        <Button type="submit" disabled={loading}>
-                          {loading ? "Salvando..." : "Salvar alterações"}
-                        </Button>
-                      </div>
-                    </form>
-                  </SheetContent>
-                </Sheet>
+                      </form>
+                    </SheetContent>
+                  </Sheet>
+                ) : (
+                  <>
+                    {profileData && user && (
+                      <SendMessageButton 
+                        userId={profileData.id}
+                        username={profileData.username}
+                        fullName={profileData.full_name}
+                        avatarUrl={profileData.avatar_url}
+                        variant="outline"
+                        className="bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                      />
+                    )}
+                  </>
+                )}
               </div>
             </div>
             

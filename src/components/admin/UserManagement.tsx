@@ -12,16 +12,18 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { UserRole } from './hooks/types';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { PlusCircle, RefreshCw, AlertCircle, ShieldAlert, UserCheck, UserX, Info } from 'lucide-react';
+import { PlusCircle, RefreshCw, AlertCircle, ShieldAlert, UserCheck, UserX, Info, Trash2 } from 'lucide-react';
 import { retryOperation } from '@/integrations/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface UserData {
   id: string;
   email?: string | null;
   username?: string | null;
   full_name?: string | null;
+  contact?: string | null;
   last_sign_in_at?: string | null;
   created_at?: string | null;
 }
@@ -39,6 +41,7 @@ const UserManagement = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -66,7 +69,10 @@ const UserManagement = () => {
                 id: user.id,
                 email: user.email,
                 created_at: user.created_at,
-                last_sign_in_at: user.last_sign_in_at
+                last_sign_in_at: user.last_sign_in_at,
+                contact: null,
+                full_name: null,
+                username: null
               });
             }
           });
@@ -91,11 +97,12 @@ const UserManagement = () => {
             profilesData.forEach(profile => {
               usersMap.set(profile.id, {
                 id: profile.id,
-                email: profile.username, // Usar username como email quando não temos o email real
+                email: profile.username, 
                 username: profile.username,
                 full_name: profile.full_name,
+                contact: null, 
                 last_sign_in_at: null,
-                created_at: profile.updated_at // Use updated_at as fallback for created_at
+                created_at: profile.updated_at 
               });
             });
           } else {
@@ -114,7 +121,10 @@ const UserManagement = () => {
             id: userData.user.id,
             email: userData.user.email,
             created_at: userData.user.created_at,
-            last_sign_in_at: userData.user.last_sign_in_at
+            last_sign_in_at: userData.user.last_sign_in_at,
+            contact: null,
+            full_name: null,
+            username: null
           });
         } else {
           setErrorMessage("Não foi possível obter informações de usuários. Verifique se você está autenticado e tem permissões suficientes.");
@@ -288,7 +298,9 @@ const UserManagement = () => {
         
         toast.info(
           'Usuário criado, mas precisará confirmar o email',
-          { description: 'Você não tem permissões de admin do Supabase para criar usuários diretamente.' }
+          { 
+            description: 'Você não tem permissões de admin do Supabase para criar usuários diretamente.' 
+          }
         );
       }
       
@@ -313,6 +325,60 @@ const UserManagement = () => {
     setRefreshing(true);
     await fetchUsers();
     setRefreshing(false);
+  };
+
+  // Função para deletar um usuário
+  const deleteUser = async (userId: string) => {
+    try {
+      setDeletingUser(true);
+      
+      // Primeiro, verificar se o usuário existe
+      const userToDelete = users.find(user => user.id === userId);
+      if (!userToDelete) {
+        toast.error("Usuário não encontrado");
+        return;
+      }
+      
+      // Deletar o usuário
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (error) {
+        console.error("Erro ao deletar usuário:", error);
+        
+        // Se não tiver permissão de admin, tentar deletar apenas o perfil
+        if (error.message.includes("not authorized") || error.message.includes("permission")) {
+          toast.info("Tentando deletar apenas o perfil do usuário...");
+          
+          // Deletar o perfil do usuário
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', userId);
+            
+          if (profileError) {
+            toast.error(`Erro ao deletar perfil: ${profileError.message}`);
+            return;
+          }
+          
+          toast.success("Perfil do usuário deletado com sucesso");
+          setUsers(users.filter(user => user.id !== userId));
+          return;
+        }
+        
+        toast.error(`Erro ao deletar usuário: ${error.message}`);
+        return;
+      }
+      
+      toast.success("Usuário deletado com sucesso");
+      
+      // Atualizar a lista de usuários
+      setUsers(users.filter(user => user.id !== userId));
+    } catch (error: any) {
+      console.error("Erro ao deletar usuário:", error);
+      toast.error(`Erro ao deletar usuário: ${error.message}`);
+    } finally {
+      setDeletingUser(false);
+    }
   };
 
   const formatDate = (dateString: string | null | undefined) => {
@@ -499,7 +565,9 @@ const UserManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Usuário</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Contato</TableHead>
                   <TableHead>Criado em</TableHead>
                   <TableHead>Último login</TableHead>
                   <TableHead>Papel</TableHead>
@@ -510,7 +578,10 @@ const UserManagement = () => {
                 {users.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">
-                      {getUserDisplayEmail(user)}
+                      {user.full_name || user.username || "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      {user.email || "N/A"}
                       {user.email && isAdminByEmail(user.email) && (
                         <TooltipProvider>
                           <Tooltip>
@@ -527,6 +598,7 @@ const UserManagement = () => {
                         </TooltipProvider>
                       )}
                     </TableCell>
+                    <TableCell>{user.contact || "Não disponível"}</TableCell>
                     <TableCell>{formatDate(user.created_at)}</TableCell>
                     <TableCell>{formatDate(user.last_sign_in_at)}</TableCell>
                     <TableCell>
@@ -535,20 +607,52 @@ const UserManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Select
-                        value={getUserRoleFromCache(user.id)}
-                        onValueChange={(value) => handleRoleChange(user.id, value as UserRole)}
-                        disabled={updatingRole && updatingUserId === user.id}
-                      >
-                        <SelectTrigger className="w-[110px]">
-                          <SelectValue placeholder="Selecionar papel" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">Usuário</SelectItem>
-                          <SelectItem value="moderator">Moderador</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex justify-end gap-2">
+                        <Select
+                          value={getUserRoleFromCache(user.id)}
+                          onValueChange={(value) => handleRoleChange(user.id, value as UserRole)}
+                          disabled={updatingRole && updatingUserId === user.id}
+                        >
+                          <SelectTrigger className="w-[110px]">
+                            <SelectValue placeholder="Selecionar papel" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="user">Usuário</SelectItem>
+                            <SelectItem value="moderator">Moderador</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="destructive" 
+                              size="icon"
+                              className="h-10 w-10"
+                              disabled={deletingUser}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Deletar Usuário</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja deletar o usuário {getUserDisplayEmail(user)}? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction 
+                                className="bg-red-500 hover:bg-red-600"
+                                onClick={() => deleteUser(user.id)}
+                              >
+                                Deletar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
