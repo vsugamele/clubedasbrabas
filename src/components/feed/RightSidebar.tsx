@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import EventsList from "./EventsList";
 import TrendingPosts from "./TrendingPosts";
-import ConnectionSuggestions from "./ConnectionSuggestions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -30,10 +29,9 @@ interface Category {
 interface RightSidebarProps {
   events: Event[];
   trendingPosts: TrendingPost[];
-  connectionSuggestions: string[];
 }
 
-const RightSidebar = ({ events, trendingPosts, connectionSuggestions }: RightSidebarProps) => {
+const RightSidebar = ({ events, trendingPosts }: RightSidebarProps) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -190,8 +188,6 @@ const RightSidebar = ({ events, trendingPosts, connectionSuggestions }: RightSid
           </ul>
         )}
       </div>
-      
-      <ConnectionSuggestions suggestions={connectionSuggestions} />
     </div>
   );
 };

@@ -5,10 +5,8 @@ import MainLayout from "@/components/layout/MainLayout";
 import PostFeed from "@/components/feed/PostFeed";
 import TrendingPosts from "@/components/feed/TrendingPosts";
 import EventsList from "@/components/feed/EventsList";
-import ConnectionSuggestions from "@/components/feed/ConnectionSuggestions";
 import { fetchEvents } from "@/components/admin/events/eventService";
 import { Event } from "@/components/admin/communities/types";
-import { SuggestedConnection, getSuggestedConnections } from "@/services/connectionService";
 
 // Sample data for sidebar components
 const mockTrendingPosts = [
@@ -22,7 +20,6 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [connectionSuggestions, setConnectionSuggestions] = useState<SuggestedConnection[]>([]);
   
   // Obter os parâmetros da URL
   const communityId = searchParams.get('community');
@@ -84,23 +81,7 @@ const Index = () => {
     };
     
     loadEvents();
-    
-    // Carregar sugestões de conexões
-    const loadSuggestions = async () => {
-      if (!user) return;
-      
-      try {
-        const suggestions = await getSuggestedConnections(user.id);
-        setConnectionSuggestions(suggestions);
-      } catch (error) {
-        console.error("Erro ao carregar sugestões de conexões:", error);
-      }
-    };
-    
-    if (user) {
-      loadSuggestions();
-    }
-  }, [user]);
+  }, []);
 
   return (
     <MainLayout>
@@ -114,7 +95,6 @@ const Index = () => {
           <div className="space-y-8">
             <TrendingPosts posts={mockTrendingPosts} />
             <EventsList events={events} />
-            <ConnectionSuggestions suggestions={connectionSuggestions} />
           </div>
         </div>
       </div>
