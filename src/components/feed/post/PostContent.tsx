@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +11,7 @@ interface PostMediaItem {
   type: "image" | "video" | "gif";
   url: string;
   aspectRatio?: number;
+  isBase64?: boolean;
 }
 
 interface PollOption {
@@ -120,12 +120,14 @@ export const PostContent = ({ content, media, poll, postId, onPollVoted }: PostC
                   alt="Media content"
                   className="w-full h-full object-cover transition-transform hover:scale-[1.02] cursor-zoom-in"
                   loading="lazy"
+                  style={item.url.length > 1000 ? { maxHeight: '400px' } : {}}
                 />
               ) : item.type === "video" ? (
                 <video
                   src={item.url}
                   className="w-full h-full object-cover"
                   controls
+                  style={item.url.length > 1000 ? { maxHeight: '400px' } : {}}
                 />
               ) : (
                 <img

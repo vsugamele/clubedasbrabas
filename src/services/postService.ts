@@ -46,6 +46,81 @@ export interface CategoryForm {
   slug: string;
 }
 
+// Função para redimensionar imagens antes do upload
+const resizeImage = async (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.8): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const img = new Image();
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        img.src = e.target?.result as string;
+        
+        img.onload = function() {
+          let width = img.width;
+          let height = img.height;
+          const aspectRatio = width / height;
+          
+          // Calcular novas dimensões mantendo a proporção
+          if (width > maxWidth) {
+            width = maxWidth;
+            height = width / aspectRatio;
+          }
+          
+          if (height > maxHeight) {
+            height = maxHeight;
+            width = height * aspectRatio;
+          }
+          
+          // Criar canvas para redimensionar
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Desenhar imagem redimensionada
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Converter para blob
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error('Falha ao converter canvas para blob'));
+              return;
+            }
+            
+            // Criar novo arquivo
+            const resizedFile = new File([blob], file.name, {
+              type: file.type,
+              lastModified: Date.now()
+            });
+            
+            resolve(resizedFile);
+          }, file.type, quality);
+        };
+      };
+      
+      reader.onerror = function(error) {
+        reject(error);
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Erro ao redimensionar imagem:', error);
+      resolve(file); // Em caso de erro, retorna o arquivo original
+    }
+  });
+};
+
+// Função para converter arquivo para base64
+const fileToBase64 = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
 export const uploadGif = async (gifFile: File): Promise<string | null> => {
   try {
     const timestamp = new Date().getTime();
@@ -68,6 +143,48 @@ export const uploadGif = async (gifFile: File): Promise<string | null> => {
     return gifUrl;
   } catch (error) {
     console.error("Error uploading GIF:", error);
+    return null;
+  }
+};
+
+export const uploadImage = async (imageFile: File): Promise<string | null> => {
+  try {
+    // Redimensionar imagem antes do upload
+    let fileToUpload = imageFile;
+    
+    try {
+      // Apenas redimensionar se for maior que 1200x1200
+      if (imageFile.size > 1024 * 1024) { // Se for maior que 1MB
+        fileToUpload = await resizeImage(imageFile);
+        console.log('Imagem redimensionada com sucesso', {
+          originalSize: imageFile.size,
+          newSize: fileToUpload.size
+        });
+      }
+    } catch (resizeError) {
+      console.warn('Erro ao redimensionar imagem, usando original:', resizeError);
+    }
+    
+    // Tentar usar o método base64 diretamente, já que os buckets estão com problemas
+    console.log("Convertendo imagem para base64...");
+    const base64Image = await fileToBase64(fileToUpload);
+    console.log("Imagem convertida para base64 com sucesso");
+    return base64Image;
+  } catch (error) {
+    console.error("Erro ao processar a imagem:", error);
+    return null;
+  }
+};
+
+export const uploadVideo = async (videoFile: File): Promise<string | null> => {
+  try {
+    // Para vídeos, vamos usar diretamente o base64 também
+    console.log("Convertendo vídeo para base64...");
+    const base64Video = await fileToBase64(videoFile);
+    console.log("Vídeo convertido para base64 com sucesso");
+    return base64Video;
+  } catch (error) {
+    console.error("Erro ao processar o vídeo:", error);
     return null;
   }
 };
@@ -145,7 +262,7 @@ export const votePoll = async (postId: string, optionIndex: number): Promise<boo
       return false;
     }
     
-    const { data: postData, error: postError } = await supabase
+    const { data: post, error: postError } = await supabase
       .from("posts")
       .select("*")
       .eq("id", postId)
@@ -158,10 +275,10 @@ export const votePoll = async (postId: string, optionIndex: number): Promise<boo
     
     let pollData;
     try {
-      if (typeof postData.poll_data === 'string') {
-        pollData = JSON.parse(postData.poll_data);
+      if (typeof post.poll_data === 'string') {
+        pollData = JSON.parse(post.poll_data);
       } else {
-        pollData = postData.poll_data;
+        pollData = post.poll_data;
       }
     } catch (e) {
       console.error("Invalid poll data format:", e);

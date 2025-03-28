@@ -30,7 +30,14 @@ import {
   SelectSeparator
 } from "@/components/ui/select";
 import { postCategories } from "@/data/postCategories";
-import { createPost, fetchCategories, fetchCommunities, uploadGif } from "@/services/postService";
+import { 
+  createPost, 
+  fetchCategories, 
+  fetchCommunities, 
+  uploadGif, 
+  uploadImage, 
+  uploadVideo 
+} from "@/services/postService";
 import type { PostData } from "@/services/postService";
 import { useAuth } from "@/context/auth";
 import { AttachmentsPreview } from "./post/AttachmentsPreview";
@@ -47,6 +54,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import MentionSuggestions from "./MentionSuggestions";
 import { searchUsersForMention, UserMention } from "@/services/userService";
+import { toast } from "sonner";
 
 // Interface para usuários mencionados
 // interface UserMention {
@@ -375,18 +383,35 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!content.trim() && !selectedGif && !showPollCreator) {
+    // Verificar se há conteúdo ou anexos
+    const hasContent = content.trim().length > 0;
+    const hasAttachments = attachments.length > 0;
+    const hasGif = selectedGif !== null;
+    const hasPoll = showPollCreator && pollQuestion.trim() && pollOptions.filter(opt => opt.trim()).length >= 2;
+    
+    // Se não houver conteúdo nem anexos, não prosseguir
+    if (!hasContent && !hasAttachments && !hasGif && !hasPoll) {
+      toast.error("Adicione algum conteúdo à sua publicação.");
       return;
     }
     
     try {
       setIsSubmitting(true);
+      console.log("Iniciando envio de post", { 
+        hasContent, 
+        hasAttachments, 
+        hasGif, 
+        hasPoll,
+        content, 
+        attachmentsCount: attachments.length 
+      });
       
       // Prepare media data
       const mediaData: {
         type: "image" | "video" | "gif";
         url: string;
         aspectRatio?: number;
+        isBase64?: boolean;
       }[] = [];
       
       // Handle GIF if selected
@@ -397,24 +422,149 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
         });
       }
       
+      // Handle file attachments (images and videos)
+      let uploadSuccess = false;
+      
+      if (attachments.length > 0) {
+        console.log("Processando anexos:", attachments);
+        // Upload each attachment
+        for (const file of attachments) {
+          let url = null;
+          
+          try {
+            if (file.type.startsWith('image/')) {
+              console.log(`Iniciando upload da imagem ${file.name}...`);
+              toast.loading(`Enviando imagem ${file.name}...`, {
+                id: `upload-${file.name}`,
+              });
+              
+              url = await uploadImage(file);
+              console.log(`Resultado do upload da imagem ${file.name}:`, url ? (url.startsWith('data:') ? 'Base64 image (truncated)' : url) : 'null');
+              
+              if (url) {
+                uploadSuccess = true;
+                toast.success(`Imagem ${file.name} enviada com sucesso!`, {
+                  id: `upload-${file.name}`,
+                });
+                
+                // Verificar se a URL é uma string base64
+                const isBase64 = url.startsWith('data:');
+                
+                mediaData.push({
+                  type: "image",
+                  url,
+                  // Se for base64, adicionar uma flag para indicar isso
+                  isBase64: isBase64
+                });
+              } else {
+                toast.error(`Falha ao enviar imagem ${file.name}`, {
+                  id: `upload-${file.name}`,
+                });
+              }
+            } else if (file.type.startsWith('video/')) {
+              console.log(`Iniciando upload do vídeo ${file.name}...`);
+              toast.loading(`Enviando vídeo ${file.name}...`, {
+                id: `upload-${file.name}`,
+              });
+              
+              url = await uploadVideo(file);
+              console.log(`Resultado do upload do vídeo ${file.name}:`, url ? (url.startsWith('data:') ? 'Base64 video (truncated)' : url) : 'null');
+              
+              if (url) {
+                uploadSuccess = true;
+                toast.success(`Vídeo ${file.name} enviado com sucesso!`, {
+                  id: `upload-${file.name}`,
+                });
+                
+                // Verificar se a URL é uma string base64
+                const isBase64 = url.startsWith('data:');
+                
+                mediaData.push({
+                  type: "video",
+                  url,
+                  // Se for base64, adicionar uma flag para indicar isso
+                  isBase64: isBase64
+                });
+              } else {
+                toast.error(`Falha ao enviar vídeo ${file.name}`, {
+                  id: `upload-${file.name}`,
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Erro ao enviar arquivo ${file.name}:`, error);
+            toast.error(`Erro ao enviar arquivo ${file.name}`, {
+              id: `upload-${file.name}`,
+            });
+          }
+        }
+      }
+      
+      console.log("Resultado do processamento de mídia:", { 
+        mediaData, 
+        uploadSuccess, 
+        hasContent,
+        hasAttachments,
+        hasGif,
+        hasPoll
+      });
+      
+      // Se tinha anexos para upload mas nenhum foi bem-sucedido, e não há outro conteúdo
+      if (hasAttachments && !uploadSuccess && !hasContent && !hasGif && !hasPoll) {
+        console.error("Falha no upload de todos os anexos e não há outro conteúdo");
+        toast.error("Não foi possível enviar os arquivos. Tente novamente ou adicione algum texto.");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Se não há conteúdo de nenhum tipo após processamento
+      if (mediaData.length === 0 && !hasContent && !hasPoll) {
+        console.error("Nenhum conteúdo válido para criar post");
+        toast.error("Não foi possível criar a publicação. Adicione conteúdo ou tente novamente.");
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Handle poll data
       let pollData = undefined;
-      if (showPollCreator && pollQuestion.trim() && pollOptions.filter(opt => opt.trim()).length >= 2) {
+      if (hasPoll) {
         pollData = {
           question: pollQuestion,
           options: pollOptions.filter(opt => opt.trim())
         };
       }
       
-      const postId = await createPost({
+      // Se chegou até aqui, temos conteúdo válido para criar o post
+      console.log("Enviando dados para criar post:", {
         content,
+        categoryId,
+        selectedCommunityId,
+        mediaData,
+        pollData
+      });
+      
+      toast.loading("Criando publicação...", {
+        id: "create-post",
+      });
+      
+      // Garantir que sempre haja conteúdo, mesmo que vazio
+      const finalContent = content.trim() || " ";
+      
+      const postId = await createPost({
+        content: finalContent,
         category_id: categoryId,
         communityId: selectedCommunityId,
-        media: mediaData,
+        media: mediaData.length > 0 ? mediaData : undefined,
         poll: pollData
       });
       
+      console.log("Resultado da criação do post:", postId);
+      
       if (postId) {
+        toast.success("Publicação criada com sucesso!", {
+          id: "create-post",
+        });
+        
         // Reset form
         setContent("");
         setSelectedGif(null);
@@ -446,9 +596,16 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
           
           onPostCreated(newPost);
         }
+      } else {
+        toast.error("Falha ao criar a publicação. Tente novamente.", {
+          id: "create-post",
+        });
       }
     } catch (error) {
-      console.error("Error creating post:", error);
+      console.error("Erro ao criar publicação:", error);
+      toast.error("Erro ao criar publicação. Tente novamente mais tarde.", {
+        id: "create-post",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -891,7 +1048,7 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
               <Button 
                 type="submit" 
                 className="bg-[#ff4400] hover:bg-[#ff4400]/90 ml-auto"
-                disabled={(!content.trim() && !selectedGif && !showPollCreator) || isSubmitting}
+                disabled={(!content.trim() && !selectedGif && !showPollCreator && attachments.length === 0) || isSubmitting}
               >
                 {isSubmitting ? (
                   <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></div>
