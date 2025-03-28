@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ativar Bypass de Autenticação</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        button {
+            background-color: #ff4400;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #e63e00;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ativar Bypass de Autenticação</h1>
+    <p>Este script irá ativar o bypass de autenticação para o Projeto Circle, permitindo que você acesse a aplicação sem precisar fazer login.</p>
+    <p>Isso é útil para desenvolvimento e teste, quando você não quer lidar com a autenticação.</p>
+    
+    <button id="activateBypass">Ativar Bypass de Autenticação</button>
+    <p class="success" id="successMessage">✅ Bypass ativado com sucesso! Agora você pode <a href="http://localhost:5173" target="_blank">acessar a aplicação</a>.</p>
+    
+    <script>
+        document.getElementById('activateBypass').addEventListener('click', function() {
+            // Ativar o bypass de autenticação
+            localStorage.setItem('dev_bypass_auth', 'true');
+            
+            // Mostrar mensagem de sucesso
+            document.getElementById('successMessage').style.display = 'block';
+            
+            // Abrir a aplicação em uma nova aba
+            window.open('http://localhost:5173', '_blank');
+        });
+    </script>
+</body>
+</html>

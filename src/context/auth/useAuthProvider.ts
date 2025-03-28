@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { ProfileType } from "./types";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +23,8 @@ export function useAuthProvider() {
     profile,
     loadProfile,
     updateProfile: updateUserProfile,
-    createProfile
+    createProfile,
+    setProfile
   } = useProfile();
   
   const { login, signUp, logout } = useAuthActions(setLoading);
@@ -146,6 +146,30 @@ export function useAuthProvider() {
     const loadUserProfile = async () => {
       try {
         console.log("Loading profile for authenticated user:", user.id);
+        
+        // Tentar carregar perfil do localStorage primeiro
+        const cachedProfile = localStorage.getItem('user_profile');
+        if (cachedProfile) {
+          try {
+            const parsedProfile = JSON.parse(cachedProfile);
+            // Verificar se o perfil em cache pertence ao usuário atual
+            if (parsedProfile && parsedProfile.id === user.id) {
+              console.log("Using cached profile from localStorage");
+              setProfile(parsedProfile);
+              // Ainda assim, carregamos o perfil do servidor em segundo plano
+              loadProfile(user.id).catch(e => console.error("Background profile refresh error:", e));
+              return;
+            } else {
+              console.log("Cached profile doesn't match current user, removing from localStorage");
+              localStorage.removeItem('user_profile');
+            }
+          } catch (e) {
+            console.error("Error parsing cached profile:", e);
+            localStorage.removeItem('user_profile');
+          }
+        }
+        
+        // Se não tiver perfil em cache ou o cache for inválido, carrega do servidor
         const userProfile = await loadProfile(user.id);
         
         if (!userProfile && isMounted) {
@@ -163,7 +187,7 @@ export function useAuthProvider() {
     return () => {
       isMounted = false;
     };
-  }, [user?.id, sessionChecked, loadProfile, createProfile]);
+  }, [user?.id, sessionChecked, loadProfile, createProfile, setProfile]);
 
   const updateProfile = async (updates: Partial<ProfileType>) => {
     if (!user) {

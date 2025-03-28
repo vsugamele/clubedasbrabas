@@ -1,4 +1,3 @@
-
 import { Session, User } from "@supabase/supabase-js";
 
 export interface ProfileType {
@@ -16,6 +15,10 @@ export interface ProfileType {
   location: string | null;
   language: string | null;
   timezone: string | null;
+  // Campo para controlar se o usuário está ativo ou não
+  is_active?: boolean;
+  // Campo para metadados adicionais
+  user_metadata?: Record<string, any>;
 }
 
 export interface AuthContextProps {

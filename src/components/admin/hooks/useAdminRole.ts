@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -6,6 +5,7 @@ import { toast } from "sonner";
 import { queryWithRetry, type RetryOptions } from "./utils/queryUtils";
 import { 
   checkUserRole, 
+  checkCurrentUserRole, 
   getCurrentUserRoles, 
   assignUserRole, 
   isAdminByEmail,
@@ -91,7 +91,7 @@ export const useAdminRole = () => {
         return true;
       } 
       
-      // 2. Check admin role using checkUserRole with retry
+      // 2. Check admin role using checkCurrentUserRole with retry
       console.log("Verificando papel de admin para o usuário:", user.id);
       
       const retryOptions: RetryOptions = {
@@ -102,10 +102,10 @@ export const useAdminRole = () => {
       
       try {
         const isUserAdmin = await queryWithRetry(() => 
-          checkUserRole(user.id, 'admin'), retryOptions);
+          checkCurrentUserRole(), retryOptions);
         
         if (isUserAdmin) {
-          console.log("Usuário confirmado como admin pela função checkUserRole");
+          console.log("Usuário confirmado como admin pela função checkCurrentUserRole");
           setIsAdmin(true);
           setIsLoading(false);
           return true;

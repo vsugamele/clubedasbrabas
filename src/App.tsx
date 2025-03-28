@@ -8,6 +8,7 @@ import Events from "@/pages/Events";
 import Search from "@/pages/Search"; // Adicionado import da página de busca
 import CreatePost from "@/pages/CreatePost";
 import Notifications from "@/pages/Notifications";
+import TrendingPage from "@/pages/Trending"; // Importando a página de Trending
 import { useAuth } from "./context/auth";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
@@ -292,6 +293,7 @@ const App = () => {
       <Route path="/search" element={<ProtectedRoute element={<Search />} />} />
       <Route path="/create-post" element={<ProtectedRoute element={<CreatePost />} />} />
       <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
+      <Route path="/trending" element={<ProtectedRoute element={<TrendingPage />} />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

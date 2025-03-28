@@ -3,6 +3,7 @@ import EventsList from "./EventsList";
 import TrendingPosts from "./TrendingPosts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { TrendingPost } from "@/services/trendingService";
 
 interface Event {
   id: string;
@@ -13,13 +14,6 @@ interface Event {
   timeEnd: string;
 }
 
-interface TrendingPost {
-  id: string;
-  title: string;
-  author: string;
-  likes: number;
-}
-
 interface Category {
   id: string;
   name: string;
@@ -28,7 +22,7 @@ interface Category {
 
 interface RightSidebarProps {
   events: Event[];
-  trendingPosts: TrendingPost[];
+  trendingPosts?: TrendingPost[];
 }
 
 const RightSidebar = ({ events, trendingPosts }: RightSidebarProps) => {
@@ -150,7 +144,7 @@ const RightSidebar = ({ events, trendingPosts }: RightSidebarProps) => {
   return (
     <div className="space-y-6">
       <EventsList events={events} />
-      <TrendingPosts posts={trendingPosts} />
+      <TrendingPosts initialPosts={trendingPosts} />
       
       {/* Lista de Categorias */}
       <div className="bg-white dark:bg-slate-900 rounded-lg shadow p-4">

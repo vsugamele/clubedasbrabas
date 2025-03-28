@@ -149,6 +149,9 @@ export function useAuthActions(setLoading: (loading: boolean) => void) {
       setLoading(true);
       setActionInProgress(true);
       
+      // Salvar uma cópia do perfil antes de fazer logout
+      const savedProfile = localStorage.getItem('user_profile');
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {

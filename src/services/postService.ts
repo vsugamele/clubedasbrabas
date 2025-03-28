@@ -743,3 +743,32 @@ export const togglePinPost = async (postId: string, isPinned: boolean): Promise<
     return false;
   }
 };
+
+/**
+ * Força a exclusão de um post do banco de dados, ignorando verificações de permissão
+ * Usar apenas para administração e limpeza de dados
+ * @param postId ID do post a ser excluído
+ * @returns true se o post foi excluído com sucesso, false caso contrário
+ */
+export const forceDeletePost = async (postId: string): Promise<boolean> => {
+  try {
+    console.log(`Tentando forçar a exclusão do post ${postId}...`);
+    
+    // Excluir o post diretamente, sem verificar permissões
+    const { error } = await supabase
+      .from("posts")
+      .delete()
+      .eq("id", postId);
+    
+    if (error) {
+      console.error("Erro ao forçar exclusão do post:", error);
+      return false;
+    }
+    
+    console.log(`Post ${postId} excluído com sucesso!`);
+    return true;
+  } catch (error) {
+    console.error("Erro ao forçar exclusão do post:", error);
+    return false;
+  }
+};

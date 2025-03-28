@@ -7,13 +7,14 @@ import TrendingPosts from "@/components/feed/TrendingPosts";
 import EventsList from "@/components/feed/EventsList";
 import { fetchEvents } from "@/components/admin/events/eventService";
 import { Event } from "@/components/admin/communities/types";
+import { TrendingPost } from "@/services/trendingService";
 
-// Sample data for sidebar components
-const mockTrendingPosts = [
-  { id: "1", title: "Como aumentar seu networking profissional", author: "Marina Silva", likes: 45 },
-  { id: "2", title: "5 dicas para organizar sua rotina de trabalho", author: "Carlos Oliveira", likes: 38 },
-  { id: "3", title: "Empreendedorismo feminino: desafios e conquistas", author: "Ana Souza", likes: 27 }
-];
+// Removendo os dados mockados, agora vamos usar dados reais
+// const mockTrendingPosts: TrendingPost[] = [
+//   { id: "1", title: "Como aumentar seu networking profissional", author: "Marina Silva", authorId: "123", likes: 45, comments: 12 },
+//   { id: "2", title: "5 dicas para organizar sua rotina de trabalho", author: "Carlos Oliveira", authorId: "456", likes: 38, comments: 8 },
+//   { id: "3", title: "Empreendedorismo feminino: desafios e conquistas", author: "Ana Souza", authorId: "789", likes: 27, comments: 5 }
+// ];
 
 const Index = () => {
   const { user } = useAuth();
@@ -93,7 +94,7 @@ const Index = () => {
           </div>
           
           <div className="space-y-8">
-            <TrendingPosts posts={mockTrendingPosts} />
+            <TrendingPosts />
             <EventsList events={events} />
           </div>
         </div>

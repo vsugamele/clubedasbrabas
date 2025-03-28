@@ -96,15 +96,45 @@ const Profile = () => {
   const fetchProfileById = async (id: string) => {
     try {
       setLoading(true);
+      console.log("Buscando perfil para ID:", id);
+      
+      // Primeiro, tente buscar o perfil diretamente
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro na busca direta do perfil:", error);
+        
+        // Se o perfil não for encontrado, tente usar a função do contexto de autenticação
+        if (error.code === 'PGRST116' && id === user?.id) {
+          console.log("Tentando buscar perfil através do contexto de autenticação");
+          
+          // Se o perfil não existe, mas o usuário está tentando ver seu próprio perfil
+          if (profile) {
+            console.log("Usando perfil do contexto de autenticação");
+            setProfileData(profile);
+            setFormData({
+              username: profile.username || "",
+              full_name: profile.full_name || "",
+              headline: profile.headline || "",
+              bio: profile.bio || "",
+              location: profile.location || "",
+              avatar_url: profile.avatar_url || "",
+              language: profile.language || "Português"
+            });
+            return;
+          }
+        } else {
+          toast.error("Não foi possível carregar o perfil do usuário.");
+          return;
+        }
+      }
 
       if (data) {
+        console.log("Perfil encontrado:", data);
         setProfileData(data);
         setFormData({
           username: data.username || "",
@@ -115,7 +145,9 @@ const Profile = () => {
           avatar_url: data.avatar_url || "",
           language: data.language || "Português"
         });
-
+      } else {
+        console.log("Nenhum dado de perfil encontrado");
+        toast.error("Não foi possível carregar o perfil do usuário.");
       }
     } catch (error) {
       console.error("Erro ao buscar perfil:", error);

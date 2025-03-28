@@ -325,7 +325,7 @@ export interface Post {
   viewsCount: number;
   isTrending: boolean;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 export interface PostForm {
@@ -348,21 +348,24 @@ export interface SupabasePost {
   updated_at: string;
 }
 
-export function mapPostFromSupabase(post: SupabasePost): Post {
+export const mapPostFromSupabase = (post: any): Post => {
   return {
     id: post.id,
-    title: post.title,
-    content: post.content,
+    title: post.title || post.content?.substring(0, 50) || 'Sem título',
+    content: post.content || '',
     userId: post.user_id,
     categoryId: post.category_id,
-    likesCount: post.likes_count,
-    commentsCount: post.comments_count,
-    viewsCount: post.views_count,
-    isTrending: post.is_trending,
+    likesCount: typeof post.likes_count === 'number' ? post.likes_count : 
+               (post.likes && typeof post.likes === 'number' ? post.likes : 0),
+    commentsCount: typeof post.comments_count === 'number' ? post.comments_count : 
+                  (post.comments && typeof post.comments === 'number' ? post.comments : 0),
+    viewsCount: typeof post.views_count === 'number' ? post.views_count : 
+               (post.views && typeof post.views === 'number' ? post.views : 0),
+    isTrending: post.is_trending || false,
     createdAt: post.created_at,
     updatedAt: post.updated_at
   };
-}
+};
 
 export function mapPostToSupabase(post: Post | PostForm): Record<string, any> {
   const mapped: Record<string, any> = {};

@@ -63,21 +63,112 @@ export const hasRole = async (userId: string, role: UserRole): Promise<boolean> 
  * Check if a user is admin
  */
 export const isAdmin = async (userId: string): Promise<boolean> => {
-  // First check if user is in admin emails list
-  const { data } = await supabase.auth.getUser();
-  if (data && data.user && data.user.id === userId && isAdminByEmail(data.user.email)) {
-    return true;
+  try {
+    // First check if user is in admin emails list
+    const { data } = await supabase.auth.getUser();
+    if (data && data.user && data.user.id === userId && isAdminByEmail(data.user.email)) {
+      return true;
+    }
+    
+    // Use a direct query to avoid recursion
+    const { data: roleData, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (error) {
+      console.error("Erro ao verificar papel do usuário:", error);
+      return false;
+    }
+    
+    return roleData?.role === 'admin';
+  } catch (error) {
+    console.error("Erro ao verificar se o usuário é admin:", error);
+    return false;
   }
-  
-  return await hasRole(userId, 'admin');
 };
 
 /**
- * Check if a user is moderator or higher
+ * Check user role for the current user
+ * This is used by the admin panel to verify if the current user is an admin
  */
-export const isModeratorOrHigher = async (userId: string): Promise<boolean> => {
-  const role = await getUserRole(userId);
-  return role === 'moderator' || role === 'admin';
+export const checkCurrentUserRole = async (): Promise<boolean> => {
+  try {
+    // Get current user
+    const { data } = await supabase.auth.getUser();
+    if (!data || !data.user) {
+      console.log("Nenhum usuário autenticado");
+      return false;
+    }
+    
+    // Check if user is admin by email first (bypass)
+    if (isAdminByEmail(data.user.email)) {
+      console.log("Usuário é admin por email");
+      return true;
+    }
+    
+    // Use a direct query to avoid recursion
+    const { data: roleData, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', data.user.id)
+      .maybeSingle();
+      
+    if (error) {
+      console.error("Erro ao verificar papel do usuário:", error);
+      return false;
+    }
+    
+    const isUserAdmin = roleData?.role === 'admin';
+    console.log("Verificação de admin:", isUserAdmin);
+    return isUserAdmin;
+  } catch (error) {
+    console.error("Erro ao verificar papel do usuário:", error);
+    return false;
+  }
+};
+
+/**
+ * Verify the current user's role
+ * This is a more robust version that handles errors better
+ */
+export const verifyCurrentUserRole = async (): Promise<UserRole | null> => {
+  try {
+    // Get current user
+    const { data } = await supabase.auth.getUser();
+    if (!data || !data.user) {
+      console.log("Nenhum usuário autenticado");
+      return null;
+    }
+    
+    // Check if user is admin by email first (bypass)
+    if (isAdminByEmail(data.user.email)) {
+      console.log("Usuário é admin por email");
+      return 'admin';
+    }
+    
+    // Use a direct query to avoid recursion
+    const { data: roleData, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', data.user.id)
+      .maybeSingle();
+      
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No role found, default to user
+        return 'user';
+      }
+      console.error("Erro ao verificar papel do usuário:", error);
+      return null;
+    }
+    
+    return (roleData?.role as UserRole) || 'user';
+  } catch (error) {
+    console.error("Erro ao verificar papel do usuário:", error);
+    return null;
+  }
 };
 
 /**
@@ -350,28 +441,6 @@ export const isAdminByEmail = (email: string | null | undefined): boolean => {
   ];
   
   return adminEmails.includes(email.toLowerCase());
-};
-
-/**
- * Verify current user's role
- */
-export const verifyCurrentUserRole = async (): Promise<boolean> => {
-  try {
-    const { data } = await supabase.auth.getUser();
-    if (!data || !data.user) return false;
-    
-    // Check if the user is an admin by email first (for initial setup)
-    if (isAdminByEmail(data.user.email)) {
-      // Automatically assign admin role if they have an admin email
-      await assignUserRole(data.user.id, 'admin');
-      return true;
-    }
-    
-    return await isAdmin(data.user.id);
-  } catch (error) {
-    console.error("Error verifying current user role:", error);
-    return false;
-  }
 };
 
 /**

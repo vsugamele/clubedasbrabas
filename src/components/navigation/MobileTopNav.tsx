@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import Sidebar from './Sidebar';
 
 const MobileTopNav = () => {
   const location = useLocation();
@@ -22,6 +24,7 @@ const MobileTopNav = () => {
   const { toggleSidebar } = useSidebar();
   const { user, profile, signOut } = useAuth();
   const [darkMode, setDarkMode] = useState(localStorage.getItem("darkMode") === "true");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const handleLogout = async () => {
     try {
@@ -62,16 +65,26 @@ const MobileTopNav = () => {
       .substring(0, 2);
   };
   
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
+  
   return (
     <div className="sticky top-0 z-30 w-full bg-white border-b border-gray-200 md:hidden">
       <div className="flex items-center justify-between px-4 py-2">
         <div className="flex items-center">
-          <button
-            onClick={toggleSidebar}
-            className="flex items-center justify-center mr-3"
-          >
-            <Menu className="h-5 w-5 text-gray-600" />
-          </button>
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <button
+                className="flex items-center justify-center mr-3"
+              >
+                <Menu className="h-5 w-5 text-gray-600" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 pt-4 w-[280px]">
+              <Sidebar isMobile={true} onClose={closeSidebar} />
+            </SheetContent>
+          </Sheet>
           
           <div className="flex items-center">
             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#ff4400] mr-2">

@@ -1,10 +1,11 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileType } from "./types";
 
 export const fetchProfile = async (userId: string): Promise<ProfileType | null> => {
   try {
     console.log("Fetching profile for user:", userId);
+    
+    // Primeiro, tente obter o perfil do usuário
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -14,6 +15,16 @@ export const fetchProfile = async (userId: string): Promise<ProfileType | null> 
     if (error) {
       if (error.code === 'PGRST116') {
         console.log("No profile found for user", userId);
+        
+        // Tente obter informações do usuário da tabela auth
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user && userData.user.id === userId) {
+          console.log("User exists in auth but no profile, creating one");
+          
+          // Criar um perfil padrão para o usuário
+          return await createDefaultProfile(userId);
+        }
+        
         return null;
       }
       console.error("Error fetching profile:", error);
@@ -44,7 +55,9 @@ export const fetchProfile = async (userId: string): Promise<ProfileType | null> 
       return profile;
     }
     
-    return null;
+    // Se não encontrou perfil, tente criar um
+    console.log("No profile data found, attempting to create default profile");
+    return await createDefaultProfile(userId);
   } catch (error: any) {
     console.error("Exception fetching profile:", error.message);
     return null;

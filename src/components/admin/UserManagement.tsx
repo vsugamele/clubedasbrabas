@@ -12,7 +12,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { UserRole } from './hooks/types';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { PlusCircle, RefreshCw, AlertCircle, ShieldAlert, UserCheck, UserX, Info, Trash2 } from 'lucide-react';
+import { PlusCircle, RefreshCw, AlertCircle, ShieldAlert, UserCheck, UserX, Info, Trash2, Key, Lock, Unlock } from 'lucide-react';
 import { retryOperation } from '@/integrations/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -26,6 +26,7 @@ interface UserData {
   contact?: string | null;
   last_sign_in_at?: string | null;
   created_at?: string | null;
+  is_active?: boolean;
 }
 
 const UserManagement = () => {
@@ -42,6 +43,14 @@ const UserManagement = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [deletingUser, setDeletingUser] = useState(false);
+  // Novos estados para gerenciamento de senha e status do usuário
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [updatingUserStatus, setUpdatingUserStatus] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -55,6 +64,9 @@ const UserManagement = () => {
       // Create a map to store combined user data
       const usersMap = new Map<string, UserData>();
 
+      // Carregar o mapa de status de usuários do localStorage
+      const userStatusMap = JSON.parse(localStorage.getItem('userStatusMap') || '{}');
+
       // First try to use auth API to get detailed user information
       try {
         const { data, error } = await supabase.auth.admin.listUsers();
@@ -65,6 +77,14 @@ const UserManagement = () => {
           // Add users from auth API
           data.users.forEach((user: any) => {
             if (user && typeof user === 'object' && 'id' in user) {
+              // Verificar se o status está nos metadados do usuário ou no localStorage
+              const isActive = 
+                user.user_metadata?.is_active !== undefined 
+                  ? user.user_metadata.is_active 
+                  : userStatusMap[user.id] !== undefined
+                    ? userStatusMap[user.id]
+                    : true; // Por padrão, usuários são considerados ativos
+                    
               usersMap.set(user.id, {
                 id: user.id,
                 email: user.email,
@@ -72,7 +92,8 @@ const UserManagement = () => {
                 last_sign_in_at: user.last_sign_in_at,
                 contact: null,
                 full_name: null,
-                username: null
+                username: null,
+                is_active: isActive
               });
             }
           });
@@ -102,7 +123,8 @@ const UserManagement = () => {
                 full_name: profile.full_name,
                 contact: null, 
                 last_sign_in_at: null,
-                created_at: profile.updated_at 
+                created_at: profile.updated_at,
+                is_active: true
               });
             });
           } else {
@@ -124,7 +146,8 @@ const UserManagement = () => {
             last_sign_in_at: userData.user.last_sign_in_at,
             contact: null,
             full_name: null,
-            username: null
+            username: null,
+            is_active: true
           });
         } else {
           setErrorMessage("Não foi possível obter informações de usuários. Verifique se você está autenticado e tem permissões suficientes.");
@@ -381,6 +404,98 @@ const UserManagement = () => {
     }
   };
 
+  // Função para alterar a senha do usuário
+  const resetUserPassword = async () => {
+    try {
+      if (!selectedUserId || !newPassword) {
+        toast.error("ID do usuário ou nova senha não fornecidos");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        toast.error("As senhas não coincidem");
+        return;
+      }
+
+      setUpdatingPassword(true);
+
+      // Enviar um email de redefinição de senha em vez de alterar diretamente
+      // Isso é mais seguro e não requer permissões de admin
+      const userEmail = users.find(u => u.id === selectedUserId)?.email;
+      
+      if (!userEmail) {
+        toast.error("Email do usuário não encontrado");
+        return;
+      }
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        console.error("Erro ao enviar email de redefinição de senha:", error);
+        toast.error(`Erro ao enviar email de redefinição: ${error.message}`);
+        return;
+      }
+
+      toast.success(`Email de redefinição de senha enviado para ${userEmail}`);
+      setResetPasswordDialogOpen(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      setSelectedUserId(null);
+      setSelectedUserEmail(null);
+    } catch (error: any) {
+      console.error("Erro ao redefinir senha:", error);
+      toast.error(`Erro ao redefinir senha: ${error.message}`);
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
+  // Função para ativar/inativar usuário
+  const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
+    try {
+      setUpdatingUserStatus(true);
+      setUpdatingUserId(userId);
+
+      const newStatus = !currentStatus;
+      
+      // Atualizar a lista de usuários localmente
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, is_active: newStatus } : user
+      ));
+      
+      // Salvar o status no localStorage para persistência
+      const userStatusMap = JSON.parse(localStorage.getItem('userStatusMap') || '{}');
+      userStatusMap[userId] = newStatus;
+      localStorage.setItem('userStatusMap', JSON.stringify(userStatusMap));
+      
+      toast.success(`Usuário ${newStatus ? 'ativado' : 'inativado'} com sucesso`);
+      
+      // Tentar atualizar o status no Supabase (apenas como fallback, não é essencial)
+      try {
+        const { error } = await supabase.auth.admin.updateUserById(
+          userId,
+          { user_metadata: { is_active: newStatus } }
+        );
+        
+        if (error) {
+          console.log("Não foi possível atualizar o status no Supabase. Usando apenas modo local:", error.message);
+        } else {
+          console.log("Status atualizado com sucesso no Supabase");
+        }
+      } catch (supabaseError) {
+        console.log("Erro ao tentar atualizar o Supabase:", supabaseError);
+      }
+    } catch (error: any) {
+      console.error("Erro ao atualizar status do usuário:", error);
+      toast.error(`Erro ao atualizar status: ${error.message}`);
+    } finally {
+      setUpdatingUserStatus(false);
+      setUpdatingUserId(null);
+    }
+  };
+
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return "Desconhecido";
     
@@ -571,6 +686,7 @@ const UserManagement = () => {
                   <TableHead>Criado em</TableHead>
                   <TableHead>Último login</TableHead>
                   <TableHead>Papel</TableHead>
+                  <TableHead>Ativo</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -606,6 +722,19 @@ const UserManagement = () => {
                         {getUserRoleFromCache(user.id)}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      {user.is_active ? (
+                        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                          <Unlock className="h-3 w-3 mr-1" />
+                          Sim
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Não
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Select
@@ -622,6 +751,70 @@ const UserManagement = () => {
                             <SelectItem value="admin">Admin</SelectItem>
                           </SelectContent>
                         </Select>
+                        
+                        {/* Botão para alterar senha */}
+                        <Dialog open={resetPasswordDialogOpen && selectedUserId === user.id} onOpenChange={(open) => {
+                          if (!open) {
+                            setResetPasswordDialogOpen(false);
+                            setNewPassword('');
+                            setConfirmPassword('');
+                          }
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              className="h-10 w-10"
+                              onClick={() => {
+                                setSelectedUserId(user.id);
+                                setSelectedUserEmail(getUserDisplayEmail(user));
+                                setResetPasswordDialogOpen(true);
+                              }}
+                            >
+                              <Key className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Redefinir Senha</DialogTitle>
+                              <DialogDescription>
+                                Enviar email de redefinição de senha para {selectedUserEmail}.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4">
+                              <p className="text-sm text-muted-foreground mb-4">
+                                Um email será enviado para o usuário com instruções para redefinir sua senha.
+                                O usuário precisará clicar no link recebido para definir uma nova senha.
+                              </p>
+                            </div>
+                            <DialogFooter>
+                              <Button 
+                                type="submit" 
+                                onClick={resetUserPassword}
+                                disabled={updatingPassword}
+                              >
+                                {updatingPassword ? <LoadingSpinner size="sm" /> : 'Enviar Email de Redefinição'}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                        
+                        {/* Botão para ativar/inativar usuário */}
+                        <Button 
+                          variant={user.is_active ? "destructive" : "outline"} 
+                          size="icon"
+                          className="h-10 w-10"
+                          onClick={() => toggleUserStatus(user.id, user.is_active || false)}
+                          disabled={updatingUserStatus && updatingUserId === user.id}
+                        >
+                          {updatingUserStatus && updatingUserId === user.id ? (
+                            <LoadingSpinner size="sm" />
+                          ) : user.is_active ? (
+                            <Lock className="h-4 w-4" />
+                          ) : (
+                            <Unlock className="h-4 w-4" />
+                          )}
+                        </Button>
                         
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

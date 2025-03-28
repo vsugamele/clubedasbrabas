@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAdminRole } from "./hooks/useAdminRole";
@@ -11,6 +10,7 @@ import { EventManagement } from "./events/EventManagement";
 import TrendingManagement from "./trending/TrendingPostsManagement";
 import UserRankingList from "./rankings/UserRankingList";
 import { ReportManagement } from "./reports/ReportManagement";
+import { PostCleanup } from "./posts/PostCleanup";
 import { LoadingSpinner } from "../ui/loading-spinner";
 
 interface AdminPanelProps {
@@ -74,6 +74,7 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
     { id: "trending", label: "Trending" },
     { id: "rankings", label: "Rankings" },
     { id: "denuncias", label: "Denúncias" },
+    { id: "limpeza", label: "Limpeza de Posts" },
   ];
 
   return (
@@ -126,6 +127,10 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
 
         <TabsContent value="denuncias">
           <ReportManagement />
+        </TabsContent>
+
+        <TabsContent value="limpeza">
+          <PostCleanup />
         </TabsContent>
       </Tabs>
     </div>

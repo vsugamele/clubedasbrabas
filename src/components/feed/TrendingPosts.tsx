@@ -1,65 +1,141 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Link } from "react-router-dom";
-import { ArrowRight, BadgeCheck, Heart } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
-
-interface TrendingPost {
-  id: string;
-  title: string;
-  author: string;
-  likes: number;
-}
+import { Badge } from "@/components/ui/badge";
+import { BarChart2, ThumbsUp, MessageCircle, Sparkles, Eye, ArrowRight } from "lucide-react";
+import { fetchTrendingPosts, TrendingPost } from "@/services/trendingService";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 interface TrendingPostsProps {
-  posts: TrendingPost[];
+  initialPosts?: TrendingPost[];
 }
 
-const TrendingPosts = ({ posts }: TrendingPostsProps) => {
+const TrendingPosts = ({ initialPosts }: TrendingPostsProps) => {
+  const [posts, setPosts] = useState<TrendingPost[]>(initialPosts || []);
+  const [loading, setLoading] = useState(!initialPosts);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!initialPosts) {
+      loadTrendingPosts();
+    }
+  }, [initialPosts]);
+
+  const loadTrendingPosts = async () => {
+    try {
+      setLoading(true);
+      const trendingPosts = await fetchTrendingPosts();
+      console.log("Posts em alta carregados:", trendingPosts);
+      setPosts(trendingPosts);
+    } catch (error) {
+      console.error("Erro ao carregar posts em alta:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePostClick = (postId: string) => {
+    navigate(`/post/${postId}`);
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-5">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <BadgeCheck className="h-5 w-5 text-brand-600" />
+    <Card className="border-[#ff920e]/20">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <BarChart2 className="h-5 w-5 text-[#ff4400]" />
           <span>Assuntos em Alta</span>
-        </h3>
-        
-        <div className="space-y-4">
-          {posts.map((post) => (
-            <div key={post.id} className="group animate-fade-in">
-              <div className="flex gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="" alt={post.author} />
-                  <AvatarFallback className="bg-brand-100 text-brand-700">
-                    {post.author.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
+        </CardTitle>
+        <CardDescription>
+          Conteúdos populares na comunidade
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0">
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-6 text-muted-foreground">
+            <p>Nenhum assunto em alta no momento</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {posts.map((post, index) => (
+              <div 
+                key={post.id}
+                onClick={() => handlePostClick(post.id)}
+                className={`flex gap-3 p-3 rounded-lg transition-all cursor-pointer 
+                  ${index === 0 ? 'bg-orange-50 border border-[#ff4400]/30' : 'hover:bg-gray-50'}`}
+              >
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={post.authorAvatar || undefined} alt={post.author} />
+                  <AvatarFallback>{getInitials(post.author)}</AvatarFallback>
                 </Avatar>
                 
-                <div className="space-y-1">
-                  <h4 className="font-medium line-clamp-2 group-hover:text-brand-600 transition-colors">
-                    <Link to={`/posts/${post.id}`}>{post.title}</Link>
-                  </h4>
-                  <p className="text-sm text-muted-foreground">{post.author}</p>
-                  <div className="flex items-center gap-1 text-xs">
-                    <Heart className="h-3 w-3 text-red-500 fill-current" />
-                    <span>{post.likes} pessoas curtiram</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-medium text-sm line-clamp-2">{post.title}</h3>
+                    {index === 0 && (
+                      <Badge className="bg-[#ff4400] flex items-center gap-1 whitespace-nowrap">
+                        <Sparkles className="h-3 w-3" />
+                        <span>Top</span>
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-4 mt-1">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <ThumbsUp className="h-3 w-3" />
+                      <span>{post.likes} {post.likes === 1 ? 'curtida' : 'curtidas'}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <MessageCircle className="h-3 w-3" />
+                      <span>{post.comments} {post.comments === 1 ? 'comentário' : 'comentários'}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Eye className="h-3 w-3" />
+                      <span>{post.views} {post.views === 1 ? 'visualização' : 'visualizações'}</span>
+                    </div>
+                    
+                    <span className="text-xs text-muted-foreground">
+                      por <span className="font-medium">{post.author}</span>
+                    </span>
                   </div>
                 </div>
               </div>
-              
-              <Separator className="my-3" />
-            </div>
-          ))}
-        </div>
-        
-        <Button variant="outline" className="w-full mt-2" asChild>
-          <Link to="/trending" className="flex items-center gap-2">
-            <span>Ver mais assuntos populares</span>
-            <ArrowRight className="h-4 w-4" />
+            ))}
+          </div>
+        )}
+      </CardContent>
+      <div className="px-6 pb-4">
+        <Button variant="link" className="w-full text-[#ff4400]" asChild>
+          <Link to="/trending" className="flex items-center justify-center gap-1">
+            Ver mais assuntos em alta <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
-      </CardContent>
+      </div>
     </Card>
   );
 };

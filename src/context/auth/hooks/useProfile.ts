@@ -15,6 +15,10 @@ export function useProfile() {
       if (fetchedProfile) {
         console.log("Profile loaded:", fetchedProfile);
         setProfile(fetchedProfile);
+        
+        // Armazenar o perfil no localStorage para persistência
+        localStorage.setItem('user_profile', JSON.stringify(fetchedProfile));
+        
         return fetchedProfile;
       } else {
         console.log("No profile found");
@@ -46,17 +50,38 @@ export function useProfile() {
       
       // Extract only the properties that exist in the database schema
       // IMPORTANT: Only include fields that actually exist in Supabase profiles table
-      const dbUpdates = {
+      const dbUpdates: Record<string, any> = {
         full_name: updates.full_name,
         avatar_url: updates.avatar_url,
         bio: updates.bio,
-        username: updates.username,
         headline: updates.headline,
         location: updates.location,
         language: updates.language,
         timezone: updates.timezone,
         updated_at: new Date().toISOString()
       };
+      
+      // Verificar se o username está sendo atualizado
+      if (updates.username && updates.username !== currentProfile.username) {
+        // Verificar se o username já existe
+        const { data: existingUser, error: checkError } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("username", updates.username)
+          .neq("id", userId)
+          .maybeSingle();
+          
+        if (checkError) {
+          console.error("Error checking username uniqueness:", checkError);
+        }
+        
+        if (existingUser) {
+          throw new Error("Nome de usuário já está em uso. Por favor, escolha outro.");
+        }
+        
+        // Se o username for único, podemos incluí-lo na atualização
+        dbUpdates.username = updates.username;
+      }
       
       // Remove undefined values to avoid overwriting with null
       Object.keys(dbUpdates).forEach(key => {
@@ -67,7 +92,7 @@ export function useProfile() {
       
       console.log("Sending profile update to Supabase:", dbUpdates);
       
-      // Update the profile with explicit RLS bypass to ensure update works
+      // Usar diretamente o método update para evitar conflitos de chave única
       const { data, error } = await supabase
         .from("profiles")
         .update(dbUpdates)
@@ -78,59 +103,50 @@ export function useProfile() {
       if (error) {
         console.error("Error updating profile:", error);
         
-        // Tentar uma abordagem alternativa se a primeira falhar
-        console.log("Trying alternative approach with upsert...");
-        const { data: upsertData, error: upsertError } = await supabase
-          .from("profiles")
-          .upsert({
-            id: userId,
-            ...dbUpdates
-          })
-          .select()
-          .single();
+        // Verificar se o erro é porque o perfil não existe (pode acontecer se o perfil foi criado em outro dispositivo)
+        if (error.code === 'PGRST116') {
+          console.log("Profile doesn't exist, trying to insert instead");
           
-        if (upsertError) {
-          console.error("Error with upsert approach:", upsertError);
-          throw upsertError;
-        }
-        
-        console.log("Profile upserted successfully:", upsertData);
-        
-        // Converter os dados para ProfileType
-        if (upsertData) {
-          const updatedProfile: ProfileType = {
-            id: upsertData.id,
-            full_name: upsertData.full_name || '',
-            avatar_url: upsertData.avatar_url || '',
-            bio: upsertData.bio || null,
-            username: upsertData.username || '',
-            updated_at: upsertData.updated_at || new Date().toISOString(),
-            // Use current profile values for fields not in database
-            created_at: currentProfile.created_at,
-            email: currentProfile.email,
-            is_public: currentProfile.is_public,
-            headline: upsertData.headline || null,
-            location: upsertData.location || null,
-            language: upsertData.language || null,
-            timezone: upsertData.timezone || null
-          };
-          
-          // Atualiza o estado local com o perfil atualizado
-          setProfile(updatedProfile);
-          
-          // Verifica se o perfil foi realmente atualizado no Supabase
-          const verifyProfile = await fetchProfile(userId);
-          if (verifyProfile) {
-            console.log("Verified profile after upsert:", verifyProfile);
-          } else {
-            console.warn("Could not verify profile after upsert - fetchProfile returned null");
+          // Tentar inserir o perfil
+          const { data: insertData, error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+              id: userId,
+              ...dbUpdates
+            })
+            .select()
+            .single();
+            
+          if (insertError) {
+            console.error("Error inserting profile:", insertError);
+            throw insertError;
           }
           
-          return updatedProfile;
+          console.log("Profile inserted successfully:", insertData);
+          
+          if (insertData) {
+            const newProfile: ProfileType = {
+              id: insertData.id,
+              full_name: insertData.full_name || '',
+              avatar_url: insertData.avatar_url || '',
+              bio: insertData.bio || null,
+              username: insertData.username || '',
+              updated_at: insertData.updated_at || new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              email: null,
+              is_public: true,
+              headline: insertData.headline || null,
+              location: insertData.location || null,
+              language: insertData.language || null,
+              timezone: insertData.timezone || null
+            };
+            
+            setProfile(newProfile);
+            return newProfile;
+          }
+        } else {
+          throw error;
         }
-        
-        // Se não conseguiu upsert, retorna o perfil atual
-        return currentProfile;
       }
       
       console.log("Profile updated successfully:", data);
@@ -184,6 +200,12 @@ export function useProfile() {
     try {
       console.log("Updating profile:", updates);
       const updatedProfile = await updateUserProfile(userId, updates);
+      
+      // Atualizar o perfil no localStorage após atualização bem-sucedida
+      if (updatedProfile) {
+        localStorage.setItem('user_profile', JSON.stringify(updatedProfile));
+      }
+      
       toast.success("Profile updated successfully");
       return { success: true, profile: updatedProfile };
     } catch (error: any) {
@@ -199,6 +221,8 @@ export function useProfile() {
       const newProfile = await createDefaultProfile(userId);
       if (newProfile) {
         setProfile(newProfile);
+        // Armazenar o perfil no localStorage após criação
+        localStorage.setItem('user_profile', JSON.stringify(newProfile));
       }
       return newProfile;
     } catch (error) {
