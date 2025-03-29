@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/auth";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/Avatar";
 import { Search, Menu, X, LogOut, User, MessageSquare, Bell, Shield, Moon, Sun } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
@@ -45,6 +45,12 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       console.log("Attempting logout");
+      
+      // Salvar o perfil atual antes de fazer logout
+      if (profile) {
+        localStorage.setItem('last_user_profile', JSON.stringify(profile));
+      }
+      
       const result = await signOut();
       
       if (result.success) {
@@ -136,10 +142,17 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
                     <Avatar className="h-8 w-8 border-2 border-[#ff4400]/20">
-                      <AvatarImage src={profile?.avatar_url} alt={profile?.full_name || 'User profile'} />
-                      <AvatarFallback className="bg-[#ff920e]/20 text-[#ff4400]">
-                        {profile?.full_name?.substring(0, 2).toUpperCase() || user.email?.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
+                      {profile?.avatar_url ? (
+                        <img 
+                          src={profile.avatar_url} 
+                          alt={profile?.full_name || 'User profile'} 
+                          className="h-full w-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <AvatarFallback className="bg-[#ff920e]/20 text-[#ff4400]">
+                          {profile?.full_name?.substring(0, 2).toUpperCase() || user.email?.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -147,7 +160,7 @@ const Navbar = () => {
                   <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/profile" className="cursor-pointer">
+                    <Link to={user ? `/profile/${user.id}` : "/profile"} className="cursor-pointer">
                       <User className="mr-2 h-4 w-4 text-[#ff4400]" />
                       <span>Perfil</span>
                     </Link>
@@ -205,7 +218,7 @@ const Navbar = () => {
           
           {user ? <div className="pt-2 border-t">
               <Button variant="ghost" asChild className="w-full justify-start" onClick={() => setMobileMenuOpen(false)}>
-                <Link to="/profile">
+                <Link to={user ? `/profile/${user.id}` : "/profile"}>
                   <User className="mr-2 h-4 w-4 text-[#ff4400]" />
                   <span>Perfil</span>
                 </Link>

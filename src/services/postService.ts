@@ -752,23 +752,102 @@ export const togglePinPost = async (postId: string, isPinned: boolean): Promise<
  */
 export const forceDeletePost = async (postId: string): Promise<boolean> => {
   try {
-    console.log(`Tentando forçar a exclusão do post ${postId}...`);
+    console.log(`Iniciando exclusão forçada do post ${postId}`);
     
-    // Excluir o post diretamente, sem verificar permissões
-    const { error } = await supabase
-      .from("posts")
-      .delete()
-      .eq("id", postId);
+    // Verificar se o post existe
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', postId)
+      .single();
     
-    if (error) {
-      console.error("Erro ao forçar exclusão do post:", error);
+    if (postError) {
+      console.error(`Post ${postId} não encontrado:`, postError);
       return false;
     }
     
-    console.log(`Post ${postId} excluído com sucesso!`);
+    // Lista de tabelas que podem ter relacionamentos com posts
+    // Vamos tentar excluir registros de cada uma delas
+    const relatedTables = [
+      { name: 'post_likes', field: 'post_id' },
+      { name: 'post_comments', field: 'post_id' },
+      { name: 'post_media', field: 'post_id' },
+      { name: 'post_polls', field: 'post_id' },
+      { name: 'poll_votes', field: 'post_id' },
+      { name: 'post_views', field: 'post_id' },
+      { name: 'post_shares', field: 'post_id' },
+      { name: 'post_saves', field: 'post_id' },
+      { name: 'post_reports', field: 'post_id' }
+    ];
+    
+    // Tentar excluir registros relacionados de cada tabela
+    for (const { name, field } of relatedTables) {
+      try {
+        // Usar método genérico para evitar problemas de tipagem
+        const result = await supabase.auth.getSession();
+        const token = result.data.session?.access_token;
+        
+        if (!token) {
+          console.warn('Sem token de acesso, pulando exclusão de registros relacionados');
+          continue;
+        }
+        
+        // Fazer uma requisição direta à API do Supabase
+        const response = await fetch(
+          `https://weuifmgjzkuppqqsoood.supabase.co/rest/v1/${name}?${field}=eq.${postId}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndldWlmbWdqemt1cHBxcXNvb29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTI3NzY5MzMsImV4cCI6MjAyODM1MjkzM30.Hv8Qf_QIwUmMlBKPIRwQCQcJCIZdWRfxkCFfYnXWFnE'
+            }
+          }
+        );
+        
+        if (response.ok) {
+          console.log(`Registros de ${name} para o post ${postId} removidos com sucesso`);
+        } else {
+          const errorData = await response.json().catch(() => null);
+          console.warn(`Erro ao excluir registros de ${name} para o post ${postId}:`, 
+            errorData || response.statusText);
+        }
+      } catch (error) {
+        console.warn(`Exceção ao excluir registros de ${name} para o post ${postId}:`, error);
+      }
+    }
+    
+    // Verificar se o post está marcado como trending e remover essa marcação
+    try {
+      const { error: updateError } = await supabase
+        .from('posts')
+        .update({ is_trending: false })
+        .eq('id', postId);
+      
+      if (updateError) {
+        console.warn(`Erro ao remover marcação de trending do post ${postId}:`, updateError);
+      } else {
+        console.log(`Marcação de trending do post ${postId} removida com sucesso`);
+      }
+    } catch (error) {
+      console.warn(`Exceção ao remover marcação de trending do post ${postId}:`, error);
+    }
+    
+    // Finalmente, excluir o post
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId);
+    
+    if (error) {
+      console.error(`Erro ao excluir post ${postId}:`, error);
+      return false;
+    }
+    
+    console.log(`Post ${postId} excluído com sucesso`);
     return true;
   } catch (error) {
-    console.error("Erro ao forçar exclusão do post:", error);
+    console.error(`Erro ao forçar exclusão do post ${postId}:`, error);
     return false;
   }
 };

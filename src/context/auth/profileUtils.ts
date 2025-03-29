@@ -5,6 +5,21 @@ export const fetchProfile = async (userId: string): Promise<ProfileType | null> 
   try {
     console.log("Fetching profile for user:", userId);
     
+    // Verificar se existe um perfil no localStorage
+    const cachedProfile = localStorage.getItem('user_profile');
+    if (cachedProfile) {
+      try {
+        const parsedProfile = JSON.parse(cachedProfile);
+        // Se o perfil em cache corresponder ao usuário atual, usá-lo
+        if (parsedProfile && parsedProfile.id === userId) {
+          console.log("Using cached profile from localStorage in fetchProfile");
+          return parsedProfile;
+        }
+      } catch (e) {
+        console.error("Error parsing cached profile in fetchProfile:", e);
+      }
+    }
+    
     // Primeiro, tente obter o perfil do usuário
     const { data, error } = await supabase
       .from("profiles")
@@ -52,6 +67,10 @@ export const fetchProfile = async (userId: string): Promise<ProfileType | null> 
         language: data.language || null,
         timezone: data.timezone || null
       };
+      
+      // Salvar o perfil no localStorage para uso futuro
+      localStorage.setItem('user_profile', JSON.stringify(profile));
+      
       return profile;
     }
     

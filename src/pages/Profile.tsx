@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/context/auth";
+import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +29,7 @@ interface ProfileData {
 const Profile = () => {
   const { id } = useParams<{ id: string }>();
   const { user, profile, updateProfile, signOut } = useAuth();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [devMode, setDevMode] = useState(false);
@@ -93,10 +95,43 @@ const Profile = () => {
     }
   }, [id, user]);
 
+  useEffect(() => {
+    if (!id && user) {
+      console.log("Redirecionando para a URL com ID do usuário");
+      navigate(`/profile/${user.id}`, { replace: true });
+    }
+  }, [id, user, navigate]);
+
   const fetchProfileById = async (id: string) => {
     try {
       setLoading(true);
       console.log("Buscando perfil para ID:", id);
+      
+      // Verificar primeiro se temos o perfil no localStorage
+      const cachedProfile = localStorage.getItem('user_profile');
+      if (cachedProfile) {
+        try {
+          const parsedProfile = JSON.parse(cachedProfile);
+          // Se o perfil em cache corresponder ao usuário atual, usá-lo
+          if (parsedProfile && parsedProfile.id === id) {
+            console.log("Usando perfil do localStorage em fetchProfileById");
+            setProfileData(parsedProfile);
+            setFormData({
+              username: parsedProfile.username || "",
+              full_name: parsedProfile.full_name || "",
+              headline: parsedProfile.headline || "",
+              bio: parsedProfile.bio || "",
+              location: parsedProfile.location || "",
+              avatar_url: parsedProfile.avatar_url || "",
+              language: parsedProfile.language || "Português"
+            });
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error("Erro ao analisar perfil do localStorage:", e);
+        }
+      }
       
       // Primeiro, tente buscar o perfil diretamente
       const { data, error } = await supabase
@@ -145,6 +180,25 @@ const Profile = () => {
           avatar_url: data.avatar_url || "",
           language: data.language || "Português"
         });
+        
+        // Salvar o perfil no localStorage para uso futuro
+        if (id === user?.id) {
+          const profileToCache = {
+            id: data.id,
+            username: data.username || "",
+            full_name: data.full_name || "",
+            headline: data.headline || "",
+            bio: data.bio || "",
+            location: data.location || "",
+            avatar_url: data.avatar_url || "",
+            language: data.language || "Português",
+            updated_at: data.updated_at || new Date().toISOString(),
+            email: null,
+            is_public: true,
+            timezone: data.timezone || null
+          };
+          localStorage.setItem('user_profile', JSON.stringify(profileToCache));
+        }
       } else {
         console.log("Nenhum dado de perfil encontrado");
         toast.error("Não foi possível carregar o perfil do usuário.");
@@ -202,13 +256,45 @@ const Profile = () => {
         avatarUrl = urlData.publicUrl;
       }
 
-      await updateProfile({
+      // Criar um objeto com os dados atualizados do perfil
+      const updatedProfileData = {
         ...formData,
         avatar_url: avatarUrl
-      });
+      };
+
+      // Atualizar o perfil usando a função do contexto de autenticação
+      const result = await updateProfile(updatedProfileData);
       
-      setIsEditing(false);
-      toast.success("Perfil atualizado com sucesso!");
+      if (result.success) {
+        // Atualizar também o estado local do componente
+        setProfileData({
+          ...profileData,
+          ...updatedProfileData,
+          id: user.id
+        } as ProfileData);
+        
+        // Atualizar diretamente o localStorage para garantir que os dados estejam sincronizados
+        const profileToCache = {
+          id: user.id,
+          username: updatedProfileData.username || "",
+          full_name: updatedProfileData.full_name || "",
+          headline: updatedProfileData.headline || "",
+          bio: updatedProfileData.bio || "",
+          location: updatedProfileData.location || "",
+          avatar_url: updatedProfileData.avatar_url || "",
+          language: updatedProfileData.language || "Português",
+          updated_at: new Date().toISOString(),
+          email: null,
+          is_public: true,
+          timezone: null
+        };
+        localStorage.setItem('user_profile', JSON.stringify(profileToCache));
+        
+        setIsEditing(false);
+        toast.success("Perfil atualizado com sucesso!");
+      } else {
+        throw new Error(result.error?.message || "Erro ao atualizar perfil");
+      }
     } catch (error: any) {
       toast.error("Erro ao atualizar perfil: " + error.message);
     } finally {

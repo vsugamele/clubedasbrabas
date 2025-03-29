@@ -9,6 +9,7 @@ import Search from "@/pages/Search"; // Adicionado import da página de busca
 import CreatePost from "@/pages/CreatePost";
 import Notifications from "@/pages/Notifications";
 import TrendingPage from "@/pages/Trending"; // Importando a página de Trending
+import PostRemover from "@/pages/PostRemover"; // Importando a página de remoção de posts
 import { useAuth } from "./context/auth";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
@@ -294,6 +295,7 @@ const App = () => {
       <Route path="/create-post" element={<ProtectedRoute element={<CreatePost />} />} />
       <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
       <Route path="/trending" element={<ProtectedRoute element={<TrendingPage />} />} />
+      <Route path="/post-remover" element={<ProtectedRoute element={<PostRemover />} />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

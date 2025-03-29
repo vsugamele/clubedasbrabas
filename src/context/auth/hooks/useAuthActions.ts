@@ -149,8 +149,8 @@ export function useAuthActions(setLoading: (loading: boolean) => void) {
       setLoading(true);
       setActionInProgress(true);
       
-      // Salvar uma cópia do perfil antes de fazer logout
-      const savedProfile = localStorage.getItem('user_profile');
+      // Não precisamos mais remover o perfil do localStorage
+      // O perfil deve persistir entre sessões
       
       const { error } = await supabase.auth.signOut();
       

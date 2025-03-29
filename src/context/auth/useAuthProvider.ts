@@ -147,21 +147,60 @@ export function useAuthProvider() {
       try {
         console.log("Loading profile for authenticated user:", user.id);
         
-        // Tentar carregar perfil do localStorage primeiro
+        // Verificar se existe um perfil salvo do último logout
+        const lastUserProfile = localStorage.getItem('last_user_profile');
+        if (lastUserProfile) {
+          try {
+            const parsedProfile = JSON.parse(lastUserProfile);
+            // Verificar se o perfil salvo pertence ao usuário atual
+            if (parsedProfile && parsedProfile.id === user.id) {
+              console.log("Using last saved profile from localStorage");
+              setProfile(parsedProfile);
+              
+              // Atualizar o perfil no localStorage normal também
+              localStorage.setItem('user_profile', lastUserProfile);
+              
+              // Atualizar o perfil no servidor com os dados do último perfil salvo
+              updateUserProfile(user.id, parsedProfile).catch(e => 
+                console.error("Error updating profile from last saved profile:", e)
+              );
+              
+              return;
+            }
+          } catch (e) {
+            console.error("Error parsing last user profile:", e);
+          }
+        }
+        
+        // Tentar carregar perfil do localStorage normal
         const cachedProfile = localStorage.getItem('user_profile');
         if (cachedProfile) {
           try {
             const parsedProfile = JSON.parse(cachedProfile);
-            // Verificar se o perfil em cache pertence ao usuário atual
-            if (parsedProfile && parsedProfile.id === user.id) {
+            // Verificar se o perfil em cache pertence ao usuário atual ou se é um perfil válido
+            if (parsedProfile && (parsedProfile.id === user.id || !parsedProfile.id)) {
               console.log("Using cached profile from localStorage");
+              
+              // Se o perfil em cache não tiver ID ou tiver ID diferente, atualizamos com o ID atual
+              if (!parsedProfile.id || parsedProfile.id !== user.id) {
+                parsedProfile.id = user.id;
+                // Salvar o perfil atualizado no localStorage
+                localStorage.setItem('user_profile', JSON.stringify(parsedProfile));
+              }
+              
               setProfile(parsedProfile);
-              // Ainda assim, carregamos o perfil do servidor em segundo plano
-              loadProfile(user.id).catch(e => console.error("Background profile refresh error:", e));
+              
+              // Atualizar o perfil no servidor com os dados do cache
+              // Isso garante que os dados do perfil sejam salvos no banco de dados
+              updateUserProfile(user.id, parsedProfile).catch(e => 
+                console.error("Error updating profile from cache:", e)
+              );
+              
               return;
             } else {
               console.log("Cached profile doesn't match current user, removing from localStorage");
-              localStorage.removeItem('user_profile');
+              // Não remover o perfil do localStorage, apenas carregar do servidor
+              // localStorage.removeItem('user_profile');
             }
           } catch (e) {
             console.error("Error parsing cached profile:", e);
@@ -187,7 +226,7 @@ export function useAuthProvider() {
     return () => {
       isMounted = false;
     };
-  }, [user?.id, sessionChecked, loadProfile, createProfile, setProfile]);
+  }, [user?.id, sessionChecked, loadProfile, createProfile, setProfile, updateUserProfile]);
 
   const updateProfile = async (updates: Partial<ProfileType>) => {
     if (!user) {

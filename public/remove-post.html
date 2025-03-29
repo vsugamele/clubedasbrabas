@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Removedor de Posts</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #ff4400;
+            margin-bottom: 20px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #ff4400;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #e63e00;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Removedor de Posts</h1>
+    
+    <div class="card">
+        <h2>Remover Post por ID</h2>
+        <p>Use esta ferramenta para remover posts problemáticos do banco de dados.</p>
+        
+        <div class="input-group">
+            <label for="postId">ID do Post:</label>
+            <input type="text" id="postId" placeholder="Digite o ID do post que deseja remover">
+        </div>
+        
+        <button id="removeButton" onclick="removePost()">Remover Post</button>
+        
+        <div id="result" class="result" style="display: none;"></div>
+        
+        <div id="log" class="log" style="display: none;"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Como encontrar o ID do post</h2>
+        <ol>
+            <li>Clique com o botão direito no post e selecione "Inspecionar"</li>
+            <li>No painel de inspeção, procure por atributos como <code>data-post-id</code> ou <code>id</code></li>
+            <li>Copie o ID encontrado e cole no campo acima</li>
+        </ol>
+    </div>
+
+    <script>
+        // Inicializar o cliente Supabase
+        const supabaseUrl = 'https://weuifmgjzkuppqqsoood.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndldWlmbWdqemt1cHBxcXNvb29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTI3NzY5MzMsImV4cCI6MjAyODM1MjkzM30.Hv8Qf_QIwUmMlBKPIRwQCQcJCIZdWRfxkCFfYnXWFnE';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // Elementos da interface
+        const postIdInput = document.getElementById('postId');
+        const removeButton = document.getElementById('removeButton');
+        const resultDiv = document.getElementById('result');
+        const logDiv = document.getElementById('log');
+        
+        // Função para adicionar logs
+        function log(message) {
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            logDiv.style.display = 'block';
+        }
+        
+        // Função para remover um post
+        async function removePost() {
+            const postId = postIdInput.value.trim();
+            
+            if (!postId) {
+                showResult('Por favor, insira um ID de post válido.', false);
+                return;
+            }
+            
+            // Limpar resultados anteriores
+            resultDiv.innerHTML = '';
+            resultDiv.className = 'result';
+            resultDiv.style.display = 'none';
+            
+            // Limpar logs anteriores
+            logDiv.innerHTML = '';
+            
+            // Desabilitar botão durante o processo
+            removeButton.disabled = true;
+            removeButton.textContent = 'Removendo...';
+            
+            try {
+                log(`Iniciando exclusão forçada do post ${postId}`);
+                
+                // Verificar se o post existe
+                const { data: postData, error: postError } = await supabase
+                    .from('posts')
+                    .select('*')
+                    .eq('id', postId)
+                    .single();
+                
+                if (postError) {
+                    log(`Post ${postId} não encontrado: ${postError.message}`);
+                    showResult(`Post ${postId} não encontrado. Verifique se o ID está correto.`, false);
+                    return;
+                }
+                
+                log(`Post encontrado: ${JSON.stringify(postData)}`);
+                
+                // Lista de tabelas que podem ter relacionamentos com posts
+                const relatedTables = [
+                    { name: 'post_likes', field: 'post_id' },
+                    { name: 'post_comments', field: 'post_id' },
+                    { name: 'post_media', field: 'post_id' },
+                    { name: 'post_polls', field: 'post_id' },
+                    { name: 'poll_votes', field: 'post_id' },
+                    { name: 'post_views', field: 'post_id' },
+                    { name: 'post_shares', field: 'post_id' },
+                    { name: 'post_saves', field: 'post_id' },
+                    { name: 'post_reports', field: 'post_id' }
+                ];
+                
+                // Tentar excluir registros relacionados de cada tabela
+                for (const { name, field } of relatedTables) {
+                    try {
+                        log(`Removendo registros relacionados da tabela ${name}...`);
+                        
+                        const { error } = await supabase
+                            .from(name)
+                            .delete()
+                            .eq(field, postId);
+                        
+                        if (error) {
+                            log(`Erro ao excluir registros de ${name}: ${error.message}`);
+                        } else {
+                            log(`Registros de ${name} removidos com sucesso`);
+                        }
+                    } catch (error) {
+                        log(`Exceção ao excluir registros de ${name}: ${error.message}`);
+                    }
+                }
+                
+                // Verificar se o post está marcado como trending e remover essa marcação
+                try {
+                    log(`Removendo marcação de trending do post ${postId}...`);
+                    
+                    const { error: updateError } = await supabase
+                        .from('posts')
+                        .update({ is_trending: false })
+                        .eq('id', postId);
+                    
+                    if (updateError) {
+                        log(`Erro ao remover marcação de trending: ${updateError.message}`);
+                    } else {
+                        log(`Marcação de trending removida com sucesso`);
+                    }
+                } catch (error) {
+                    log(`Exceção ao remover marcação de trending: ${error.message}`);
+                }
+                
+                // Finalmente, excluir o post
+                log(`Excluindo o post ${postId}...`);
+                
+                const { error } = await supabase
+                    .from('posts')
+                    .delete()
+                    .eq('id', postId);
+                
+                if (error) {
+                    log(`Erro ao excluir post: ${error.message}`);
+                    showResult(`Erro ao excluir post: ${error.message}`, false);
+                    return;
+                }
+                
+                log(`Post ${postId} excluído com sucesso!`);
+                showResult(`Post ${postId} removido com sucesso!`, true);
+                
+                // Limpar o campo de entrada
+                postIdInput.value = '';
+                
+            } catch (error) {
+                log(`Erro ao executar a exclusão: ${error.message}`);
+                showResult(`Erro ao executar a exclusão: ${error.message}`, false);
+            } finally {
+                // Reabilitar botão
+                removeButton.disabled = false;
+                removeButton.textContent = 'Remover Post';
+            }
+        }
+        
+        // Função para mostrar o resultado
+        function showResult(message, success) {
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${success ? 'success' : 'error'}`;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

@@ -142,6 +142,10 @@ export function useProfile() {
             };
             
             setProfile(newProfile);
+            
+            // Atualizar o perfil no localStorage após atualização bem-sucedida
+            localStorage.setItem('user_profile', JSON.stringify(newProfile));
+            
             return newProfile;
           }
         } else {
@@ -173,6 +177,9 @@ export function useProfile() {
         // Atualiza o estado local com o perfil atualizado
         setProfile(updatedProfile);
         
+        // Atualizar o perfil no localStorage após atualização bem-sucedida
+        localStorage.setItem('user_profile', JSON.stringify(updatedProfile));
+        
         // Verifica se o perfil foi realmente atualizado no Supabase
         const verifyProfile = await fetchProfile(userId);
         if (verifyProfile) {
@@ -199,19 +206,89 @@ export function useProfile() {
     
     try {
       console.log("Updating profile:", updates);
-      const updatedProfile = await updateUserProfile(userId, updates);
       
-      // Atualizar o perfil no localStorage após atualização bem-sucedida
-      if (updatedProfile) {
+      // Sempre salvar as alterações no localStorage primeiro para garantir que não sejam perdidas
+      // mesmo em caso de falha na conexão com o Supabase
+      try {
+        // Obter o perfil atual do localStorage
+        const cachedProfile = localStorage.getItem('user_profile');
+        let profileToUpdate = {};
+        
+        if (cachedProfile) {
+          try {
+            profileToUpdate = JSON.parse(cachedProfile);
+          } catch (e) {
+            console.error("Error parsing cached profile:", e);
+          }
+        }
+        
+        // Atualizar o perfil com as novas informações
+        const updatedProfile = {
+          ...profileToUpdate,
+          ...updates,
+          id: userId,
+          updated_at: new Date().toISOString()
+        };
+        
+        // Salvar no localStorage
         localStorage.setItem('user_profile', JSON.stringify(updatedProfile));
+        console.log("Profile saved to localStorage:", updatedProfile);
+        
+        // Registrar que há alterações pendentes para sincronizar
+        const pendingUpdates = localStorage.getItem('pending_profile_updates') || '[]';
+        let pendingUpdatesList = [];
+        try {
+          pendingUpdatesList = JSON.parse(pendingUpdates);
+        } catch (e) {
+          console.error("Error parsing pending updates:", e);
+        }
+        
+        // Adicionar a atualização atual à lista de atualizações pendentes
+        pendingUpdatesList.push({
+          userId,
+          updates: updatedProfile,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Armazenar as atualizações pendentes
+        localStorage.setItem('pending_profile_updates', JSON.stringify(pendingUpdatesList));
+      } catch (e) {
+        console.error("Error saving profile to localStorage:", e);
       }
       
-      toast.success("Profile updated successfully");
+      // Tentar atualizar o perfil no Supabase
+      const updatedProfile = await updateUserProfile(userId, updates);
+      
+      if (updatedProfile) {
+        // Se a atualização no Supabase foi bem-sucedida, remover das atualizações pendentes
+        try {
+          const pendingUpdates = localStorage.getItem('pending_profile_updates') || '[]';
+          let pendingUpdatesList = [];
+          try {
+            pendingUpdatesList = JSON.parse(pendingUpdates);
+          } catch (e) {
+            console.error("Error parsing pending updates:", e);
+          }
+          
+          // Filtrar as atualizações pendentes para remover a que acabou de ser sincronizada
+          const filteredUpdates = pendingUpdatesList.filter(update => update.userId !== userId);
+          
+          // Armazenar as atualizações pendentes atualizadas
+          localStorage.setItem('pending_profile_updates', JSON.stringify(filteredUpdates));
+        } catch (e) {
+          console.error("Error updating pending profile updates:", e);
+        }
+      }
+      
+      toast.success("Perfil atualizado com sucesso");
       return { success: true, profile: updatedProfile };
     } catch (error: any) {
       console.error("Update profile error:", error);
-      toast.error(error.message || "Error updating profile");
-      return { success: false, error };
+      
+      // Mesmo com erro, o perfil já foi salvo no localStorage
+      toast.success("Perfil salvo localmente. Será sincronizado quando a conexão for restabelecida.");
+      
+      return { success: true, error, offlineMode: true };
     }
   };
 
