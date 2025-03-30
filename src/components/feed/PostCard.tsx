@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -27,6 +26,10 @@ export interface PostProps {
     role?: string;
   };
   category?: {
+    id: string;
+    name: string;
+  };
+  community?: {
     id: string;
     name: string;
   };
@@ -61,6 +64,7 @@ const PostCard = ({
   id,
   author,
   category,
+  community,
   createdAt,
   content,
   media,
@@ -79,6 +83,7 @@ const PostCard = ({
   const postId = id || post?.id;
   const postAuthor = author || post?.author;
   const postCategory = category || post?.category;
+  const postCommunity = community || post?.community;
   const postCreatedAt = createdAt || post?.createdAt;
   const postContent = content || post?.content;
   const postMedia = media || post?.media;
@@ -160,6 +165,7 @@ const PostCard = ({
         <PostHeader
           author={postAuthor}
           category={postCategory}
+          community={postCommunity}
           createdAt={postDate}
           bookmarked={bookmarked}
           toggleBookmark={toggleBookmark}

@@ -10,6 +10,7 @@ import CreatePost from "@/pages/CreatePost";
 import Notifications from "@/pages/Notifications";
 import TrendingPage from "@/pages/Trending"; // Importando a página de Trending
 import PostRemover from "@/pages/PostRemover"; // Importando a página de remoção de posts
+import ReferenceGallery from "@/pages/ReferenceGallery"; // Importando a página de galeria de referências
 import { useAuth } from "./context/auth";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
@@ -296,6 +297,8 @@ const App = () => {
       <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
       <Route path="/trending" element={<ProtectedRoute element={<TrendingPage />} />} />
       <Route path="/post-remover" element={<ProtectedRoute element={<PostRemover />} />} />
+      <Route path="/referencias" element={<ProtectedRoute element={<ReferenceGallery />} />} />
+      <Route path="/c/:id" element={<ProtectedRoute element={<Index />} />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

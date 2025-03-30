@@ -138,7 +138,7 @@ const Events = () => {
 
       {/* Dialog de detalhes do evento */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           {selectedEvent && (
             <>
               <DialogHeader>
@@ -185,7 +185,7 @@ const Events = () => {
                         href={selectedEvent.link} 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="text-sm text-brand-600 hover:underline"
+                        className="text-sm text-brand-600 hover:underline break-all"
                       >
                         {selectedEvent.link}
                       </a>
@@ -204,7 +204,11 @@ const Events = () => {
               </div>
               
               <div className="flex justify-end mt-4">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button 
+                  variant="default" 
+                  onClick={() => setIsDialogOpen(false)}
+                  className="bg-[#ff4400] hover:bg-[#ff4400]/90 text-white w-full md:w-auto"
+                >
                   Fechar
                 </Button>
               </div>

@@ -12,7 +12,11 @@ import {
   RefreshCw,
   Crown, // Ícone para Área de Membro
   BookOpen,
-  Menu
+  Menu,
+  X,
+  ChevronDown,
+  Star,
+  Image
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,11 +42,12 @@ import { ExternalLink as ExternalLinkType, useExternalLinks } from "./ExternalLi
 interface NavItemProps {
   href: string;
   icon: React.ReactNode;
-  label: string;
+  label: React.ReactNode;
   active?: boolean;
   onClick?: () => void;
   external?: boolean;
   highlighted?: boolean;
+  className?: string;
 }
 
 interface SidebarCategory {
@@ -64,7 +69,7 @@ interface ExternalLink {
   highlighted?: boolean;
 }
 
-const NavItem = ({ href, icon, label, active, onClick, external, highlighted }: NavItemProps) => {
+const NavItem = ({ href, icon, label, active, onClick, external, highlighted, className }: NavItemProps) => {
   return (
     <Link 
       to={href} 
@@ -76,12 +81,19 @@ const NavItem = ({ href, icon, label, active, onClick, external, highlighted }: 
         className={cn(
           "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
           active 
-            ? "bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400" 
-            : "text-gray-700 dark:text-gray-300 hover:bg-orange-50/60 dark:hover:bg-orange-900/20",
-          highlighted && "border border-orange-300 dark:border-orange-700"
+            ? "bg-gradient-to-r from-orange-500/20 to-orange-400/10 text-orange-600 dark:from-orange-900/40 dark:to-orange-800/20 dark:text-orange-400 font-medium" 
+            : "text-gray-800 dark:text-white hover:bg-orange-50/60 dark:hover:bg-orange-900/20",
+          highlighted && "border border-orange-300 dark:border-orange-700",
+          className
         )}
       >
-        <div className={highlighted ? "text-orange-500 dark:text-orange-400" : ""}>
+        <div className={cn(
+          "flex items-center justify-center w-8 h-8 rounded-full",
+          active 
+            ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" 
+            : "bg-orange-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
+          highlighted && "bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400"
+        )}>
           {icon}
         </div>
         <span className={cn(
@@ -401,30 +413,43 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
     return letterEmojis[firstChar] || '🏷️'; // Emoji padrão se a letra não for encontrada
   };
   
+  const CategoryItem = ({ category, isExpanded, onToggle, communities }: any) => {
+    return (
+      <div className="mb-2">
+        <button
+          onClick={onToggle}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-orange-50/50 dark:bg-gray-800/50 hover:bg-orange-100/70 dark:hover:bg-gray-700/70 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Folder className="h-4 w-4 text-orange-500 dark:text-orange-400" />
+            <span className="font-medium text-gray-800 dark:text-gray-100">{category.name}</span>
+          </div>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform",
+              isExpanded && "transform rotate-180"
+            )}
+          />
+        </button>
+      </div>
+    );
+  };
+
   const Content = () => (
     <div className="flex flex-col justify-between h-full">
       <div className="space-y-6 mt-4">
-        <div className="space-y-1 px-2">
-          <NavItem 
-            href="/" 
-            icon={<Home className="h-5 w-5" />} 
-            label="Feed Principal" 
-            active={path === "/" && !communityActive()}
-            onClick={onClose}
-          />
-        </div>
-        
-        <div className="space-y-2 px-2 mt-2">
+        <div className="space-y-2 px-2">
           <div className="px-3 py-2 flex justify-between items-center">
-            <span className="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400">Categorias e Comunidades</span>
+            <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 tracking-wider">
+              CATEGORIAS E COMUNIDADES
+            </h2>
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-6 w-6 rounded-full hover:bg-orange-100/70 dark:hover:bg-orange-900/30 text-gray-500 dark:text-gray-400"
               onClick={handleRefresh}
-              disabled={isRefreshing}
+              className="h-7 w-7 rounded-full hover:bg-orange-100 dark:hover:bg-gray-800"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className="h-4 w-4 text-gray-600 dark:text-gray-300" />
             </Button>
           </div>
           
@@ -449,44 +474,43 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
                     className="border-none"
                   >
                     <AccordionTrigger className="px-3 py-2 hover:bg-orange-50/60 dark:hover:bg-orange-900/20 rounded-lg transition-colors hover:no-underline">
-                      <div className="flex items-center gap-3">
-                        <Folder className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                        <span className="font-medium text-gray-700 dark:text-gray-300">{category.name}</span>
-                        {category.communities.length > 0 && (
-                          <span className="ml-1 text-xs bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 px-1.5 py-0.5 rounded-full">
-                            {category.communities.length}
-                          </span>
-                        )}
-                      </div>
+                      <CategoryItem 
+                        category={category} 
+                        isExpanded={expandedCategories.includes(category.slug)} 
+                        onToggle={() => setExpandedCategories(prev => {
+                          if (prev.includes(category.slug)) {
+                            return prev.filter(slug => slug !== category.slug);
+                          } else {
+                            return [...prev, category.slug];
+                          }
+                        })}
+                        communities={category.communities}
+                      />
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-1 pl-8">
+                        {category.communities.length === 0 && (
+                          <div className="px-3 py-2 text-sm text-gray-800 dark:text-white italic">
+                            Nenhuma comunidade nesta categoria
+                          </div>
+                        )}
                         {category.communities.length > 0 ? (
                           category.communities.map(community => (
                             <Link 
                               key={community.id} 
-                              to={`/?community=${community.id}&category=${category.id}`}
-                              onClick={() => {
-                                console.log(`Navegando para comunidade ${community.name} (ID: ${community.id}) na categoria ${category.name} (ID: ${category.id})`);
-                                console.log(`Link gerado: /?community=${community.id}&category=${category.id}`);
-                                if (onClose) onClose();
-                              }}
+                              to={`/c/${community.id}`}
+                              className="flex items-center gap-2 px-3 py-2 mt-1 rounded-md hover:bg-orange-50/80 dark:hover:bg-gray-800/60 text-gray-700 dark:text-gray-200"
                             >
-                              <div 
-                                className={cn(
-                                  "px-3 py-2 rounded-lg hover:bg-orange-50/60 dark:hover:bg-orange-900/20 transition-colors flex items-center gap-2", 
-                                  isCommunityActive(community.id) && "bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
-                                )}
-                              >
-                                {community.icon && <span className="text-lg">{community.icon}</span>}
-                                <span className="font-medium text-gray-700 dark:text-gray-300">{community.name}</span>
-                              </div>
+                              {community.icon ? (
+                                <span className="text-lg">{community.icon}</span>
+                              ) : (
+                                <Hash className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                              )}
+                              <span className="truncate">{community.name}</span>
                             </Link>
                           ))
                         ) : (
-                          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 italic">
-                            Nenhuma comunidade nesta categoria
-                          </div>
+                          <></>
                         )}
                       </div>
                     </AccordionContent>
@@ -500,35 +524,33 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
                     className="border-none"
                   >
                     <AccordionTrigger className="px-3 py-2 hover:bg-orange-50/60 dark:hover:bg-orange-900/20 rounded-lg transition-colors hover:no-underline">
-                      <div className="flex items-center gap-3">
-                        <Hash className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                        <span className="font-medium text-gray-700 dark:text-gray-300">Outras Comunidades</span>
-                        <span className="ml-1 text-xs bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 px-1.5 py-0.5 rounded-full">
-                          {communitiesWithoutCategory.length}
-                        </span>
-                      </div>
+                      <CategoryItem 
+                        category={{ name: "Outras Comunidades", slug: "sem-categoria" }} 
+                        isExpanded={expandedCategories.includes("sem-categoria")} 
+                        onToggle={() => setExpandedCategories(prev => {
+                          if (prev.includes("sem-categoria")) {
+                            return prev.filter(slug => slug !== "sem-categoria");
+                          } else {
+                            return [...prev, "sem-categoria"];
+                          }
+                        })}
+                        communities={communitiesWithoutCategory}
+                      />
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-1 pl-8">
                         {communitiesWithoutCategory.map(community => (
                           <Link 
                             key={community.id} 
-                            to={`/?community=${community.id}`}
-                            onClick={() => {
-                              console.log(`Navegando para comunidade sem categoria ${community.name} (ID: ${community.id})`);
-                              console.log(`Link gerado: /?community=${community.id}`);
-                              if (onClose) onClose();
-                            }}
+                            to={`/c/${community.id}`}
+                            className="flex items-center gap-2 px-3 py-2 mt-1 rounded-md hover:bg-orange-50/80 dark:hover:bg-gray-800/60 text-gray-700 dark:text-gray-200"
                           >
-                            <div 
-                              className={cn(
-                                "px-3 py-2 rounded-lg hover:bg-orange-50/60 dark:hover:bg-orange-900/20 transition-colors flex items-center gap-2", 
-                                isCommunityActive(community.id) && "bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
-                              )}
-                            >
-                              {community.icon && <span className="text-lg">{community.icon}</span>}
-                              <span className="font-medium text-gray-700 dark:text-gray-300">{community.name}</span>
-                            </div>
+                            {community.icon ? (
+                              <span className="text-lg">{community.icon}</span>
+                            ) : (
+                              <Hash className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            )}
+                            <span className="truncate">{community.name}</span>
                           </Link>
                         ))}
                       </div>
@@ -547,6 +569,22 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
               <span className="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400">Links Úteis</span>
             </div>
             <div className="space-y-1">
+              <div className="relative mb-2">
+                <NavItem 
+                  href="/referencias"
+                  icon={<Image className="h-5 w-5 text-white" />}
+                  label={
+                    <div className="flex items-center gap-1">
+                      Galeria de Referências
+                      <Star className="h-3 w-3 text-yellow-200 animate-pulse" />
+                    </div>
+                  }
+                  active={isActive("/referencias")}
+                  onClick={onClose}
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium rounded-md hover:from-amber-600 hover:to-orange-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+                />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full animate-ping"></div>
+              </div>
               {externalLinks.map(link => (
                 <NavItem 
                   key={link.id}
@@ -561,78 +599,50 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
             </div>
           </div>
         )}
-        
-        {/* Links de navegação fixos */}
-        <div className="space-y-2 px-2 mt-4">
-          <div className="px-3 py-2">
-            <span className="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400">Navegação</span>
-          </div>
-          <div className="space-y-1">
-            <NavItem 
-              href="/messages" 
-              icon={<MessageCircle className="h-5 w-5" />} 
-              label="Mensagens" 
-              active={isActive("/messages")}
-              onClick={onClose}
-            />
-            <NavItem 
-              href="/notifications" 
-              icon={<BellDot className="h-5 w-5" />} 
-              label="Notificações" 
-              active={isActive("/notifications")}
-              onClick={onClose}
-            />
-            <NavItem 
-              href="/eventos" 
-              icon={<Calendar className="h-5 w-5" />} 
-              label="Eventos" 
-              active={isActive("/eventos")}
-              onClick={onClose}
-            />
-            <NavItem 
-              href="/membros" 
-              icon={<Users className="h-5 w-5" />} 
-              label="Membros" 
-              active={isActive("/membros")}
-              onClick={onClose}
-            />
-            <NavItem 
-              href="/profile" 
-              icon={<User className="h-5 w-5" />} 
-              label="Meu Perfil" 
-              active={isActive("/profile")}
-              onClick={onClose}
-            />
-            <NavItem 
-              href="/area-membro" 
-              icon={<Crown className="h-5 w-5" />} 
-              label="Área de Membro" 
-              active={isActive("/area-membro")}
-              onClick={onClose}
-            />
-            <NavItem 
-              href="/conteudos" 
-              icon={<BookOpen className="h-5 w-5" />} 
-              label="Conteúdos" 
-              active={isActive("/conteudos")}
-              onClick={onClose}
-            />
-          </div>
-        </div>
       </div>
     </div>
   );
 
-  // No modo mobile, renderizamos apenas o conteúdo diretamente
-  if (isMobile) {
-    return <Content />;
-  }
-  
-  // No modo desktop, usamos o componente Sheet sem o botão de trigger
   return (
-    <div className="hidden md:block w-64 border-r min-h-screen sticky top-0">
-      <Content />
-    </div>
+    <>
+      {isMobile ? (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Overlay escuro para fechar a sidebar */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm" 
+            onClick={onClose}
+          />
+          
+          {/* Sidebar com fundo gradiente e melhor contraste */}
+          <div className="relative w-[85%] max-w-[350px] h-full bg-gradient-to-b from-[#ff4400]/5 to-[#ff920e]/10 dark:from-gray-900 dark:to-gray-800 overflow-y-auto border-r border-orange-200/30 dark:border-gray-700 shadow-xl">
+            <div className="sticky top-0 z-10 flex justify-between items-center p-4 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-b border-orange-200/30 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <img src="/lovable-uploads/fe794e0a-f834-4651-8887-e813c0115ade.png" alt="Logo" className="w-8 h-8 object-contain" />
+                <span className="text-xl font-bold text-[#ff4400]">Clube das Brabas</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={onClose}
+                className="rounded-full hover:bg-orange-100 dark:hover:bg-gray-700"
+              >
+                <X className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+              </Button>
+            </div>
+            
+            <div className="p-2">
+              <Content />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="h-full overflow-y-auto border-r border-border">
+          <div className="p-2">
+            <Content />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

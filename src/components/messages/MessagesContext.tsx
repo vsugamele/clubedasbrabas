@@ -241,16 +241,128 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
     };
   }, [user, selectedContact]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    // Setup realtime subscription para todas as mensagens do usuário
+    const channel = supabase
+      .channel("global_messages")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "direct_messages",
+          filter: `or(sender_id=eq.${user.id},receiver_id=eq.${user.id})`,
+        },
+        async (payload) => {
+          const newMessage = payload.new as MessageType;
+          
+          // Se a mensagem é para a conversa atual, atualizar a lista de mensagens
+          if (selectedContact && 
+              ((newMessage.sender_id === selectedContact.id && newMessage.receiver_id === user.id) ||
+               (newMessage.sender_id === user.id && newMessage.receiver_id === selectedContact.id))) {
+            
+            // Verificar se a mensagem já existe na lista (para evitar duplicatas)
+            const messageExists = messages.some(msg => msg.id === newMessage.id);
+            if (!messageExists) {
+              setMessages(prev => [...prev, newMessage]);
+            }
+            
+            // Se a mensagem é do contato selecionado, marcar como lida
+            if (newMessage.sender_id === selectedContact.id && !newMessage.is_read) {
+              await supabase
+                .from("direct_messages")
+                .update({ is_read: true })
+                .eq("id", newMessage.id);
+            }
+          }
+          
+          // Atualizar a lista de contatos com a nova mensagem
+          const otherUserId = newMessage.sender_id === user.id ? newMessage.receiver_id : newMessage.sender_id;
+          
+          // Buscar informações do contato se não estiver na lista
+          let contactExists = contacts.some(c => c.id === otherUserId);
+          
+          if (!contactExists) {
+            try {
+              const { data: profileData } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", otherUserId)
+                .single();
+                
+              if (profileData) {
+                const newContact: ContactType = {
+                  id: profileData.id,
+                  full_name: profileData.full_name,
+                  username: profileData.username,
+                  avatar_url: profileData.avatar_url,
+                  unread_count: newMessage.sender_id === user.id ? 0 : 1,
+                  last_message: newMessage.content
+                };
+                
+                setContacts(prev => [newContact, ...prev]);
+              }
+            } catch (error) {
+              console.error("Erro ao buscar perfil do contato:", error);
+            }
+          } else {
+            // Atualizar o contato existente
+            setContacts(prev => 
+              prev.map(contact => {
+                if (contact.id === otherUserId) {
+                  return {
+                    ...contact,
+                    last_message: newMessage.content,
+                    unread_count: newMessage.sender_id === user.id 
+                      ? contact.unread_count 
+                      : contact.unread_count + (selectedContact?.id === otherUserId ? 0 : 1)
+                  };
+                }
+                return contact;
+              })
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, selectedContact, contacts, messages]);
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user || !selectedContact || !newMessage.trim()) return;
 
     try {
+      // Criar um ID temporário para a mensagem
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Adicionar a mensagem localmente primeiro para feedback instantâneo
+      const tempMessage: MessageType = {
+        id: tempId,
+        content: newMessage.trim(),
+        sender_id: user.id,
+        receiver_id: selectedContact.id,
+        created_at: new Date().toISOString(),
+        is_read: false
+      };
+      
+      // Atualizar a interface imediatamente
+      setMessages(prev => [...prev, tempMessage]);
+      
+      // Limpar o campo de entrada
+      setNewMessage("");
+      
+      // Enviar a mensagem para o servidor
       const { data, error } = await supabase
         .from("direct_messages")
         .insert({
-          content: newMessage.trim(),
+          content: tempMessage.content,
           sender_id: user.id,
           receiver_id: selectedContact.id,
           is_read: false
@@ -258,11 +370,19 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
         .select();
 
       if (error) throw error;
-
-      setNewMessage("");
+      
+      // Se a mensagem foi enviada com sucesso, substituir a mensagem temporária pela real
+      if (data && data.length > 0) {
+        setMessages(prev => 
+          prev.map(msg => msg.id === tempId ? data[0] : msg)
+        );
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Erro ao enviar mensagem");
+      
+      // Em caso de erro, remover a mensagem temporária
+      setMessages(prev => prev.filter(msg => !msg.id.includes('temp-')));
     }
   };
 

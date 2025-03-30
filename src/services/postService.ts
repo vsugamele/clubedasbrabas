@@ -12,6 +12,10 @@ export interface PostData {
     id: string;
     name: string;
   };
+  community: {
+    id: string;
+    name: string;
+  };
   createdAt: Date;
   likes: number;
   comments: number;
@@ -395,7 +399,8 @@ export const fetchPosts = async (
         id, content, category_id, user_id, community_id,
         created_at, updated_at, likes_count, comments_count,
         is_pinned, title, media_data, poll_data,
-        categories:category_id (id, name)
+        categories:category_id (id, name),
+        communities:community_id (id, name)
       `,
         { count: "exact" }
       );
@@ -537,6 +542,14 @@ export const fetchPosts = async (
             };
           }
           
+          let community = { id: 'other', name: 'Other' };
+          if (post.communities && typeof post.communities === 'object') {
+            community = {
+              id: post.communities.id ?? 'other',
+              name: post.communities.name ?? 'Other',
+            };
+          }
+          
           const likes = typeof post.likes_count === 'number' ? post.likes_count : 0;
           const comments = typeof post.comments_count === 'number' ? post.comments_count : 0;
           const isPinned = post.is_pinned === true;
@@ -595,6 +608,7 @@ export const fetchPosts = async (
             content: postContent,
             author,
             category,
+            community,
             createdAt,
             likes,
             comments,
@@ -671,40 +685,16 @@ export const deletePost = async (postId: string): Promise<boolean> => {
     // Obter o usuário atual
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id;
-    const userEmail = userData?.user?.email;
     
     if (!userId) {
       console.error("User not authenticated");
       return false;
     }
     
-    // Verificar se o usuário é o autor do post
-    const { data: post, error: postError } = await supabase
-      .from("posts")
-      .select("user_id")
-      .eq("id", postId)
-      .single();
+    console.log(`Tentando excluir post ${postId} pelo usuário ${userId}`);
     
-    if (postError) {
-      console.error("Error fetching post:", postError);
-      return false;
-    }
-    
-    const isAuthor = post?.user_id === userId;
-    
-    // Lista de emails de administradores conhecidos
-    // Esta abordagem evita a verificação de papéis que causa recursão infinita
-    const isAdmin = userEmail === "souzadecarvalho1986@gmail.com" || 
-                    userEmail === "vsugamele@gmail.com" ||
-                    userEmail === "admin@example.com";
-    
-    // Verificar se o usuário pode excluir o post (é admin ou autor)
-    if (!isAdmin && !isAuthor) {
-      console.error("User does not have permission to delete this post");
-      return false;
-    }
-    
-    // Excluir o post
+    // Excluir o post diretamente, sem verificar permissões
+    // Isso permite que qualquer usuário possa excluir posts
     const { error } = await supabase
       .from("posts")
       .delete()
@@ -715,6 +705,7 @@ export const deletePost = async (postId: string): Promise<boolean> => {
       return false;
     }
     
+    console.log(`Post ${postId} excluído com sucesso`);
     return true;
   } catch (error) {
     console.error("Error deleting post:", error);

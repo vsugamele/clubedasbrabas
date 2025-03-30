@@ -11,6 +11,7 @@ import TrendingManagement from "./trending/TrendingPostsManagement";
 import UserRankingList from "./rankings/UserRankingList";
 import { ReportManagement } from "./reports/ReportManagement";
 import { PostCleanup } from "./posts/PostCleanup";
+import { ReferenceManagement } from "./references/ReferenceManagement";
 import { LoadingSpinner } from "../ui/loading-spinner";
 
 interface AdminPanelProps {
@@ -74,6 +75,7 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
     { id: "trending", label: "Trending" },
     { id: "rankings", label: "Rankings" },
     { id: "denuncias", label: "Denúncias" },
+    { id: "referencias", label: "Referências" },
     { id: "limpeza", label: "Limpeza de Posts" },
   ];
 
@@ -127,6 +129,10 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
 
         <TabsContent value="denuncias">
           <ReportManagement />
+        </TabsContent>
+
+        <TabsContent value="referencias">
+          <ReferenceManagement />
         </TabsContent>
 
         <TabsContent value="limpeza">

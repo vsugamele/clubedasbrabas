@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams, useParams } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import PostFeed from "@/components/feed/PostFeed";
 import TrendingPosts from "@/components/feed/TrendingPosts";
@@ -8,45 +8,64 @@ import EventsList from "@/components/feed/EventsList";
 import { fetchEvents } from "@/components/admin/events/eventService";
 import { Event } from "@/components/admin/communities/types";
 import { TrendingPost } from "@/services/trendingService";
-
-// Removendo os dados mockados, agora vamos usar dados reais
-// const mockTrendingPosts: TrendingPost[] = [
-//   { id: "1", title: "Como aumentar seu networking profissional", author: "Marina Silva", authorId: "123", likes: 45, comments: 12 },
-//   { id: "2", title: "5 dicas para organizar sua rotina de trabalho", author: "Carlos Oliveira", authorId: "456", likes: 38, comments: 8 },
-//   { id: "3", title: "Empreendedorismo feminino: desafios e conquistas", author: "Ana Souza", authorId: "789", likes: 27, comments: 5 }
-// ];
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const params = useParams();
+  const [communityName, setCommunityName] = useState<string | null>(null);
   
   // Obter os parâmetros da URL
-  const communityId = searchParams.get('community');
+  const communityIdFromParams = params.id; // ID da comunidade da rota /c/:id
+  const communityIdFromQuery = searchParams.get('community'); // ID da comunidade de query params
   const categoryId = searchParams.get('category');
+  
+  // Usar o ID da comunidade da rota se disponível, caso contrário usar o ID da query
+  const communityId = communityIdFromParams || communityIdFromQuery;
   
   // Log para depuração
   useEffect(() => {
     if (communityId || categoryId) {
       console.log(`Página Index - Parâmetros da URL: communityId=${communityId}, categoryId=${categoryId}`);
-      
-      // Verificar se estamos na comunidade "Sejam Bem Vindas"
-      if (communityId === "4") { // Assumindo que 4 é o ID da comunidade "Sejam Bem Vindas"
-        console.log("Acessando a comunidade Sejam Bem Vindas");
-      }
-      
-      // Verificar se estamos na comunidade "Marketing"
-      if (communityId === "5") { // Assumindo que 5 é o ID da comunidade "Marketing"
-        console.log("Acessando a comunidade Marketing");
-      }
-      
-      // Verificar todos os IDs de comunidade possíveis
-      if (communityId) {
-        console.log(`ID da comunidade atual: ${communityId}`);
-      }
     }
   }, [communityId, categoryId]);
+  
+  // Buscar o nome da comunidade quando o communityId mudar
+  useEffect(() => {
+    const fetchCommunityName = async () => {
+      if (communityId) {
+        try {
+          const { data, error } = await supabase
+            .from('communities')
+            .select('name')
+            .eq('id', communityId)
+            .single();
+            
+          if (error) {
+            console.error("Erro ao buscar nome da comunidade:", error);
+            return;
+          }
+          
+          if (data && data.name) {
+            setCommunityName(data.name);
+            // Atualizar o título da página com o nome da comunidade
+            document.title = `${data.name} | Clube das Brabas`;
+          }
+        } catch (error) {
+          console.error("Erro ao buscar nome da comunidade:", error);
+        }
+      } else {
+        // Resetar o nome da comunidade e o título da página
+        setCommunityName(null);
+        document.title = "Clube das Brabas";
+      }
+    };
+    
+    fetchCommunityName();
+  }, [communityId]);
   
   useEffect(() => {
     document.title = "Clube das Brabas";
@@ -89,7 +108,9 @@ const Index = () => {
       <div className="container max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="col-span-1 md:col-span-2">
-            <h1 className="text-2xl font-bold mb-6">Destaques</h1>
+            <h1 className="text-2xl font-bold mb-6">
+              {communityName ? communityName : "Destaques"}
+            </h1>
             <PostFeed communityId={communityId || undefined} categoryId={categoryId || undefined} />
           </div>
           

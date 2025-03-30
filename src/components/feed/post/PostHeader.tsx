@@ -27,6 +27,10 @@ interface PostHeaderProps {
     id: string;
     name: string;
   };
+  community?: {
+    id: string;
+    name: string;
+  };
   createdAt: Date;
   bookmarked: boolean;
   toggleBookmark: () => void;
@@ -40,6 +44,7 @@ interface PostHeaderProps {
 export const PostHeader = ({
   author,
   category,
+  community,
   createdAt,
   bookmarked,
   toggleBookmark,
@@ -92,12 +97,21 @@ export const PostHeader = ({
             )}
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link 
-              to={`/categoria/${category.id}`} 
-              className="text-brand-600 hover:underline"
-            >
-              {category.name}
-            </Link>
+            {community ? (
+              <Link 
+                to={`/c/${community.id}`} 
+                className="text-brand-600 hover:underline"
+              >
+                {community.name}
+              </Link>
+            ) : (
+              <Link 
+                to={`/c/${category.id}`} 
+                className="text-brand-600 hover:underline"
+              >
+                {category.name}
+              </Link>
+            )}
             <span>•</span>
             <time dateTime={createdAt.toISOString()}>
               {formatDistanceToNow(createdAt, { 
