@@ -31,12 +31,16 @@ const ReferenceGallery = () => {
 
   const handleReferenceClick = (reference: ReferenceItem) => {
     setSelectedReference(reference);
-    setIsModalOpen(true);
+    setTimeout(() => {
+      setIsModalOpen(true);
+    }, 0);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setSelectedReference(null);
+    setTimeout(() => {
+      setSelectedReference(null);
+    }, 300);
   };
 
   const formatDate = (dateString: string) => {
@@ -47,7 +51,6 @@ const ReferenceGallery = () => {
     }
   };
 
-  // Componente de navegação superior para desktop e tablet
   const TopNavigation = () => (
     <div className="hidden sm:flex items-center gap-4 mb-6 bg-white dark:bg-gray-900 p-3 rounded-lg shadow-sm">
       <Link to="/">
@@ -66,7 +69,6 @@ const ReferenceGallery = () => {
     </div>
   );
 
-  // Componente de navegação superior para mobile
   const MobileTopNavigation = () => (
     <div className="flex sm:hidden items-center justify-between mb-4 bg-white dark:bg-gray-900 p-3 rounded-lg shadow-sm">
       <div className="flex items-center gap-2">
@@ -103,7 +105,6 @@ const ReferenceGallery = () => {
   return (
     <MainLayout>
       <div className="container mx-auto py-4 px-4">
-        {/* Navegação superior */}
         <TopNavigation />
         <MobileTopNavigation />
 
@@ -114,7 +115,6 @@ const ReferenceGallery = () => {
           </p>
         </div>
 
-        {/* Filtro de tipo para desktop e tablet */}
         <div className="hidden sm:flex mb-6">
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium">Filtrar por tipo:</p>
@@ -202,6 +202,7 @@ const ReferenceGallery = () => {
           <ReferenceModal
             reference={selectedReference}
             onClose={handleCloseModal}
+            isOpen={isModalOpen}
           />
         )}
       </div>

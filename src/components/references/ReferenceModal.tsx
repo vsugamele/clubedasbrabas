@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReferenceItem } from "@/services/referenceService";
 import { format } from "date-fns";
@@ -7,19 +7,15 @@ import { ptBR } from "date-fns/locale";
 interface ReferenceModalProps {
   reference: ReferenceItem;
   onClose: () => void;
+  isOpen: boolean; 
 }
 
 const ReferenceModal: React.FC<ReferenceModalProps> = ({
   reference,
   onClose,
+  isOpen
 }) => {
-  const [open, setOpen] = React.useState(true);
-
-  const handleClose = () => {
-    setOpen(false);
-    onClose();
-  };
-
+  
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "dd/MM/yyyy", { locale: ptBR });
@@ -36,7 +32,9 @@ const ReferenceModal: React.FC<ReferenceModalProps> = ({
   );
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) onClose();
+    }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">{reference.title}</DialogTitle>

@@ -169,7 +169,7 @@ export const uploadImage = async (imageFile: File): Promise<string | null> => {
       console.warn('Erro ao redimensionar imagem, usando original:', resizeError);
     }
     
-    // Tentar usar o método base64 diretamente, já que os buckets estão com problemas
+    // Usar diretamente o método base64 para evitar problemas com buckets
     console.log("Convertendo imagem para base64...");
     const base64Image = await fileToBase64(fileToUpload);
     console.log("Imagem convertida para base64 com sucesso");

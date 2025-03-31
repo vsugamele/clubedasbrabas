@@ -48,45 +48,92 @@ interface DocumentRow {
 // Buscar todas as referências
 export const fetchReferences = async () => {
   try {
-    const { data, error } = await supabase
-      .from("documents")
-      .select("*")
-      .filter("metadata->document_type", "eq", "reference")
-      .order("metadata->created_at", { ascending: false });
+    // Verificar primeiro se a tabela documents existe
+    try {
+      const { count, error: countError } = await supabase
+        .from("documents")
+        .select("*", { count: "exact", head: true });
+      
+      if (countError) {
+        console.error("Erro ao verificar tabela documents:", countError);
+        return [];
+      }
+      
+      // Se chegamos aqui, a tabela existe
+      const { data, error } = await supabase
+        .from("documents")
+        .select("*");
 
-    if (error) {
-      console.error("Erro ao buscar referências:", error);
-      toast.error("Erro ao carregar referências");
+      if (error) {
+        console.error("Erro ao buscar documentos:", error);
+        return [];
+      }
+
+      // Filtrar manualmente os documentos
+      const referenceDocuments = data.filter(doc => {
+        try {
+          const metadata = doc.metadata as any;
+          
+          // Verificar se metadata existe e é um objeto
+          if (!metadata || typeof metadata !== 'object') {
+            return false;
+          }
+          
+          // Verificar se é uma referência
+          return 'document_type' in metadata && metadata.document_type === 'reference';
+        } catch (e) {
+          console.warn("Erro ao processar documento:", e);
+          return false;
+        }
+      });
+
+      // Ordenar por data de criação (mais recentes primeiro)
+      referenceDocuments.sort((a, b) => {
+        try {
+          const dateA = (a.metadata as any)?.created_at || '';
+          const dateB = (b.metadata as any)?.created_at || '';
+          return dateB.localeCompare(dateA); // ordem decrescente
+        } catch (e) {
+          return 0;
+        }
+      });
+
+      // Converter os documentos para o formato de referência
+      const references = referenceDocuments.map(doc => {
+        try {
+          const metadata = doc.metadata as Record<string, any> || {};
+          return {
+            id: String(doc.id),
+            title: metadata.title || "Sem título",
+            type: metadata.type || "",
+            before_image: metadata.before_image || "",
+            after_image: metadata.after_image || "",
+            hair_type: metadata.hair_type || "",
+            finger_projection: metadata.finger_projection || "",
+            angle: metadata.angle || "",
+            line_type: metadata.line_type || "",
+            texture: metadata.texture || "",
+            cut_type: metadata.cut_type || "",
+            products_used: metadata.products_used || "",
+            estimated_time: metadata.estimated_time || "",
+            observations: metadata.observations || "",
+            created_at: metadata.created_at || new Date().toISOString(),
+            created_by: metadata.created_by || ""
+          };
+        } catch (e) {
+          console.warn("Erro ao converter documento para referência:", e);
+          return null;
+        }
+      }).filter(Boolean) as ReferenceItem[];
+
+      return references;
+    } catch (innerError) {
+      console.warn("Problema ao processar documentos:", innerError);
       return [];
     }
-
-    // Converter os documentos para o formato de referência
-    const references = data.map(doc => {
-      const metadata = doc.metadata as Record<string, any> || {};
-      return {
-        id: String(doc.id),
-        title: metadata.title || "Sem título",
-        type: metadata.type || "",
-        before_image: metadata.before_image || "",
-        after_image: metadata.after_image || "",
-        hair_type: metadata.hair_type || "",
-        finger_projection: metadata.finger_projection || "",
-        angle: metadata.angle || "",
-        line_type: metadata.line_type || "",
-        texture: metadata.texture || "",
-        cut_type: metadata.cut_type || "",
-        products_used: metadata.products_used || "",
-        estimated_time: metadata.estimated_time || "",
-        observations: metadata.observations || "",
-        created_at: metadata.created_at || new Date().toISOString(),
-        created_by: metadata.created_by || ""
-      };
-    });
-
-    return references;
   } catch (error) {
     console.error("Exceção ao buscar referências:", error);
-    toast.error("Erro ao carregar referências");
+    // Não mostrar toast para não incomodar o usuário
     return [];
   }
 };
@@ -94,54 +141,107 @@ export const fetchReferences = async () => {
 // Buscar referências por tipo
 export const fetchReferencesByType = async (type: string) => {
   try {
-    let query = supabase
-      .from("documents")
-      .select("*")
-      .filter("metadata->document_type", "eq", "reference");
+    // Usar a mesma abordagem segura da função fetchReferences
+    try {
+      // Primeiro, vamos verificar se a tabela documents existe
+      const { count, error: countError } = await supabase
+        .from("documents")
+        .select("*", { count: "exact", head: true });
       
-    if (type !== "all") {
-      // Usando a sintaxe correta para filtrar em campos JSON
-      query = query.filter("metadata->type", "eq", type);
-    }
+      if (countError) {
+        console.error("Erro ao verificar tabela documents:", countError);
+        return [];
+      }
+      
+      // Se chegamos aqui, a tabela existe
+      const { data, error } = await supabase
+        .from("documents")
+        .select("*");
 
-    // Ordenar por data de criação (armazenada em metadata)
-    query = query.order("metadata->created_at", { ascending: false });
+      if (error) {
+        console.error("Erro ao buscar documentos:", error);
+        return [];
+      }
 
-    const { data, error } = await query;
+      // Filtrar manualmente os documentos
+      const referenceDocuments = data.filter(doc => {
+        try {
+          const metadata = doc.metadata as any;
+          
+          // Verificar se metadata existe e é um objeto
+          if (!metadata || typeof metadata !== 'object') {
+            return false;
+          }
+          
+          // Verificar se é uma referência
+          const isReference = 'document_type' in metadata && 
+                             metadata.document_type === 'reference';
+          
+          // Se não for uma referência, retornar false
+          if (!isReference) {
+            return false;
+          }
+          
+          // Se o tipo for "all", retornar todas as referências
+          if (type === "all") {
+            return true;
+          }
+          
+          // Caso contrário, filtrar pelo tipo específico
+          return 'type' in metadata && metadata.type === type;
+        } catch (e) {
+          console.warn("Erro ao processar documento:", e);
+          return false;
+        }
+      });
 
-    if (error) {
-      console.error("Erro ao buscar referências por tipo:", error);
-      toast.error("Erro ao carregar referências");
+      // Ordenar por data de criação (mais recentes primeiro)
+      referenceDocuments.sort((a, b) => {
+        try {
+          const dateA = (a.metadata as any)?.created_at || '';
+          const dateB = (b.metadata as any)?.created_at || '';
+          return dateB.localeCompare(dateA); // ordem decrescente
+        } catch (e) {
+          return 0;
+        }
+      });
+
+      // Converter os documentos para o formato de referência
+      const references = referenceDocuments.map(doc => {
+        try {
+          const metadata = doc.metadata as Record<string, any> || {};
+          return {
+            id: String(doc.id),
+            title: metadata.title || "Sem título",
+            type: metadata.type || "",
+            before_image: metadata.before_image || "",
+            after_image: metadata.after_image || "",
+            hair_type: metadata.hair_type || "",
+            finger_projection: metadata.finger_projection || "",
+            angle: metadata.angle || "",
+            line_type: metadata.line_type || "",
+            texture: metadata.texture || "",
+            cut_type: metadata.cut_type || "",
+            products_used: metadata.products_used || "",
+            estimated_time: metadata.estimated_time || "",
+            observations: metadata.observations || "",
+            created_at: metadata.created_at || new Date().toISOString(),
+            created_by: metadata.created_by || ""
+          };
+        } catch (e) {
+          console.warn("Erro ao converter documento para referência:", e);
+          return null;
+        }
+      }).filter(Boolean) as ReferenceItem[];
+
+      return references;
+    } catch (innerError) {
+      console.warn("Problema ao processar documentos por tipo:", innerError);
       return [];
     }
-
-    // Converter os documentos para o formato de referência
-    const references = data.map(doc => {
-      const metadata = doc.metadata as Record<string, any> || {};
-      return {
-        id: String(doc.id),
-        title: metadata.title || "Sem título",
-        type: metadata.type || "",
-        before_image: metadata.before_image || "",
-        after_image: metadata.after_image || "",
-        hair_type: metadata.hair_type || "",
-        finger_projection: metadata.finger_projection || "",
-        angle: metadata.angle || "",
-        line_type: metadata.line_type || "",
-        texture: metadata.texture || "",
-        cut_type: metadata.cut_type || "",
-        products_used: metadata.products_used || "",
-        estimated_time: metadata.estimated_time || "",
-        observations: metadata.observations || "",
-        created_at: metadata.created_at || new Date().toISOString(),
-        created_by: metadata.created_by || ""
-      };
-    });
-
-    return references;
   } catch (error) {
     console.error("Exceção ao buscar referências por tipo:", error);
-    toast.error("Erro ao carregar referências");
+    // Não mostrar toast para não incomodar o usuário
     return [];
   }
 };
@@ -403,26 +503,25 @@ export const uploadReferenceImage = async (
   type: "before" | "after"
 ) => {
   try {
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${userId}-${Date.now()}-${type}.${fileExt}`;
-    const filePath = `references/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("images")
-      .upload(filePath, file);
-
-    if (uploadError) {
-      console.error("Erro ao fazer upload da imagem:", uploadError);
-      toast.error("Erro ao fazer upload da imagem");
-      return null;
-    }
-
-    const { data } = supabase.storage.from("images").getPublicUrl(filePath);
-
-    return data.publicUrl;
+    // Converter a imagem para base64 diretamente
+    const reader = new FileReader();
+    
+    return new Promise<string | null>((resolve) => {
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        console.log(`Imagem ${type} convertida para base64 com sucesso`);
+        resolve(base64);
+      };
+      
+      reader.onerror = () => {
+        console.error("Erro ao converter imagem para base64");
+        resolve(null);
+      };
+      
+      reader.readAsDataURL(file);
+    });
   } catch (error) {
-    console.error("Exceção ao fazer upload da imagem:", error);
-    toast.error("Erro ao fazer upload da imagem");
+    console.error("Exceção ao processar a imagem:", error);
     return null;
   }
 };
