@@ -63,13 +63,13 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <div className="flex justify-between items-center p-4 border-b">
-            <h2 className="font-bold text-lg">Feed Principal</h2>
-            <button onClick={toggleMobileSidebar} className="p-1 rounded-full hover:bg-gray-100">
+          <div className="flex justify-between items-center p-4 border-b border-orange-200 bg-orange-50">
+            <h2 className="font-bold text-lg text-orange-600">Clube das Brabas</h2>
+            <button onClick={toggleMobileSidebar} className="p-1 rounded-full hover:bg-orange-100 text-orange-600">
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="overflow-y-auto h-[calc(100%-60px)]">
+          <div className="overflow-y-auto h-[calc(100%-60px)] bg-white">
             <Sidebar isMobile={true} onClose={toggleMobileSidebar} />
           </div>
         </div>
@@ -142,7 +142,9 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         </div>
         
         <div className="flex flex-1 w-full">
-          <Sidebar />
+          <div className="hidden md:block">
+            <Sidebar />
+          </div>
           <main className="flex-1 transition-opacity duration-300 ease-in-out opacity-100">
             <div className="container py-6 pb-20 md:pb-6 animate-slide-up">
               {children}

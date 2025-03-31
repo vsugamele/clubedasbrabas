@@ -613,9 +613,9 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
             onClick={onClose}
           />
           
-          {/* Sidebar com fundo gradiente e melhor contraste */}
-          <div className="relative w-[85%] max-w-[350px] h-full bg-gradient-to-b from-[#ff4400]/5 to-[#ff920e]/10 dark:from-gray-900 dark:to-gray-800 overflow-y-auto border-r border-orange-200/30 dark:border-gray-700 shadow-xl">
-            <div className="sticky top-0 z-10 flex justify-between items-center p-4 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-b border-orange-200/30 dark:border-gray-700">
+          {/* Sidebar com fundo branco para melhor contraste */}
+          <div className="relative w-[85%] max-w-[350px] h-full bg-white dark:bg-gray-900 overflow-y-auto border-r border-orange-200/30 dark:border-gray-700 shadow-xl">
+            <div className="sticky top-0 z-10 flex justify-between items-center p-4 bg-orange-50/80 dark:bg-gray-900/90 backdrop-blur-md border-b border-orange-200/30 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <img src="/lovable-uploads/fe794e0a-f834-4651-8887-e813c0115ade.png" alt="Logo" className="w-8 h-8 object-contain" />
                 <span className="text-xl font-bold text-[#ff4400]">Clube das Brabas</span>
@@ -630,7 +630,7 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
               </Button>
             </div>
             
-            <div className="p-2">
+            <div className="p-2 bg-white dark:bg-gray-900">
               <Content />
             </div>
           </div>
