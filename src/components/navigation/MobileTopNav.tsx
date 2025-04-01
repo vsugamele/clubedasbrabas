@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Bell, MessageCircle, User, Moon, Sun, LogOut } from 'lucide-react';
+import { Bell, MessageCircle, User, Moon, Sun, LogOut, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/Avatar';
 import { useAuth } from '@/context/auth';
@@ -14,11 +14,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { isAdminByEmail } from '@/utils/adminUtils';
 
 const MobileTopNav = () => {
   const location = useLocation();
   const { user, profile, signOut } = useAuth();
   const [darkMode, setDarkMode] = React.useState(localStorage.getItem("darkMode") === "true");
+  
+  // Verificar se o usuário é administrador
+  const isAdmin = isAdminByEmail(user?.email);
   
   const handleLogout = async () => {
     try {
@@ -109,6 +113,19 @@ const MobileTopNav = () => {
             </div>
             <Switch checked={darkMode} />
           </DropdownMenuItem>
+          
+          {/* Mostrar opção de Admin apenas para administradores */}
+          {isAdmin && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/admin" className="flex items-center cursor-pointer text-brand-600">
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  <span>Admin</span>
+                </Link>
+              </DropdownMenuItem>
+            </>
+          )}
           
           <DropdownMenuSeparator />
           

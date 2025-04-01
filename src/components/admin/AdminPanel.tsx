@@ -13,6 +13,8 @@ import { ReportManagement } from "./reports/ReportManagement";
 import { PostCleanup } from "./posts/PostCleanup";
 import { ReferenceManagement } from "./references/ReferenceManagement";
 import { LoadingSpinner } from "../ui/loading-spinner";
+import DirectPostRemoval from "@/pages/admin/DirectPostRemoval";
+import "@/styles/admin-mobile.css"; // Importando os estilos para dispositivos móveis
 
 interface AdminPanelProps {
   onError?: () => void;
@@ -77,27 +79,35 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
     { id: "denuncias", label: "Denúncias" },
     { id: "referencias", label: "Referências" },
     { id: "limpeza", label: "Limpeza de Posts" },
+    { id: "remocao-direta", label: "Remoção Direta" },
   ];
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-1">Painel de Administração</h1>
-      <p className="text-muted-foreground mb-6">
+      <h1 className="text-3xl font-bold mb-1 admin-panel-title">Painel de Administração</h1>
+      <p className="text-muted-foreground mb-6 admin-panel-description">
         Gerencie usuários, conteúdo e configurações da plataforma
       </p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="w-full overflow-x-auto flex flex-nowrap justify-start p-1 h-auto">
-          {tabs.map((tab) => (
-            <TabsTrigger
-              key={tab.id}
-              value={tab.id}
-              className="py-2 px-4 flex-shrink-0"
-            >
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="admin-tabs-container">
+          {/* Indicadores de rolagem */}
+          <div className="scroll-indicator-left"></div>
+          <div className="scroll-indicator-right"></div>
+          
+          {/* Container com rolagem horizontal */}
+          <TabsList className="admin-tabs-list w-full flex flex-nowrap justify-start p-1 h-auto">
+            {tabs.map((tab) => (
+              <TabsTrigger
+                key={tab.id}
+                value={tab.id}
+                className="admin-tab-trigger py-2 px-4 flex-shrink-0 whitespace-nowrap"
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value="dashboard" className="space-y-4">
           <Dashboard stats={stats} />
@@ -137,6 +147,10 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
 
         <TabsContent value="limpeza">
           <PostCleanup />
+        </TabsContent>
+
+        <TabsContent value="remocao-direta">
+          <DirectPostRemoval />
         </TabsContent>
       </Tabs>
     </div>

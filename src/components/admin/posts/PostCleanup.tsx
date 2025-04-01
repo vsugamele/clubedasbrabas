@@ -1,146 +1,181 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Search, AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { forceDeletePost } from "@/services/postService";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { fetchPosts, forceDeletePost, PostData } from "@/services/postService";
 import { toast } from "sonner";
-
-interface Post {
-  id: string;
-  content: string;
-  user_id: string;
-  created_at: string;
-  title?: string;
-}
+import { supabase } from "@/integrations/supabase/client";
 
 export const PostCleanup = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<PostData[]>([]);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [deleting, setDeleting] = useState<Record<string, boolean>>({});
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPosts();
+    loadPosts();
   }, []);
 
-  const fetchPosts = async () => {
+  const loadPosts = async () => {
     try {
       setLoading(true);
-      
-      // Buscar posts com conteúdo curto ou que podem estar causando problemas
-      const { data, error } = await supabase
-        .from("posts")
-        .select("id, content, user_id, created_at, title")
-        .order("created_at", { ascending: false });
-      
-      if (error) {
-        throw error;
-      }
-      
-      setPosts(data || []);
+      const result = await fetchPosts({ limit: 100 });
+      setPosts(result.posts);
     } catch (error) {
-      console.error("Erro ao buscar posts:", error);
-      toast.error("Não foi possível carregar os posts");
+      console.error("Error loading posts:", error);
+      toast.error("Erro ao carregar posts");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleForceDelete = async (postId: string) => {
+  const filteredPosts = posts.filter(post => 
+    post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    post.author?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Função para excluir um post diretamente no banco de dados
+  const handleDirectDelete = async (postId: string) => {
     try {
-      setDeleting(prev => ({ ...prev, [postId]: true }));
+      setDeletingPostId(postId);
+      console.log(`Iniciando exclusão direta do post ${postId}`);
       
-      const success = await forceDeletePost(postId);
+      // Lista de tabelas relacionadas
+      const relatedTables = [
+        'post_likes',
+        'post_comments',
+        'post_media',
+        'post_polls',
+        'poll_votes',
+        'post_views',
+        'post_shares',
+        'post_saves',
+        'post_reports'
+      ];
       
-      if (success) {
-        setPosts(posts.filter(post => post.id !== postId));
-        toast.success("Post removido com sucesso");
-      } else {
-        toast.error("Não foi possível remover o post");
+      // Excluir registros relacionados
+      for (const tableName of relatedTables) {
+        try {
+          // @ts-ignore - Ignorando erros de tipagem, pois sabemos que as tabelas existem
+          const { error } = await supabase
+            .from(tableName)
+            .delete()
+            .eq('post_id', postId);
+            
+          if (error) {
+            console.warn(`Erro ao excluir registros de ${tableName}:`, error);
+          } else {
+            console.log(`Registros de ${tableName} para o post ${postId} removidos com sucesso`);
+          }
+        } catch (err) {
+          console.warn(`Exceção ao excluir registros de ${tableName}:`, err);
+        }
       }
+      
+      // Excluir o post
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+        
+      if (error) {
+        console.error(`Erro ao excluir post ${postId}:`, error);
+        toast.error("Erro ao excluir publicação");
+        return false;
+      }
+      
+      console.log(`Post ${postId} excluído com sucesso`);
+      toast.success("Publicação excluída com sucesso");
+      
+      // Atualizar a lista de posts
+      setPosts(currentPosts => currentPosts.filter(post => post.id !== postId));
+      
+      return true;
     } catch (error) {
-      console.error("Erro ao forçar exclusão:", error);
-      toast.error("Erro ao tentar remover o post");
+      console.error(`Erro ao excluir post ${postId}:`, error);
+      toast.error("Erro ao excluir publicação");
+      return false;
     } finally {
-      setDeleting(prev => ({ ...prev, [postId]: false }));
+      setDeletingPostId(null);
     }
   };
 
-  const filteredPosts = searchTerm 
-    ? posts.filter(post => 
-        post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.title?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : posts;
+  const handleForceDelete = async (postId: string) => {
+    try {
+      setDeletingPostId(postId);
+      console.log(`Tentando forçar exclusão do post ${postId}`);
+      
+      // Usar nossa função de exclusão direta em vez da função forceDeletePost
+      const success = await handleDirectDelete(postId);
+      
+      if (success) {
+        console.log(`Post ${postId} excluído com sucesso`);
+        toast.success("Post removido com sucesso");
+        // Atualizar a lista de posts
+        setPosts(currentPosts => currentPosts.filter(post => post.id !== postId));
+      } else {
+        console.error(`Falha ao excluir post ${postId}`);
+        toast.error("Erro ao remover post");
+      }
+    } catch (error) {
+      console.error("Erro ao forçar exclusão:", error);
+      toast.error("Erro ao remover post");
+    } finally {
+      setDeletingPostId(null);
+    }
+  };
 
   return (
-    <Card className="border-red-200">
-      <CardHeader className="bg-red-50">
-        <CardTitle className="flex items-center gap-2 text-lg text-red-700">
-          <AlertTriangle className="h-5 w-5" />
-          <span>Limpeza de Posts</span>
-        </CardTitle>
-        <CardDescription className="text-red-600">
-          Use esta ferramenta com cuidado para remover posts problemáticos que não podem ser excluídos normalmente.
-        </CardDescription>
+    <Card>
+      <CardHeader>
+        <CardTitle>Limpeza de Posts</CardTitle>
+        <CardDescription>Gerencie e remova posts problemáticos</CardDescription>
       </CardHeader>
-      
-      <CardContent className="pt-4">
-        <div className="mb-4 relative">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <CardContent>
+        <div className="mb-4">
           <Input
-            placeholder="Buscar posts por ID ou conteúdo..."
+            placeholder="Pesquisar posts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
+            className="max-w-sm"
           />
         </div>
         
-        {loading ? (
-          <div className="text-center p-8 text-muted-foreground">
+        <div className="space-y-4">
+          {loading ? (
             <p>Carregando posts...</p>
-          </div>
-        ) : filteredPosts.length === 0 ? (
-          <div className="text-center p-8 text-muted-foreground">
-            <p>Nenhum post encontrado</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredPosts.map((post) => (
-              <div 
-                key={post.id}
-                className="flex justify-between items-center p-3 rounded-lg border border-gray-200"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">ID: {post.id}</span>
+          ) : filteredPosts.length > 0 ? (
+            filteredPosts.map((post) => (
+              <div key={post.id} className="border p-4 rounded-lg">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium">{post.author?.name}</h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(post.createdAt).toLocaleString()}
+                    </p>
+                    <p className="mt-2">{post.content}</p>
                   </div>
-                  <p className="text-sm line-clamp-2 mt-1">
-                    {post.content || post.title || "Sem conteúdo"}
-                  </p>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Criado em: {new Date(post.created_at).toLocaleDateString()}
-                  </div>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={() => handleForceDelete(post.id)}
+                    disabled={deletingPostId === post.id}
+                  >
+                    {deletingPostId === post.id ? "Removendo..." : "Forçar remoção"}
+                  </Button>
                 </div>
-                
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleForceDelete(post.id)}
-                  disabled={deleting[post.id]}
-                  className="ml-2"
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  {deleting[post.id] ? "Removendo..." : "Forçar remoção"}
-                </Button>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          ) : (
+            <p>Nenhum post encontrado.</p>
+          )}
+        </div>
       </CardContent>
+      <CardFooter>
+        <Button onClick={loadPosts} disabled={loading}>
+          Atualizar lista
+        </Button>
+      </CardFooter>
     </Card>
   );
 };

@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
-import { fetchPosts, PostData, FetchPostsOptions, deletePost, togglePinPost } from "@/services/postService";
+import { fetchPosts, PostData, FetchPostsOptions, deletePost, togglePinPost, fetchCommunities } from "@/services/postService";
 import PostCard from "./PostCard";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
@@ -18,6 +18,7 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
   const [isLoading, setIsLoading] = useState<boolean>(initialLoading || true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [communityRestrictions, setCommunityRestrictions] = useState<Record<string, string>>({});
   const { user } = useAuth();
   
   // Verificar se o usuário é administrador
@@ -28,6 +29,44 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
   
   // Por enquanto, consideramos que administradores são moderadores de todas as comunidades
   const isModerator = isAdmin;
+
+  // Carregar as restrições de postagem das comunidades
+  useEffect(() => {
+    const loadCommunityRestrictions = async () => {
+      try {
+        const communities = await fetchCommunities();
+        const restrictionsMap: Record<string, string> = {};
+        
+        communities.forEach(community => {
+          restrictionsMap[community.id] = community.posting_restrictions;
+        });
+        
+        setCommunityRestrictions(restrictionsMap);
+      } catch (error) {
+        console.error("Erro ao carregar restrições de comunidades:", error);
+      }
+    };
+    
+    loadCommunityRestrictions();
+  }, []);
+
+  // Verificar se o usuário pode postar na comunidade atual
+  const canPostInCurrentCommunity = useCallback(() => {
+    // Se o usuário não estiver autenticado, não pode postar
+    if (!user) return false;
+    
+    // Se não há comunidade selecionada, qualquer usuário autenticado pode postar
+    if (!communityId) return true;
+    
+    // Obter as restrições da comunidade atual
+    const restrictions = communityRestrictions[communityId];
+    
+    // Se não há restrições ou as restrições são para todos os membros, qualquer usuário autenticado pode postar
+    if (!restrictions || restrictions === 'all_members') return true;
+    
+    // Se as restrições são apenas para administradores, apenas administradores podem postar
+    return isAdmin;
+  }, [communityId, communityRestrictions, isAdmin, user]);
 
   useEffect(() => {
     loadPosts();
@@ -54,24 +93,12 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
         console.log(`PostFeed - Filtrando por categoria: ${categoryId}`);
       }
       
-      console.log("Fetching posts with options:", options);
       const result = await fetchPosts(options);
-      console.log("Fetch posts result:", result);
-      
-      if (result.posts && result.posts.length > 0) {
-        console.log(`${result.posts.length} posts carregados com sucesso`);
-        setPosts(result.posts);
-      } else {
-        console.log("Nenhum post encontrado");
-        setError("Não há publicações para exibir");
-        setPosts([]);
-      }
-    } catch (err) {
-      console.error("Erro ao carregar posts:", err);
-      setError("Não foi possível carregar as publicações");
-      toast.error("Erro ao carregar publicações", {
-        position: "bottom-right",
-      });
+      console.log(`PostFeed - Posts carregados: ${result.posts.length}`);
+      setPosts(result.posts);
+    } catch (error) {
+      console.error("Erro ao carregar posts:", error);
+      setError("Não foi possível carregar as publicações. Tente novamente mais tarde.");
     } finally {
       setIsLoading(false);
     }
@@ -171,7 +198,19 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
   if (error) {
     return (
       <div className="space-y-4">
-        <CreatePostForm communityId={communityId} onPostCreated={handlePostCreated} />
+        {user ? (
+          canPostInCurrentCommunity() ? (
+            <CreatePostForm communityId={communityId} onPostCreated={handlePostCreated} />
+          ) : (
+            <div className="text-center py-12 border rounded-lg bg-gray-50">
+              <p className="text-gray-500 mb-4">Você não tem permissão para postar nessa comunidade.</p>
+            </div>
+          )
+        ) : (
+          <div className="text-center py-12 border rounded-lg bg-gray-50">
+            <p className="text-gray-500 mb-4">Faça login para criar publicações.</p>
+          </div>
+        )}
         <div className="flex flex-col items-center py-12 text-center">
           <p className="text-red-500 mb-4">{error}</p>
           <Button 
@@ -190,7 +229,19 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
   if (posts.length === 0 && !isLoading && !error) {
     return (
       <div className="space-y-4">
-        <CreatePostForm communityId={communityId} onPostCreated={handlePostCreated} />
+        {user ? (
+          canPostInCurrentCommunity() ? (
+            <CreatePostForm communityId={communityId} onPostCreated={handlePostCreated} />
+          ) : (
+            <div className="text-center py-12 border rounded-lg bg-gray-50">
+              <p className="text-gray-500 mb-4">Você não tem permissão para postar nessa comunidade.</p>
+            </div>
+          )
+        ) : (
+          <div className="text-center py-12 border rounded-lg bg-gray-50">
+            <p className="text-gray-500 mb-4">Faça login para criar publicações.</p>
+          </div>
+        )}
         <div className="text-center py-12 border rounded-lg bg-gray-50">
           <p className="text-gray-500 mb-4">Não há publicações para exibir</p>
           <Button 
@@ -208,7 +259,19 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
 
   return (
     <div className="space-y-4">
-      <CreatePostForm communityId={communityId} onPostCreated={handlePostCreated} />
+      {user ? (
+        canPostInCurrentCommunity() ? (
+          <CreatePostForm communityId={communityId} onPostCreated={handlePostCreated} />
+        ) : (
+          <div className="text-center py-12 border rounded-lg bg-gray-50">
+            <p className="text-gray-500 mb-4">Você não tem permissão para postar nessa comunidade.</p>
+          </div>
+        )
+      ) : (
+        <div className="text-center py-12 border rounded-lg bg-gray-50">
+          <p className="text-gray-500 mb-4">Faça login para criar publicações.</p>
+        </div>
+      )}
       {sortedPosts.map((post) => (
         <PostCard 
           key={post.id} 

@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isAdminByEmail } from "@/utils/adminUtils";
 
 export interface PostData {
   id: string;
@@ -685,30 +686,197 @@ export const deletePost = async (postId: string): Promise<boolean> => {
     // Obter o usuário atual
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id;
+    const userEmail = userData?.user?.email;
+    
+    console.log("Dados do usuário:", JSON.stringify(userData?.user, null, 2));
     
     if (!userId) {
       console.error("User not authenticated");
       return false;
     }
     
-    console.log(`Tentando excluir post ${postId} pelo usuário ${userId}`);
+    // Verificar se o usuário é administrador usando a função centralizada
+    const isAdmin = isAdminByEmail(userEmail);
     
-    // Excluir o post diretamente, sem verificar permissões
-    // Isso permite que qualquer usuário possa excluir posts
-    const { error } = await supabase
-      .from("posts")
-      .delete()
-      .eq("id", postId);
+    console.log(`Tentando excluir post ${postId}`);
+    console.log(`Usuário: ${userId}`);
+    console.log(`Email: ${userEmail}`);
+    console.log(`É admin? ${isAdmin}`);
     
-    if (error) {
-      console.error("Error deleting post:", error);
+    // Verificar se o post existe
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .select('user_id')
+      .eq('id', postId)
+      .single();
+    
+    if (postError) {
+      console.error(`Post ${postId} não encontrado:`, postError);
       return false;
     }
     
-    console.log(`Post ${postId} excluído com sucesso`);
-    return true;
+    console.log(`Post ${postId} pertence ao usuário: ${postData.user_id}`);
+    console.log(`Usuário atual: ${userId}`);
+    console.log(`É o mesmo usuário? ${postData.user_id === userId}`);
+    
+    // Verificar se o usuário tem permissão para excluir o post
+    // Administradores podem excluir qualquer post
+    // Usuários normais só podem excluir seus próprios posts
+    if (!isAdmin && postData.user_id !== userId) {
+      console.error(`Usuário ${userId} não tem permissão para excluir o post ${postId}`);
+      return false;
+    }
+    
+    console.log(`Permissão concedida para excluir post ${postId}. Usuário: ${userId}, Admin: ${isAdmin}`);
+    
+    // Se chegou até aqui, o usuário tem permissão para excluir o post
+    // Vamos usar a função de exclusão forçada para garantir que todos os registros relacionados sejam excluídos
+    return await _deletePostAndRelatedData(postId);
   } catch (error) {
     console.error("Error deleting post:", error);
+    return false;
+  }
+};
+
+export const forceDeletePost = async (postId: string): Promise<boolean> => {
+  try {
+    console.log(`Iniciando exclusão forçada do post ${postId}`);
+    
+    // Verificar se o usuário atual é administrador
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    const userEmail = userData?.user?.email;
+    
+    console.log("Dados do usuário (forceDeletePost):", JSON.stringify(userData?.user, null, 2));
+    
+    // Verificar se o usuário é administrador usando a função centralizada
+    const isAdmin = isAdminByEmail(userEmail);
+    
+    console.log(`Email do usuário: ${userEmail}`);
+    console.log(`É admin? ${isAdmin}`);
+    
+    if (!isAdmin) {
+      console.error(`Usuário ${userEmail} não é administrador e não pode forçar exclusão`);
+      return false;
+    }
+    
+    console.log(`Usuário ${userEmail} (admin) está forçando a exclusão do post ${postId}`);
+    
+    // Verificar se o post existe
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', postId)
+      .single();
+    
+    if (postError) {
+      console.error(`Post ${postId} não encontrado:`, postError);
+      return false;
+    }
+    
+    // Se chegou até aqui, o usuário é administrador e o post existe
+    // Vamos usar a função interna para excluir o post e seus dados relacionados
+    return await _deletePostAndRelatedData(postId);
+  } catch (error) {
+    console.error(`Erro ao forçar exclusão do post ${postId}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Função interna para excluir um post e todos os seus dados relacionados
+ * @param postId ID do post a ser excluído
+ * @returns true se o post foi excluído com sucesso, false caso contrário
+ */
+const _deletePostAndRelatedData = async (postId: string): Promise<boolean> => {
+  try {
+    console.log(`Iniciando exclusão de dados para o post ${postId}`);
+    
+    // Usar a função SQL armazenada que foi criada no banco de dados
+    try {
+      console.log(`Tentando excluir post ${postId} usando função SQL armazenada`);
+      
+      // @ts-ignore - Ignoramos o erro de tipagem pois sabemos que a função existe
+      const { data, error } = await supabase.rpc('delete_post_completely', {
+        post_id_param: postId
+      });
+      
+      if (error) {
+        console.error(`Erro ao chamar função SQL para excluir post ${postId}:`, error);
+        console.log(`Usando método antigo como fallback para o post ${postId}`);
+        return await _deletePostOldMethod(postId);
+      }
+      
+      console.log(`Post ${postId} excluído com sucesso via função SQL armazenada`);
+      return true;
+    } catch (sqlError) {
+      console.error(`Exceção ao chamar função SQL para excluir post ${postId}:`, sqlError);
+      console.log(`Usando método antigo como fallback para o post ${postId}`);
+      return await _deletePostOldMethod(postId);
+    }
+  } catch (error) {
+    console.error(`Erro ao excluir post ${postId} e dados relacionados:`, error);
+    return false;
+  }
+};
+
+/**
+ * Método antigo de exclusão de posts (usado como fallback)
+ * @param postId ID do post a ser excluído
+ * @returns true se o post foi excluído com sucesso, false caso contrário
+ */
+const _deletePostOldMethod = async (postId: string): Promise<boolean> => {
+  try {
+    console.log(`Usando método antigo de exclusão para o post ${postId}`);
+    
+    // Lista de tabelas que podem ter relacionamentos com posts
+    const relatedTables = [
+      'post_likes',
+      'post_comments',
+      'post_media',
+      'post_polls',
+      'poll_votes',
+      'post_views',
+      'post_shares',
+      'post_saves',
+      'post_reports'
+    ];
+    
+    // Tentar excluir registros relacionados de cada tabela
+    for (const tableName of relatedTables) {
+      try {
+        // Usar o cliente Supabase diretamente
+        // @ts-ignore - Ignoramos o erro de tipagem pois sabemos que as tabelas existem
+        const { error } = await supabase
+          .from(tableName)
+          .delete()
+          .eq('post_id', postId);
+        
+        if (error) {
+          console.warn(`Erro ao excluir registros de ${tableName} para o post ${postId}:`, error);
+        } else {
+          console.log(`Registros de ${tableName} para o post ${postId} removidos com sucesso`);
+        }
+      } catch (error) {
+        console.warn(`Exceção ao excluir registros de ${tableName} para o post ${postId}:`, error);
+      }
+    }
+    
+    // Finalmente, excluir o post
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId);
+    
+    if (error) {
+      console.error(`Erro ao excluir post ${postId}:`, error);
+      return false;
+    }
+    
+    console.log(`Post ${postId} excluído com sucesso pelo método antigo`);
+    return true;
+  } catch (error) {
+    console.error(`Erro ao excluir post ${postId} pelo método antigo:`, error);
     return false;
   }
 };
@@ -731,114 +899,6 @@ export const togglePinPost = async (postId: string, isPinned: boolean): Promise<
     return true;
   } catch (error) {
     console.error(`Erro ao ${isPinned ? 'fixar' : 'desafixar'} post:`, error);
-    return false;
-  }
-};
-
-/**
- * Força a exclusão de um post do banco de dados, ignorando verificações de permissão
- * Usar apenas para administração e limpeza de dados
- * @param postId ID do post a ser excluído
- * @returns true se o post foi excluído com sucesso, false caso contrário
- */
-export const forceDeletePost = async (postId: string): Promise<boolean> => {
-  try {
-    console.log(`Iniciando exclusão forçada do post ${postId}`);
-    
-    // Verificar se o post existe
-    const { data: postData, error: postError } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('id', postId)
-      .single();
-    
-    if (postError) {
-      console.error(`Post ${postId} não encontrado:`, postError);
-      return false;
-    }
-    
-    // Lista de tabelas que podem ter relacionamentos com posts
-    // Vamos tentar excluir registros de cada uma delas
-    const relatedTables = [
-      { name: 'post_likes', field: 'post_id' },
-      { name: 'post_comments', field: 'post_id' },
-      { name: 'post_media', field: 'post_id' },
-      { name: 'post_polls', field: 'post_id' },
-      { name: 'poll_votes', field: 'post_id' },
-      { name: 'post_views', field: 'post_id' },
-      { name: 'post_shares', field: 'post_id' },
-      { name: 'post_saves', field: 'post_id' },
-      { name: 'post_reports', field: 'post_id' }
-    ];
-    
-    // Tentar excluir registros relacionados de cada tabela
-    for (const { name, field } of relatedTables) {
-      try {
-        // Usar método genérico para evitar problemas de tipagem
-        const result = await supabase.auth.getSession();
-        const token = result.data.session?.access_token;
-        
-        if (!token) {
-          console.warn('Sem token de acesso, pulando exclusão de registros relacionados');
-          continue;
-        }
-        
-        // Fazer uma requisição direta à API do Supabase
-        const response = await fetch(
-          `https://weuifmgjzkuppqqsoood.supabase.co/rest/v1/${name}?${field}=eq.${postId}`,
-          {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndldWlmbWdqemt1cHBxcXNvb29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTI3NzY5MzMsImV4cCI6MjAyODM1MjkzM30.Hv8Qf_QIwUmMlBKPIRwQCQcJCIZdWRfxkCFfYnXWFnE'
-            }
-          }
-        );
-        
-        if (response.ok) {
-          console.log(`Registros de ${name} para o post ${postId} removidos com sucesso`);
-        } else {
-          const errorData = await response.json().catch(() => null);
-          console.warn(`Erro ao excluir registros de ${name} para o post ${postId}:`, 
-            errorData || response.statusText);
-        }
-      } catch (error) {
-        console.warn(`Exceção ao excluir registros de ${name} para o post ${postId}:`, error);
-      }
-    }
-    
-    // Verificar se o post está marcado como trending e remover essa marcação
-    try {
-      const { error: updateError } = await supabase
-        .from('posts')
-        .update({ is_trending: false })
-        .eq('id', postId);
-      
-      if (updateError) {
-        console.warn(`Erro ao remover marcação de trending do post ${postId}:`, updateError);
-      } else {
-        console.log(`Marcação de trending do post ${postId} removida com sucesso`);
-      }
-    } catch (error) {
-      console.warn(`Exceção ao remover marcação de trending do post ${postId}:`, error);
-    }
-    
-    // Finalmente, excluir o post
-    const { error } = await supabase
-      .from('posts')
-      .delete()
-      .eq('id', postId);
-    
-    if (error) {
-      console.error(`Erro ao excluir post ${postId}:`, error);
-      return false;
-    }
-    
-    console.log(`Post ${postId} excluído com sucesso`);
-    return true;
-  } catch (error) {
-    console.error(`Erro ao forçar exclusão do post ${postId}:`, error);
     return false;
   }
 };

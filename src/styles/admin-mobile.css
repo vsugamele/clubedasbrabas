@@ -1,0 +1,85 @@
+/* Estilos para melhorar a experiência móvel no painel administrativo */
+
+/* Estilos para rolagem horizontal suave */
+.admin-tabs-container {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.admin-tabs-list {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  -webkit-overflow-scrolling: touch; /* Para iOS */
+  scroll-behavior: smooth;
+  padding-bottom: 8px;
+  margin-bottom: -4px;
+}
+
+/* Ocultar a barra de rolagem em navegadores WebKit (Chrome, Safari) mantendo a funcionalidade */
+.admin-tabs-list::-webkit-scrollbar {
+  height: 4px;
+}
+
+.admin-tabs-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-tabs-list::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 20px;
+}
+
+/* Indicadores de rolagem */
+.scroll-indicator-left {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  background: linear-gradient(to right, white, transparent);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.scroll-indicator-right {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  background: linear-gradient(to left, white, transparent);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Estilos para modo escuro */
+@media (prefers-color-scheme: dark) {
+  .scroll-indicator-left {
+    background: linear-gradient(to right, rgb(15, 23, 42), transparent);
+  }
+  
+  .scroll-indicator-right {
+    background: linear-gradient(to left, rgb(15, 23, 42), transparent);
+  }
+}
+
+/* Responsividade para dispositivos móveis */
+@media (max-width: 640px) {
+  .admin-panel-title {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .admin-panel-description {
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+  
+  .admin-tab-trigger {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}

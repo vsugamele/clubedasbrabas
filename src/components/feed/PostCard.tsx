@@ -174,6 +174,7 @@ const PostCard = ({
           onDelete={handleDeletePost}
           onPin={handleTogglePin}
           isPinned={pinned}
+          postId={postId}
         />
       </CardHeader>
       

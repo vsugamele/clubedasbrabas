@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/auth";
+import { isAdminByEmail } from "@/utils/adminUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface PostHeaderProps {
   author: {
@@ -39,6 +42,7 @@ interface PostHeaderProps {
   onDelete?: () => void;
   onPin?: () => void;
   isPinned?: boolean;
+  postId: string;
 }
 
 export const PostHeader = ({
@@ -53,6 +57,7 @@ export const PostHeader = ({
   onDelete,
   onPin,
   isPinned = false,
+  postId,
 }: PostHeaderProps) => {
   // Ensure author and category exist to prevent the undefined error
   if (!author || !category) {
@@ -66,15 +71,112 @@ export const PostHeader = ({
   // Verificar se o usuário atual é o autor do post
   const isAuthor = user && user.id === author.id;
   
-  // Verificar se o usuário é administrador (usando email)
-  // Esta abordagem evita a verificação de papéis que causa recursão infinita
-  const userEmail = user?.email;
-  const isAdmin = userEmail === "souzadecarvalho1986@gmail.com" || 
-                  userEmail === "vsugamele@gmail.com" ||
-                  userEmail === "admin@example.com";
+  // Verificar se o usuário é administrador usando a função centralizada
+  const isAdmin = isAdminByEmail(user?.email);
   
   // Verificar se o usuário pode excluir o post (é administrador, moderador ou autor)
+  // Sempre permitir exclusão para administradores e moderadores
   const canDelete = onDelete && (isAdmin || isModerator || isAuthor);
+
+  // Função para excluir o post diretamente no banco de dados
+  // Esta função ignora verificações de permissão e força a exclusão
+  const forceDeletePostDirectly = async (postId: string) => {
+    try {
+      console.log(`Forçando exclusão direta do post ${postId}`);
+      
+      // Lista de tabelas relacionadas
+      const relatedTables = [
+        'post_likes',
+        'post_comments',
+        'post_media',
+        'post_polls',
+        'poll_votes',
+        'post_views',
+        'post_shares',
+        'post_saves',
+        'post_reports'
+      ];
+      
+      // Excluir registros relacionados
+      for (const tableName of relatedTables) {
+        try {
+          // @ts-ignore - Ignorando erros de tipagem, pois sabemos que as tabelas existem
+          const { error } = await supabase
+            .from(tableName)
+            .delete()
+            .eq('post_id', postId);
+            
+          if (error) {
+            console.warn(`Erro ao excluir registros de ${tableName}:`, error);
+          } else {
+            console.log(`Registros de ${tableName} para o post ${postId} removidos com sucesso`);
+          }
+        } catch (err) {
+          console.warn(`Exceção ao excluir registros de ${tableName}:`, err);
+        }
+      }
+      
+      // Excluir o post
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+        
+      if (error) {
+        console.error("Erro ao excluir post:", error);
+        toast.error("Erro ao excluir publicação");
+        return false;
+      }
+      
+      console.log(`Post ${postId} excluído com sucesso`);
+      toast.success("Publicação excluída com sucesso");
+      
+      // Forçar atualização da página após a exclusão
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
+      return true;
+    } catch (error) {
+      console.error("Erro ao excluir post:", error);
+      toast.error("Erro ao excluir publicação");
+      return false;
+    }
+  };
+
+  // Função para lidar com a exclusão do post
+  const handleDelete = async () => {
+    try {
+      console.log(`Iniciando exclusão do post ${postId}`);
+      
+      if (isAdmin || isModerator) {
+        // Para administradores e moderadores, usar a exclusão direta
+        console.log(`Usuário é admin ou moderador. Tentando excluir post com ID: ${postId}`);
+        const success = await forceDeletePostDirectly(postId);
+        
+        if (success) {
+          console.log(`Post ${postId} excluído com sucesso`);
+          if (onDelete) {
+            console.log(`Chamando callback onDelete para o post ${postId}`);
+            onDelete();
+          }
+          
+          // Forçar atualização da página após a exclusão
+          setTimeout(() => {
+            console.log("Recarregando a página...");
+            window.location.reload();
+          }, 1000);
+        }
+      } else if (onDelete) {
+        // Para usuários normais, usar a função padrão
+        console.log(`Usuário normal. Chamando callback onDelete para o post ${postId}`);
+        onDelete();
+      }
+    } catch (error) {
+      console.error(`Erro ao excluir post ${postId}:`, error);
+      toast.error("Erro ao excluir publicação");
+    }
+  };
 
   return (
     <div className="p-4 flex flex-row items-start justify-between space-y-0">
@@ -145,9 +247,9 @@ export const PostHeader = ({
           {canDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-500">
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir publicação
+                  <span>Excluir publicação</span>
                 </DropdownMenuItem>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -159,7 +261,7 @@ export const PostHeader = ({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={onDelete}>
+                  <AlertDialogAction onClick={handleDelete}>
                     Excluir
                   </AlertDialogAction>
                 </AlertDialogFooter>
