@@ -1,8 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReferenceItem } from "@/services/referenceService";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 
 interface ReferenceModalProps {
   reference: ReferenceItem;
@@ -15,6 +17,10 @@ const ReferenceModal: React.FC<ReferenceModalProps> = ({
   onClose,
   isOpen
 }) => {
+  
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
   
   const formatDate = (dateString: string) => {
     try {
@@ -30,6 +36,32 @@ const ReferenceModal: React.FC<ReferenceModalProps> = ({
       <p className="text-sm">{value || "Não informado"}</p>
     </div>
   );
+  
+  const toggleAudioPlayback = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+  
+  const toggleMute = () => {
+    if (audioRef.current) {
+      audioRef.current.muted = !audioRef.current.muted;
+      setIsMuted(!isMuted);
+    }
+  };
+  
+  // Parar a reprodução quando o modal for fechado
+  useEffect(() => {
+    if (!isOpen && audioRef.current && isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [isOpen, isPlaying]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -77,6 +109,40 @@ const ReferenceModal: React.FC<ReferenceModalProps> = ({
                   )}
                 </div>
               </div>
+              
+              {reference.audio_description && (
+                <div className="mt-4">
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                    <audio 
+                      ref={audioRef} 
+                      src={reference.audio_description} 
+                      onEnded={() => setIsPlaying(false)}
+                      className="hidden" 
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      onClick={toggleAudioPlayback}
+                    >
+                      {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                    </Button>
+                    <div className="text-sm flex-1">
+                      {isPlaying ? "Ouvindo descrição de áudio..." : "Ouvir descrição de áudio"}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={toggleMute}
+                    >
+                      {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

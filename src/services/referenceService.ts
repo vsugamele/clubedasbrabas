@@ -8,6 +8,7 @@ export interface ReferenceItem {
   type: string;
   before_image: string;
   after_image: string;
+  audio_description: string;
   hair_type: string;
   finger_projection: string;
   angle: string;
@@ -26,6 +27,7 @@ export interface ReferenceCreateInput {
   type: string;
   before_image: string;
   after_image: string;
+  audio_description: string;
   hair_type: string;
   finger_projection: string;
   angle: string;
@@ -108,6 +110,7 @@ export const fetchReferences = async () => {
             type: metadata.type || "",
             before_image: metadata.before_image || "",
             after_image: metadata.after_image || "",
+            audio_description: metadata.audio_description || "",
             hair_type: metadata.hair_type || "",
             finger_projection: metadata.finger_projection || "",
             angle: metadata.angle || "",
@@ -216,6 +219,7 @@ export const fetchReferencesByType = async (type: string) => {
             type: metadata.type || "",
             before_image: metadata.before_image || "",
             after_image: metadata.after_image || "",
+            audio_description: metadata.audio_description || "",
             hair_type: metadata.hair_type || "",
             finger_projection: metadata.finger_projection || "",
             angle: metadata.angle || "",
@@ -269,6 +273,7 @@ export const fetchReferenceById = async (id: string) => {
       type: metadata.type || "",
       before_image: metadata.before_image || "",
       after_image: metadata.after_image || "",
+      audio_description: metadata.audio_description || "",
       hair_type: metadata.hair_type || "",
       finger_projection: metadata.finger_projection || "",
       angle: metadata.angle || "",
@@ -309,6 +314,7 @@ export const createReference = async (
             type: reference.type,
             before_image: reference.before_image,
             after_image: reference.after_image,
+            audio_description: reference.audio_description,
             hair_type: reference.hair_type,
             finger_projection: reference.finger_projection,
             angle: reference.angle,
@@ -340,6 +346,7 @@ export const createReference = async (
       type: metadata.type || "",
       before_image: metadata.before_image || "",
       after_image: metadata.after_image || "",
+      audio_description: metadata.audio_description || "",
       hair_type: metadata.hair_type || "",
       finger_projection: metadata.finger_projection || "",
       angle: metadata.angle || "",
@@ -394,6 +401,7 @@ export const updateReference = async (
     if (reference.type) updatedMetadata.type = reference.type;
     if (reference.before_image) updatedMetadata.before_image = reference.before_image;
     if (reference.after_image) updatedMetadata.after_image = reference.after_image;
+    if (reference.audio_description) updatedMetadata.audio_description = reference.audio_description;
     if (reference.hair_type) updatedMetadata.hair_type = reference.hair_type;
     if (reference.finger_projection) updatedMetadata.finger_projection = reference.finger_projection;
     if (reference.angle) updatedMetadata.angle = reference.angle;
@@ -432,6 +440,7 @@ export const updateReference = async (
       type: metadata.type || "",
       before_image: metadata.before_image || "",
       after_image: metadata.after_image || "",
+      audio_description: metadata.audio_description || "",
       hair_type: metadata.hair_type || "",
       finger_projection: metadata.finger_projection || "",
       angle: metadata.angle || "",
@@ -522,6 +531,35 @@ export const uploadReferenceImage = async (
     });
   } catch (error) {
     console.error("Exceção ao processar a imagem:", error);
+    return null;
+  }
+};
+
+// Upload de áudio para o storage do Supabase
+export const uploadReferenceAudio = async (
+  file: File,
+  userId: string
+) => {
+  try {
+    // Converter o áudio para base64 diretamente
+    const reader = new FileReader();
+    
+    return new Promise<string | null>((resolve) => {
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        console.log("Áudio convertido para base64 com sucesso");
+        resolve(base64);
+      };
+      
+      reader.onerror = () => {
+        console.error("Erro ao converter áudio para base64");
+        resolve(null);
+      };
+      
+      reader.readAsDataURL(file);
+    });
+  } catch (error) {
+    console.error("Exceção ao processar o áudio:", error);
     return null;
   }
 };

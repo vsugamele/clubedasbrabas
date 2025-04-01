@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ReferenceItem, createReference, updateReference, uploadReferenceImage } from "@/services/referenceService";
+import { ReferenceItem, createReference, updateReference, uploadReferenceImage, uploadReferenceAudio } from "@/services/referenceService";
 import { toast } from "sonner";
+import { Mic, Play, Pause, X, ChevronDown } from "lucide-react";
 
 interface ReferenceFormProps {
   reference: ReferenceItem | null;
@@ -26,7 +29,7 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
   const [type, setType] = useState("");
   const [hairType, setHairType] = useState("");
   const [fingerProjection, setFingerProjection] = useState("");
-  const [angle, setAngle] = useState("");
+  const [selectedAngles, setSelectedAngles] = useState<string[]>([]);
   const [lineType, setLineType] = useState("");
   const [texture, setTexture] = useState("");
   const [cutType, setCutType] = useState("");
@@ -39,6 +42,11 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
   const [beforeImageUrl, setBeforeImageUrl] = useState("");
   const [afterImageUrl, setAfterImageUrl] = useState("");
   
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioUrl, setAudioUrl] = useState("");
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement>(null);
+  
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(true);
 
@@ -48,7 +56,7 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
       setType(reference.type || "");
       setHairType(reference.hair_type || "");
       setFingerProjection(reference.finger_projection || "");
-      setAngle(reference.angle || "");
+      setSelectedAngles(reference.angle ? reference.angle.split(", ") : []);
       setLineType(reference.line_type || "");
       setTexture(reference.texture || "");
       setCutType(reference.cut_type || "");
@@ -57,6 +65,7 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
       setObservations(reference.observations || "");
       setBeforeImageUrl(reference.before_image || "");
       setAfterImageUrl(reference.after_image || "");
+      setAudioUrl(reference.audio_description || "");
     }
   }, [reference]);
 
@@ -79,6 +88,34 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
     }
   };
 
+  const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setAudioFile(file);
+      setAudioUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const toggleAudioPlayback = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const removeAudio = () => {
+    setAudioFile(null);
+    setAudioUrl("");
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -86,6 +123,7 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
     try {
       let finalBeforeImageUrl = beforeImageUrl;
       let finalAfterImageUrl = afterImageUrl;
+      let finalAudioUrl = audioUrl;
 
       // Upload das imagens se forem novas
       if (beforeImage) {
@@ -109,15 +147,28 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
           return;
         }
       }
+      
+      // Upload do áudio se for novo
+      if (audioFile) {
+        const uploadedAudioUrl = await uploadReferenceAudio(audioFile, userId);
+        if (uploadedAudioUrl) {
+          finalAudioUrl = uploadedAudioUrl;
+        } else {
+          toast.error("Erro ao fazer upload do áudio");
+          setLoading(false);
+          return;
+        }
+      }
 
       const referenceData = {
         title,
         type,
         before_image: finalBeforeImageUrl,
         after_image: finalAfterImageUrl,
+        audio_description: finalAudioUrl,
         hair_type: hairType,
         finger_projection: fingerProjection,
-        angle,
+        angle: selectedAngles.join(", "),
         line_type: lineType,
         texture,
         cut_type: cutType,
@@ -277,6 +328,74 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
                   />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="audio-description">Áudio Descritivo</Label>
+                <div className="border rounded-md p-4">
+                  {audioUrl ? (
+                    <div className="relative">
+                      <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-10 w-10 rounded-full"
+                            onClick={toggleAudioPlayback}
+                          >
+                            {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                          </Button>
+                          <div className="text-sm">
+                            {isPlaying ? "Reproduzindo..." : "Áudio carregado"}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById("audio-description")?.click()}
+                          >
+                            Alterar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={removeAudio}
+                          >
+                            Remover
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="flex flex-col items-center justify-center h-32 bg-muted rounded-md cursor-pointer"
+                      onClick={() => document.getElementById("audio-description")?.click()}
+                    >
+                      <Mic size={24} className="mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Adicione um áudio descritivo
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        MP3 ou WAV (máx. 5MB)
+                      </p>
+                    </div>
+                  )}
+                  <Input
+                    id="audio-description"
+                    type="file"
+                    accept="audio/mp3,audio/wav,audio/mpeg"
+                    className="hidden"
+                    onChange={handleAudioChange}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Adicione um áudio explicando detalhes sobre o antes e depois que não são visíveis nas fotos
+                </p>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -302,25 +421,106 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
                     <SelectValue placeholder="Selecione a projeção dos dedos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Projeção 1">Projeção 1</SelectItem>
-                    <SelectItem value="Projeção 2">Projeção 2</SelectItem>
-                    <SelectItem value="Projeção 3">Projeção 3</SelectItem>
+                    <SelectItem value="Para Dentro">Para Dentro</SelectItem>
+                    <SelectItem value="Para Fora">Para Fora</SelectItem>
+                    <SelectItem value="Natural">Natural</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
                 <Label htmlFor="angle">Ângulos</Label>
-                <Select value={angle} onValueChange={setAngle}>
-                  <SelectTrigger id="angle">
-                    <SelectValue placeholder="Selecione o ângulo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Ângulo 45°">Ângulo 45°</SelectItem>
-                    <SelectItem value="Ângulo 90°">Ângulo 90°</SelectItem>
-                    <SelectItem value="Ângulo 180°">Ângulo 180°</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                      id="angle"
+                    >
+                      {selectedAngles.length > 0
+                        ? `${selectedAngles.length} ângulo${selectedAngles.length > 1 ? 's' : ''} selecionado${selectedAngles.length > 1 ? 's' : ''}`
+                        : "Selecione os ângulos"}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <div className="p-2 space-y-2">
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="angle-0" 
+                            checked={selectedAngles.includes("Ângulo 0°")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedAngles([...selectedAngles, "Ângulo 0°"]);
+                              } else {
+                                setSelectedAngles(selectedAngles.filter(a => a !== "Ângulo 0°"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="angle-0" className="text-sm cursor-pointer">Ângulo 0°</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="angle-45" 
+                            checked={selectedAngles.includes("Ângulo 45°")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedAngles([...selectedAngles, "Ângulo 45°"]);
+                              } else {
+                                setSelectedAngles(selectedAngles.filter(a => a !== "Ângulo 45°"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="angle-45" className="text-sm cursor-pointer">Ângulo 45°</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="angle-90" 
+                            checked={selectedAngles.includes("Ângulo 90°")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedAngles([...selectedAngles, "Ângulo 90°"]);
+                              } else {
+                                setSelectedAngles(selectedAngles.filter(a => a !== "Ângulo 90°"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="angle-90" className="text-sm cursor-pointer">Ângulo 90°</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="angle-135" 
+                            checked={selectedAngles.includes("Ângulo 135°")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedAngles([...selectedAngles, "Ângulo 135°"]);
+                              } else {
+                                setSelectedAngles(selectedAngles.filter(a => a !== "Ângulo 135°"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="angle-135" className="text-sm cursor-pointer">Ângulo 135°</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="angle-180" 
+                            checked={selectedAngles.includes("Ângulo 180°")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedAngles([...selectedAngles, "Ângulo 180°"]);
+                              } else {
+                                setSelectedAngles(selectedAngles.filter(a => a !== "Ângulo 180°"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="angle-180" className="text-sm cursor-pointer">Ângulo 180°</label>
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div>
