@@ -87,9 +87,7 @@ const Navbar = () => {
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
           <Link to="/" className="flex items-center">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#ff4400] mr-2">
-              <img alt="Logo Clube das Brabas" className="w-8 h-8 object-contain" src="/lovable-uploads/fe794e0a-f834-4651-8887-e813c0115ade.png" />
-            </div>
+            {/* Logo removido */}
             <span className="text-xl font-bold text-[#ff4400]">Clube das Brabas</span>
           </Link>
         </div>

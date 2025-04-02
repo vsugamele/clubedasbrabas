@@ -1,3 +1,4 @@
+import React from "react";
 import Index from "@/pages/Index";
 import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
@@ -6,6 +7,7 @@ import NotFound from "@/pages/NotFound";
 import Admin from "@/pages/Admin";
 import Events from "@/pages/Events";
 import Search from "@/pages/Search"; // Adicionado import da página de busca
+import UsefulLinks from "@/pages/UsefulLinks"; // Adicionado import da página de links úteis
 import CreatePost from "@/pages/CreatePost";
 import Notifications from "@/pages/Notifications";
 import TrendingPage from "@/pages/Trending"; // Importando a página de Trending
@@ -177,6 +179,7 @@ const App = () => {
     );
   }
   
+  // Restaurando a versão original do ProtectedRoute que estava funcionando
   const ProtectedRoute = ({ element }: { element: React.ReactNode }) => {
     console.log("ProtectedRoute rendered, user exists:", !!user);
     const [checkingAuth, setCheckingAuth] = useState(false);
@@ -285,6 +288,7 @@ const App = () => {
           <Navigate to={location.state?.from || "/"} replace />
         )
       } />
+      {/* Rotas protegidas */}
       <Route path="/" element={<ProtectedRoute element={<Index />} />} />
       <Route path="/admin" element={<ProtectedRoute element={<Admin />} />} />
       <Route path="/messages" element={<ProtectedRoute element={<Messages />} />} />
@@ -293,6 +297,7 @@ const App = () => {
       <Route path="/eventos" element={<ProtectedRoute element={<Events />} />} />
       <Route path="/eventos/:id" element={<ProtectedRoute element={<Events />} />} />
       <Route path="/search" element={<ProtectedRoute element={<Search />} />} />
+      <Route path="/links" element={<ProtectedRoute element={<UsefulLinks />} />} />
       <Route path="/create-post" element={<ProtectedRoute element={<CreatePost />} />} />
       <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
       <Route path="/trending" element={<ProtectedRoute element={<TrendingPage />} />} />

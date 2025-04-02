@@ -85,14 +85,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 <Menu className="h-5 w-5 text-gray-600" />
               </button>
               
-              <div className="flex items-center">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#ff4400] mr-2">
-                  <img 
-                    alt="Logo Clube das Brabas" 
-                    className="w-6 h-6 object-contain" 
-                    src="/lovable-uploads/fe794e0a-f834-4651-8887-e813c0115ade.png" 
-                  />
-                </div>
+              <div className="flex items-center space-x-2">
                 <h1 className="text-lg font-bold text-[#ff4400]">Clube das Brabas</h1>
               </div>
             </div>
@@ -115,15 +108,15 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               </Link>
               
               <Link 
-                to="/search" 
+                to="/links" 
                 className={cn(
                   "flex flex-col items-center justify-center py-1 px-3 rounded-full text-sm font-medium",
-                  location.pathname === '/search' 
+                  location.pathname === '/links' 
                     ? "bg-[#ff4400] text-white" 
                     : "text-gray-600 hover:bg-gray-200"
                 )}
               >
-                Buscar
+                Links Úteis
               </Link>
               
               <Link 

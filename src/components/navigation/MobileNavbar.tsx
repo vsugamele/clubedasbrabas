@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, PlusCircle, Bell, MessageCircle } from 'lucide-react';
+import { Home, Search, PlusCircle, Bell, MessageCircle, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth';
 
@@ -30,14 +30,14 @@ const MobileNavbar = () => {
         </Link>
         
         <Link 
-          to="/search" 
+          to="/links" 
           className={cn(
             "flex flex-col items-center justify-center text-xs",
-            isActive('/search') ? "text-brand-600" : "text-gray-500"
+            isActive('/links') ? "text-brand-600" : "text-gray-500"
           )}
         >
-          <Search className="h-6 w-6 mb-1" />
-          <span>Buscar</span>
+          <ExternalLink className="h-6 w-6 mb-1" />
+          <span>Links</span>
         </Link>
         
         <Link 

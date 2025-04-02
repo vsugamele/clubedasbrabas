@@ -418,7 +418,7 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
       <div className="mb-2">
         <button
           onClick={onToggle}
-          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-orange-50/50 dark:bg-gray-800/50 hover:bg-orange-100/70 dark:hover:bg-gray-700/70 transition-colors"
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-orange-50/50 dark:bg-gray-800/50 hover:bg-orange-100/70 dark:hover:bg-gray-800/70 transition-colors"
         >
           <div className="flex items-center gap-2">
             <Folder className="h-4 w-4 text-orange-500 dark:text-orange-400" />
@@ -617,8 +617,10 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
           <div className="relative w-[85%] max-w-[350px] h-full bg-white dark:bg-gray-900 overflow-y-auto border-r border-orange-200/30 dark:border-gray-700 shadow-xl">
             <div className="sticky top-0 z-10 flex justify-between items-center p-4 bg-orange-50/80 dark:bg-gray-900/90 backdrop-blur-md border-b border-orange-200/30 dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <img src="/lovable-uploads/fe794e0a-f834-4651-8887-e813c0115ade.png" alt="Logo" className="w-8 h-8 object-contain" />
-                <span className="text-xl font-bold text-[#ff4400]">Clube das Brabas</span>
+                <div className="flex items-center px-4 py-2">
+                  {/* Logo removido */}
+                  <span className="text-xl font-bold text-[#ff4400]">Clube das Brabas</span>
+                </div>
               </div>
               <Button 
                 variant="ghost" 

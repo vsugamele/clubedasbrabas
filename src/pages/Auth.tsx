@@ -260,8 +260,12 @@ const Auth = () => {
               </div>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-[#ff4400]">Clube das Brabas</h1>
-          <p className="text-slate-700 mt-2">Conecte-se com outros lançadores e cresça sua rede</p>
+          <div className="flex flex-col space-y-2 text-center">
+            <h1 className="text-2xl font-bold text-[#ff4400]">Clube das Brabas</h1>
+            <p className="text-gray-500 dark:text-gray-400">
+              Entre para se conectar com outros profissionais
+            </p>
+          </div>
         </div>
 
         <Card className="border-[#ff920e]/20">
