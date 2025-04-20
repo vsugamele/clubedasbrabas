@@ -4,6 +4,7 @@ import { useAdminRole } from "./hooks/useAdminRole";
 import useAdminPanel from "./hooks/useAdminPanel";
 import UserManagement from "./UserManagement";
 import Dashboard from "./dashboard/Dashboard";
+import AdminPostManager from "./AdminPostManager";
 import { CommunityManagement } from "./communities/CommunityManagement";
 import { CategoryManagement } from "./categories/CategoryManagement";
 import { EventManagement } from "./events/EventManagement";
@@ -71,6 +72,7 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
   const tabs = [
     { id: "dashboard", label: "Dashboard" },
     { id: "usuarios", label: "Usuários" },
+    { id: "posts", label: "Posts" },
     { id: "comunidades", label: "Comunidades" },
     { id: "categorias", label: "Categorias" },
     { id: "eventos", label: "Eventos" },
@@ -78,8 +80,6 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
     { id: "rankings", label: "Rankings" },
     { id: "denuncias", label: "Denúncias" },
     { id: "referencias", label: "Referências" },
-    { id: "limpeza", label: "Limpeza de Posts" },
-    { id: "remocao-direta", label: "Remoção Direta" },
   ];
 
   return (
@@ -116,6 +116,10 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
         <TabsContent value="usuarios">
           <UserManagement />
         </TabsContent>
+        
+        <TabsContent value="posts">
+          <AdminPostManager />
+        </TabsContent>
 
         <TabsContent value="comunidades">
           <CommunityManagement />
@@ -145,13 +149,7 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
           <ReferenceManagement />
         </TabsContent>
 
-        <TabsContent value="limpeza">
-          <PostCleanup />
-        </TabsContent>
-
-        <TabsContent value="remocao-direta">
-          <DirectPostRemoval />
-        </TabsContent>
+        {/* Abas removidas a pedido do usuário */}
       </Tabs>
     </div>
   );

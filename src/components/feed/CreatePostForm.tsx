@@ -96,6 +96,39 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
   const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(communityId || null);
   const [selectedOption, setSelectedOption] = useState<string>(communityId ? "community" : "none");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  
+  // Carregar avatar do usuário assim que o componente for montado
+  useEffect(() => {
+    const loadUserAvatar = async () => {
+      try {
+        if (user?.id) {
+          // Tenta buscar o avatar do perfil do usuário
+          const { data } = await supabase.auth.getUser();
+          if (data?.user) {
+            console.log("Auth user data:", data.user);
+            
+            // Busca o perfil do usuário para obter o avatar
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('avatar_url, full_name')
+              .eq('id', data.user.id)
+              .single();
+              
+            console.log("User profile data:", profileData);
+            
+            if (profileData?.avatar_url) {
+              setUserAvatar(profileData.avatar_url);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar o avatar do usuário:", error);
+      }
+    };
+    
+    loadUserAvatar();
+  }, [user?.id]);
   
   const [categories, setCategories] = useState<Category[]>([]);
   const [communitiesWithoutCategory, setCommunitiesWithoutCategory] = useState<{id: string, name: string, posting_restrictions?: string}[]>([]);
@@ -723,9 +756,12 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
         <form onSubmit={handleSubmit}>
           <div className="flex items-start gap-3 mb-4">
             <Avatar>
-              <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "User"} />
+              <AvatarImage 
+                src={userAvatar || profile?.avatar_url || undefined} 
+                alt={profile?.full_name || "User"} 
+              />
               <AvatarFallback>
-                {profile?.full_name ? getInitials(profile.full_name) : "U"}
+                {profile?.full_name ? getInitials(profile.full_name) : user?.email?.charAt(0).toUpperCase() || "U"}
               </AvatarFallback>
             </Avatar>
             

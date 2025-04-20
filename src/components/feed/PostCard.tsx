@@ -14,6 +14,8 @@ import { HiddenPostView } from "./post/HiddenPostView";
 import { Badge } from "@/components/ui/badge";
 import { Pin } from "lucide-react";
 import { PostData } from "@/services/postService";
+import { shareService } from "@/capacitor/share";
+import { toast } from "sonner";
 
 export interface PostProps {
   post?: PostData;
@@ -94,10 +96,13 @@ const PostCard = ({
   const postCommunityId = communityId !== undefined ? communityId : post?.communityId;
 
   // Validate required props to prevent errors
-  if (!postId || !postAuthor || !postCategory || !postCreatedAt) {
-    console.error("PostCard missing required props:", { postId, postAuthor, postCategory, postCreatedAt });
+  if (!postId || !postAuthor || !postCreatedAt) {
+    console.error("PostCard missing required props:", { postId, postAuthor, postCreatedAt });
     return null; // Don't render an invalid post
   }
+  
+  // Categoria pode não estar presente em todos os posts
+  const displayCategory = postCategory || { id: 'default', name: 'Geral' };
 
   const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(postLikes || 0);
@@ -144,6 +149,37 @@ const PostCard = ({
       onPinPost(postId, newPinnedState);
     }
   };
+  
+  // Função para compartilhar o post
+  const handleSharePost = async () => {
+    try {
+      // Extrair texto da publicação (limitar a 100 caracteres)
+      const shareText = postContent ? 
+        (postContent.length > 100 ? postContent.substring(0, 97) + '...' : postContent) : 
+        'Confira este post!'; 
+        
+      // Se houver mídia, use a primeira imagem para compartilhar
+      const imageUrl = postMedia?.length > 0 && postMedia[0].type === 'image' ? postMedia[0].url : undefined;
+      
+      // Usar o serviço de compartilhamento para compartilhar o post
+      const usedFallback = await shareService.sharePost(
+        postId,
+        `Post de ${postAuthor.name}`, 
+        shareText,
+        imageUrl
+      );
+      
+      // Apenas mostra notificação se foi usado o fallback de cópia para área de transferência
+      // As APIs nativas e Web Share já mostram suas próprias interfaces
+      if (usedFallback === false) {
+        toast.info('Conteúdo copiado para a área de transferência');
+      }
+      // Não mostrar toast de sucesso para não interferir com o seletor nativo de compartilhamento
+    } catch (error) {
+      console.error('Erro ao compartilhar:', error);
+      toast.error('Não foi possível compartilhar este conteúdo');
+    }
+  };
 
   if (isHidden) {
     return <HiddenPostView showPost={showPost} />;
@@ -164,7 +200,7 @@ const PostCard = ({
       <CardHeader className="p-0">
         <PostHeader
           author={postAuthor}
-          category={postCategory}
+          category={displayCategory}
           community={postCommunity}
           createdAt={postDate}
           bookmarked={bookmarked}
@@ -197,6 +233,7 @@ const PostCard = ({
           toggleLike={toggleLike}
           toggleComments={toggleComments}
           toggleBookmark={toggleBookmark}
+          sharePost={handleSharePost}
         />
         
         {showComments && (

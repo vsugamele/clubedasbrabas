@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { fetchPosts, PostData, FetchPostsOptions, deletePost, togglePinPost, fetchCommunities } from "@/services/postService";
 import PostCard from "./PostCard";
@@ -21,10 +21,13 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
   const [communityRestrictions, setCommunityRestrictions] = useState<Record<string, string>>({});
   const { user } = useAuth();
   
-  // Verificar se o usuário é administrador
+  // Verificar se o usuário é administrador usando a função do adminUtils
   const userEmail = user?.email;
+  const userId = user?.id;
+  
+  // Função de verificação inline para evitar problemas de importação
   const isAdmin = userEmail === "souzadecarvalho1986@gmail.com" || 
-                  userEmail === "vsugamele@gmail.com" ||
+                  userEmail === "vsugamele@gmail.com" || 
                   userEmail === "admin@example.com";
   
   // Por enquanto, consideramos que administradores são moderadores de todas as comunidades
@@ -111,25 +114,57 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
     loadPosts();
   };
 
-  const handleDeletePost = async (postId: string) => {
+  // Adicionar um estado para controlar o recarregamento
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+  
+  // Função para forçar o recarregamento dos posts
+  const forceReload = () => {
+    setReloadTrigger(prev => prev + 1);
+  };
+  
+  // Usar o reloadTrigger como dependência para o useEffect
+  useEffect(() => {
+    loadPosts();
+  }, [communityId, categoryId, reloadTrigger]);
+
+  const handleDeletePost = async (postId: string, postAuthorId?: string) => {
     try {
-      const success = await deletePost(postId);
-      if (success) {
-        // Remover o post da lista de posts
+      console.log(`Tentando excluir post ${postId} com userEmail ${userEmail} e userId ${userId}`);
+      
+      // Verifica se temos o ID do autor do post, se não, usa o userId atual (para compatibilidade)
+      const authorIdToUse = postAuthorId || userId;
+      
+      // Passa todos os parâmetros necessários para a função deletePost
+      const result = await deletePost(postId, userEmail, userId);
+      
+      if (result.success) {
+        // Primeiro, remover o post da lista atual para efeito visual imediato
         setPosts(currentPosts => currentPosts.filter(post => post.id !== postId));
+        
         toast.success("Publicação excluída com sucesso", {
           position: "bottom-right",
         });
+        
+        // Aguardar um breve momento e forçar o recarregamento dos posts
+        // para garantir que a UI reflita o estado real do banco de dados
+        setTimeout(() => {
+          console.log('Forçando recarregamento após exclusão');
+          forceReload();
+        }, 300);
       } else {
         toast.error("Não foi possível excluir a publicação", {
           position: "bottom-right",
         });
+        // Forçar recarregamento mesmo em caso de erro para garantir sincronização
+        forceReload();
       }
     } catch (error) {
       console.error("Erro ao excluir post:", error);
       toast.error("Erro ao excluir a publicação", {
         position: "bottom-right",
       });
+      // Forçar recarregamento mesmo em caso de erro para garantir sincronização
+      forceReload();
     }
   };
   

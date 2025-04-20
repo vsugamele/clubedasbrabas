@@ -13,6 +13,8 @@ import Notifications from "@/pages/Notifications";
 import TrendingPage from "@/pages/Trending"; // Importando a página de Trending
 import PostRemover from "@/pages/PostRemover"; // Importando a página de remoção de posts
 import ReferenceGallery from "@/pages/ReferenceGallery"; // Importando a página de galeria de referências
+import Debug from "@/pages/Debug"; // Importando a página de depuração
+import AdminDelete from "@/pages/AdminDelete"; // Importando a página para excluir post específico
 import { useAuth } from "./context/auth";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
@@ -304,6 +306,8 @@ const App = () => {
       <Route path="/post-remover" element={<ProtectedRoute element={<PostRemover />} />} />
       <Route path="/referencias" element={<ProtectedRoute element={<ReferenceGallery />} />} />
       <Route path="/c/:id" element={<ProtectedRoute element={<Index />} />} />
+      <Route path="/debug" element={<ProtectedRoute element={<Debug />} />} />
+      <Route path="/admin-delete" element={<ProtectedRoute element={<AdminDelete />} />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

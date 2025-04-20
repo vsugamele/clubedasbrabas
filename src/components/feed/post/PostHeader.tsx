@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MoreHorizontal, Bookmark, Flag, Trash2, Pin } from "lucide-react";
+import { MoreHorizontal, Bookmark, Flag, Trash2, Pin, ShieldAlert, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
@@ -15,9 +15,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/auth";
-import { isAdminByEmail } from "@/utils/adminUtils";
+import { isAdminByEmailSync } from "@/utils/adminUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { adminDeletePost, reloadPage } from "@/utils/administrativeDelete";
+import { softDeletePost } from "@/utils/softDeleteService";
+import { processDeletedPosts } from "@/utils/postFilterHelper";
 
 interface PostHeaderProps {
   author: {
@@ -64,6 +67,10 @@ export const PostHeader = ({
     console.error('Missing required props in PostHeader:', { author, category });
     return <div className="p-4">Post information is incomplete</div>;
   }
+  
+  // Verificar se o post está marcado como excluído (soft deleted)
+  // Detectamos este valor diretamente do objeto do post quando implementado
+  const isDeleted = false; // Valor temporário até implementação completa
 
   // Obter informações do usuário logado
   const { user } = useAuth();
@@ -71,152 +78,134 @@ export const PostHeader = ({
   // Verificar se o usuário atual é o autor do post
   const isAuthor = user && user.id === author.id;
   
-  // Verificar se o usuário é administrador usando a função centralizada
-  const isAdmin = isAdminByEmail(user?.email);
+  // Verificar se o usuário é administrador usando a função centralizada (versão síncrona)
+  const isAdmin = isAdminByEmailSync(user?.email);
   
-  // Verificar se o usuário pode excluir o post (é administrador, moderador ou autor)
-  // Sempre permitir exclusão para administradores e moderadores
-  const canDelete = onDelete && (isAdmin || isModerator || isAuthor);
+  // Verificar se o usuário pode excluir o post
+  // Administradores podem excluir QUALQUER post
+  // Moderadores podem excluir posts da comunidade deles
+  // Autores podem excluir seus próprios posts
+  const canDelete = isAdmin || (onDelete && (isModerator || isAuthor));
 
-  // Função para excluir o post diretamente no banco de dados
-  // Esta função ignora verificações de permissão e força a exclusão
+  // Função para excluir o post como administrador usando soft delete
+  // Esta abordagem marca o post como removido em vez de removê-lo fisicamente
   const forceDeletePostDirectly = async (postId: string) => {
     try {
-      console.log(`Forçando exclusão direta do post ${postId}`);
-      
-      // Lista de tabelas relacionadas
-      const relatedTables = [
-        'post_likes',
-        'post_comments',
-        'post_media',
-        'post_polls',
-        'poll_votes',
-        'post_views',
-        'post_shares',
-        'post_saves',
-        'post_reports'
-      ];
-      
-      // Excluir registros relacionados
-      for (const tableName of relatedTables) {
-        try {
-          // @ts-ignore - Ignorando erros de tipagem, pois sabemos que as tabelas existem
-          const { error } = await supabase
-            .from(tableName)
-            .delete()
-            .eq('post_id', postId);
-            
-          if (error) {
-            console.warn(`Erro ao excluir registros de ${tableName}:`, error);
-          } else {
-            console.log(`Registros de ${tableName} para o post ${postId} removidos com sucesso`);
-          }
-        } catch (err) {
-          console.warn(`Exceção ao excluir registros de ${tableName}:`, err);
-        }
-      }
-      
-      // Excluir o post
-      const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', postId);
-        
-      if (error) {
-        console.error("Erro ao excluir post:", error);
-        toast.error("Erro ao excluir publicação");
+      if (!user) {
+        console.error("Usuário não autenticado");
         return false;
       }
+
+      console.log(`Tentando remover post como administrador - ID: ${postId}, Usuário: ${user.email}`);
       
-      console.log(`Post ${postId} excluído com sucesso`);
-      toast.success("Publicação excluída com sucesso");
-      
-      // Forçar atualização da página após a exclusão
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-      
-      return true;
+      // Usar o serviço de soft delete
+      return await softDeletePost(postId, { showToasts: true });
     } catch (error) {
-      console.error("Erro ao excluir post:", error);
-      toast.error("Erro ao excluir publicação");
+      console.error("Erro ao remover post:", error);
       return false;
     }
   };
-
+  
+  // Função para fazer o reload da página após exclusão bem-sucedida
+  const handleReload = () => {
+    reloadPage(1500);
+  };    
+  
   // Função para lidar com a exclusão do post
   const handleDelete = async () => {
     try {
-      console.log(`Iniciando exclusão do post ${postId}`);
+      console.log(`Iniciando remoção do post ${postId}`);
+      console.log(`Informações do usuário atual:`, user);
+      console.log(`É administrador:`, isAdmin);
       
-      if (isAdmin || isModerator) {
-        // Para administradores e moderadores, usar a exclusão direta
-        console.log(`Usuário é admin ou moderador. Tentando excluir post com ID: ${postId}`);
+      // Para administradores, usar soft delete
+      // para contornar qualquer problema de permissão RLS
+      if (isAdmin) {
+        console.log(`Usuário é administrador. Email: ${user?.email}`);
+        console.log(`Tentando remover post: ${postId}`);
+        
+        // Verificar se temos uma sessão válida antes de tentar excluir
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          console.error('Sessão inválida ou expirada');
+          toast.error('Sua sessão expirou. Faça login novamente.');
+          return false;
+        }
+        
+        console.log(`Sessão válida, prosseguindo com a remoção...`);
+        
+        // Usar a função de soft delete para administradores
         const success = await forceDeletePostDirectly(postId);
         
         if (success) {
-          console.log(`Post ${postId} excluído com sucesso`);
-          if (onDelete) {
-            console.log(`Chamando callback onDelete para o post ${postId}`);
-            onDelete();
-          }
-          
-          // Forçar atualização da página após a exclusão
-          setTimeout(() => {
-            console.log("Recarregando a página...");
-            window.location.reload();
-          }, 1000);
+          // O toast de sucesso é mostrado pelo serviço de soft delete
+          handleReload();
+          return true;
+        } else {
+          // O toast de erro é mostrado pelo serviço de soft delete
+          return false;
         }
-      } else if (onDelete) {
-        // Para usuários normais, usar a função padrão
-        console.log(`Usuário normal. Chamando callback onDelete para o post ${postId}`);
+      } 
+      // Para usuários normais (autor do post), usar o método padrão de exclusão
+      else if (onDelete) {
+        console.log(`Usando método padrão de exclusão`);
+        toast.loading("Excluindo publicação...");
+        
         onDelete();
+        return true;
+      } else {
+        console.error(`Usuário não tem permissão para excluir o post`);
+        toast.error("Você não tem permissão para excluir esta publicação");
+        return false;
       }
     } catch (error) {
-      console.error(`Erro ao excluir post ${postId}:`, error);
-      toast.error("Erro ao excluir publicação");
+      console.error("Erro ao excluir post:", error);
+      toast.dismiss();
+      toast.error("Ocorreu um erro ao excluir a publicação");
+      return false;
     }
   };
 
   return (
     <div className="p-4 flex flex-row items-start justify-between space-y-0">
-      <div className="flex items-start gap-3">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={author.avatar} alt={author.name} />
-          <AvatarFallback className="bg-brand-100 text-brand-700">
-            {author.name.substring(0, 2).toUpperCase()}
-          </AvatarFallback>
+      <div className="flex items-center gap-3">
+        <Avatar>
+          <AvatarImage src={author.avatar} />
+          <AvatarFallback>{author.name.substring(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
-        <div>
-          <div className="flex items-center gap-2">
-            <Link to={`/profile/${author.id}`} className="font-medium hover:underline text-gray-800 dark:text-gray-200">
+        <div className="grid gap-0.5">
+          <div className="text-sm font-medium flex items-center gap-1">
+            <span className="hover:underline">
               {author.name}
-            </Link>
+            </span>
             {author.role && (
-              <Badge variant="outline" className="text-xs font-normal">
+              <Badge variant="outline" className="text-[10px] px-1 py-0 h-auto">
                 {author.role}
               </Badge>
             )}
+            {isDeleted && (
+              <Badge variant="destructive" className="ml-2 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                <span>Post Removido</span>
+              </Badge>
+            )}
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {community ? (
-              <Link 
-                to={`/c/${community.id}`} 
-                className="text-brand-600 hover:underline"
-              >
-                {community.name}
-              </Link>
-            ) : (
-              <Link 
-                to={`/c/${category.id}`} 
-                className="text-brand-600 hover:underline"
-              >
-                {category.name}
-              </Link>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Link to={`/categoria/${category.id}`} className="hover:underline">
+              {category.name}
+            </Link>
+            {community && (
+              <>
+                <span>•</span>
+                <Link to={`/comunidade/${community.id}`} className="hover:underline">
+                  {community.name}
+                </Link>
+              </>
             )}
             <span>•</span>
             <time dateTime={createdAt.toISOString()}>
-              {formatDistanceToNow(createdAt, { 
+              {formatDistanceToNow(createdAt, {
                 addSuffix: true,
                 locale: ptBR
               })}
@@ -249,20 +238,46 @@ export const PostHeader = ({
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Trash2 className="mr-2 h-4 w-4" />
-                  <span>Excluir publicação</span>
+                  {isAdmin && !isAuthor ? (
+                    <>
+                      <span className="text-red-500 font-medium">Remover publicação</span>
+                      <ShieldAlert className="ml-1 h-3 w-3 text-red-500" />
+                    </>
+                  ) : (
+                    <span>Excluir publicação</span>
+                  )}
                 </DropdownMenuItem>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Excluir publicação</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    {isAdmin && !isAuthor ? (
+                      <div className="flex items-center gap-2 text-red-500">
+                        <ShieldAlert className="h-5 w-5" />
+                        Remoção administrativa
+                      </div>
+                    ) : (
+                      "Excluir publicação"
+                    )}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Tem certeza que deseja excluir esta publicação? Esta ação não pode ser desfeita.
+                    {isAdmin && !isAuthor ? (
+                      <>
+                        <p className="font-medium text-red-500 mb-2">Você está prestes a remover o post de outro usuário como administrador.</p>
+                        <p>Este post será marcado como removido e seu conteúdo será substituído.</p>
+                      </>
+                    ) : (
+                      "Tem certeza que deseja excluir esta publicação? Esta ação não pode ser desfeita."
+                    )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>
-                    Excluir
+                  <AlertDialogAction 
+                    onClick={handleDelete} 
+                    className={isAdmin && !isAuthor ? "bg-red-500 hover:bg-red-600" : ""}
+                  >
+                    {isAdmin && !isAuthor ? "Confirmar remoção administrativa" : "Excluir"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
