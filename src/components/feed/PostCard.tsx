@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -14,8 +14,32 @@ import { HiddenPostView } from "./post/HiddenPostView";
 import { Badge } from "@/components/ui/badge";
 import { Pin } from "lucide-react";
 import { PostData } from "@/services/postService";
-import { shareService } from "@/capacitor/share";
 import { toast } from "sonner";
+
+// Implementação local do serviço de compartilhamento para evitar dependências externas
+const shareService = {
+  sharePost: async (postId: string, title: string, text: string, imageUrl?: string) => {
+    try {
+      // Tenta usar a Web Share API primeiro, se disponível
+      if (navigator.share) {
+        await navigator.share({
+          title,
+          text,
+          url: window.location.origin + '/posts/' + postId
+        });
+        return true;
+      }
+      
+      // Fallback para copiar para a área de transferência
+      const content = `${title}\n${text}\n${window.location.origin}/posts/${postId}`;
+      await navigator.clipboard.writeText(content);
+      return false; // Indica que usou o fallback
+    } catch (error) {
+      console.error('Erro ao compartilhar:', error);
+      return false;
+    }
+  }
+};
 
 export interface PostProps {
   post?: PostData;
@@ -96,10 +120,23 @@ const PostCard = ({
   const postCommunityId = communityId !== undefined ? communityId : post?.communityId;
 
   // Validate required props to prevent errors
-  if (!postId || !postAuthor || !postCreatedAt) {
-    console.error("PostCard missing required props:", { postId, postAuthor, postCreatedAt });
+  if (!postId) {
+    console.error("PostCard missing postId:", { postId });
     return null; // Don't render an invalid post
   }
+  
+  // Garantir que sempre temos um autor, mesmo que incompleto
+  const safeAuthor = postAuthor || {
+    id: 'unknown',
+    name: 'Usuário',
+    avatar: null
+  };
+  
+  // Garantir que temos uma data válida
+  const safeCreatedAt = postCreatedAt || new Date().toISOString();
+  
+  // Log para debug
+  console.log(`Renderizando post ${postId} com autor:`, safeAuthor);
   
   // Categoria pode não estar presente em todos os posts
   const displayCategory = postCategory || { id: 'default', name: 'Geral' };
@@ -110,6 +147,21 @@ const PostCard = ({
   const [pinned, setPinned] = useState(postIsPinned || false);
   const [showComments, setShowComments] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
+  
+  // Debug para verificar os dados do autor
+  useEffect(() => {
+    console.log(`[DEBUG] PostCard ID: ${postId}`);
+    console.log(`[DEBUG] Autor recebido:`, safeAuthor);
+    
+    // Detectar problemas com o autor
+    if (safeAuthor.name === 'Usuário') {
+      console.warn(`[WARN] Nome genérico para o post ${postId}`);
+    }
+    
+    if (!safeAuthor.avatar) {
+      console.warn(`[WARN] Avatar ausente para o post ${postId}`);
+    }
+  }, [postId, safeAuthor]);
 
   const toggleLike = () => {
     if (liked) {
@@ -199,7 +251,7 @@ const PostCard = ({
       
       <CardHeader className="p-0">
         <PostHeader
-          author={postAuthor}
+          author={safeAuthor}
           category={displayCategory}
           community={postCommunity}
           createdAt={postDate}
