@@ -7,9 +7,12 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ReferenceModal from "@/components/references/ReferenceModal";
 import MainLayout from "@/components/layout/MainLayout";
-import { Home, BookOpen, Image, ScissorsSquare, Filter } from "lucide-react";
+import { Home, BookOpen, Image, ScissorsSquare, Filter, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/auth";
+import { isAdminByEmail } from "@/utils/adminUtils";
+import ReferenceForm from "@/components/admin/references/ReferenceForm";
 
 const ReferenceGallery = () => {
   const [references, setReferences] = useState<ReferenceItem[]>([]);
@@ -17,10 +20,26 @@ const ReferenceGallery = () => {
   const [selectedType, setSelectedType] = useState("all");
   const [selectedReference, setSelectedReference] = useState<ReferenceItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { user } = useAuth();
+  
+  // Verificar se o usuário é admin usando a função centralizada do adminUtils
+  const isAdmin = user ? isAdminByEmail(user.email) : false;
 
   useEffect(() => {
     loadReferences();
   }, [selectedType]);
+  
+  const handleAddReference = () => {
+    setIsFormOpen(true);
+  };
+  
+  const handleFormClose = (refreshData: boolean = false) => {
+    setIsFormOpen(false);
+    if (refreshData) {
+      loadReferences();
+    }
+  };
 
   const loadReferences = async () => {
     setLoading(true);
@@ -109,14 +128,17 @@ const ReferenceGallery = () => {
         <MobileTopNavigation />
 
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Galeria de Referências</h1>
-          <p className="text-muted-foreground">
-            Veja todos os seus trabalhos antes e depois.
-          </p>
-        </div>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Galeria de Referências</h1>
+            {isAdmin && (
+              <Button onClick={handleAddReference} className="flex items-center gap-2">
+                <PlusCircle className="h-4 w-4" />
+                Adicionar Referência
+              </Button>
+            )}
+          </div>
 
-        <div className="hidden sm:flex mb-6">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 mt-4">
             <p className="text-sm font-medium">Filtrar por tipo:</p>
             <Select value={selectedType} onValueChange={setSelectedType}>
               <SelectTrigger className="w-[180px]">
@@ -203,6 +225,15 @@ const ReferenceGallery = () => {
             reference={selectedReference}
             onClose={handleCloseModal}
             isOpen={isModalOpen}
+          />
+        )}
+        
+        {isFormOpen && (
+          <ReferenceForm
+            reference={null}
+            isEditing={false}
+            onClose={handleFormClose}
+            userId={user?.id || ""}
           />
         )}
       </div>

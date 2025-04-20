@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MoreHorizontal, Heart, Flag, Trash2 } from "lucide-react";
+import { MoreHorizontal, Heart, Flag, Trash2, ShieldAlert } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -13,6 +13,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/context/auth/AuthContext";
+import { isAdminByEmail } from "@/utils/adminUtils";
+import { toast } from "sonner";
 
 interface Comment {
   id: string;
@@ -28,42 +31,20 @@ interface Comment {
   isModerator?: boolean;
 }
 
-// Mock comments data
-const mockComments: Comment[] = [
-  {
-    id: "1",
-    author: {
-      id: "user1",
-      name: "João Silva",
-      avatar: "",
-    },
-    content: "Excelente conteúdo! Isso vai ajudar muito no meu trabalho diário.",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3), // 3 hours ago
-    likes: 5,
-    isLiked: false,
-  },
-  {
-    id: "2",
-    author: {
-      id: "user2",
-      name: "Maria Oliveira",
-      avatar: "",
-    },
-    content: "Concordo com você. Essa técnica revolucionou minha abordagem com clientes.",
-    createdAt: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-    likes: 2,
-    isLiked: true,
-  },
-];
+// Inicializar com array vazio - sem comentários falsos/mock
 
 interface CommentSectionProps {
   postId: string;
 }
 
 const CommentSection = ({ postId }: CommentSectionProps) => {
-  const [comments, setComments] = useState<Comment[]>(mockComments);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  
+  // Verificar se o usuário é administrador
+  const isAdmin = isAdminByEmail(user?.email);
 
   const handleLikeComment = (commentId: string) => {
     setComments(prev => 
@@ -83,6 +64,10 @@ const CommentSection = ({ postId }: CommentSectionProps) => {
 
   const handleDeleteComment = (commentId: string) => {
     setComments(prev => prev.filter(comment => comment.id !== commentId));
+    toast.success("Comentário excluído com sucesso");
+    
+    // Aqui você implementaria a chamada à API para excluir o comentário permanentemente
+    // deleteCommentFromDatabase(commentId);
   };
 
   const handleSubmitComment = () => {
@@ -169,12 +154,19 @@ const CommentSection = ({ postId }: CommentSectionProps) => {
                         <Flag className="mr-2 h-4 w-4" />
                         Denunciar
                       </DropdownMenuItem>
-                      {comment.author.id === "currentUser" && (
+                      {(comment.author.id === "currentUser" || isAdmin) && (
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleDeleteComment(comment.id)}>
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
+                            {isAdmin && comment.author.id !== "currentUser" ? (
+                              <>
+                                <span className="text-red-500">Excluir</span>
+                                <ShieldAlert className="ml-1 h-3 w-3 text-red-500" />
+                              </>
+                            ) : (
+                              "Excluir"
+                            )}
                           </DropdownMenuItem>
                         </>
                       )}

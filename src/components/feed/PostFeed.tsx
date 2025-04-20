@@ -170,7 +170,8 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
   
   const handlePinPost = async (postId: string, isPinned: boolean) => {
     try {
-      const success = await togglePinPost(postId, isPinned);
+      // Passa o email do usuário para verificação de admin
+      const success = await togglePinPost(postId, isPinned, userEmail);
       if (success) {
         // Atualizar o estado do post na lista
         setPosts(currentPosts => 

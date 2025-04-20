@@ -14,6 +14,7 @@ export const ADMIN_EMAILS = [
   'superadmin@example.com',
   'ipcompanidigital@gmail.com', // adicionado para teste se necessário
   'tech@yourcompany.com'
+  // vinaum123@gmail.com removido da lista de administradores
 ];
 
 /**
