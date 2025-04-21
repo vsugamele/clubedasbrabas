@@ -36,7 +36,7 @@ import {
   uploadGif
 } from "@/services/postService";
 import { createPost } from "@/services/postService";
-import { uploadVideoToStorage, uploadImageToStorage } from "@/services/mediaService";
+import { uploadVideoToStorage, uploadImageToStorage } from "@/services/mediaService.ts";
 import type { PostData } from "@/services/postService";
 import { useAuth } from "@/context/auth";
 import { AttachmentsPreview } from "./post/AttachmentsPreview";
