@@ -168,9 +168,9 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
   }
 
   return (
-    <div ref={containerRef} className="admin-panel-container touch-pan-y">
-      <h1 className="text-3xl font-bold mb-1 admin-panel-title">Painel de Administração</h1>
-      <p className="text-muted-foreground mb-6 admin-panel-description">
+    <div ref={containerRef} className="admin-panel-container p-2 sm:p-4 md:p-8">
+      <h1 className="admin-panel-title text-xl sm:text-2xl font-bold mb-1">Painel de Administração</h1>
+      <p className="admin-panel-description text-sm sm:text-base text-muted-foreground mb-2 sm:mb-4">
         Gerencie usuários, conteúdo e configurações da plataforma
       </p>
 
@@ -181,18 +181,20 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
             <>
               <button 
                 onClick={() => scrollTabs('left')} 
-                className="scroll-button scroll-button-left absolute left-0 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 shadow-lg backdrop-blur-sm hover:bg-primary/20 active:scale-95 transition-all duration-150 border border-primary/20"
+                className="scroll-button scroll-button-left absolute left-0 top-1/2 -translate-y-1/2 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 shadow-lg backdrop-blur-sm hover:bg-primary/25 active:scale-95 transition-all duration-150 border border-primary/20 touch-manipulation"
                 aria-label="Navegar para a esquerda"
+                style={{ minWidth: '44px', minHeight: '44px', touchAction: 'manipulation' }}
               >
-                <ChevronLeft className="h-6 w-6 text-primary" />
+                <ChevronLeft className="h-7 w-7 text-primary" />
               </button>
               
               <button 
                 onClick={() => scrollTabs('right')} 
-                className="scroll-button scroll-button-right absolute right-0 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 shadow-lg backdrop-blur-sm hover:bg-primary/20 active:scale-95 transition-all duration-150 border border-primary/20"
+                className="scroll-button scroll-button-right absolute right-0 top-1/2 -translate-y-1/2 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 shadow-lg backdrop-blur-sm hover:bg-primary/25 active:scale-95 transition-all duration-150 border border-primary/20 touch-manipulation"
                 aria-label="Navegar para a direita"
+                style={{ minWidth: '44px', minHeight: '44px', touchAction: 'manipulation' }}
               >
-                <ChevronRight className="h-6 w-6 text-primary" />
+                <ChevronRight className="h-7 w-7 text-primary" />
               </button>
             </>
           )}
@@ -202,16 +204,18 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
           <div className="scroll-indicator-right"></div>
           
           {/* Container com rolagem horizontal */}
-          <div className="tabs-scroll-container overflow-hidden">
+          <div className="tabs-scroll-container overflow-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
             <TabsList 
               ref={tabsListRef} 
               className="admin-tabs-list w-full flex flex-nowrap justify-start p-1 h-auto overflow-x-auto"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
             >
               {tabs.map((tab) => (
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
-                  className={`admin-tab-trigger py-2 px-4 flex-shrink-0 whitespace-nowrap transition-all duration-200 ${activeTab === tab.id ? 'bg-primary/10 font-semibold' : ''} ${lastTabChange && activeTab === tab.id ? 'scale-105 ring-2 ring-primary/30' : ''}`}
+                  className={`admin-tab-trigger py-2 px-3 md:px-4 flex-shrink-0 whitespace-nowrap transition-all duration-200 text-sm md:text-base ${activeTab === tab.id ? 'bg-primary/10 font-semibold' : ''} ${lastTabChange && activeTab === tab.id ? 'scale-105 ring-2 ring-primary/30' : ''}`}
+                  style={{ touchAction: 'manipulation', minHeight: '40px' }}
                   onClick={() => {
                     // Scrollar para exibir a aba sendo clicada
                     setTimeout(() => {
