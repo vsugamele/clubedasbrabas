@@ -10,6 +10,7 @@ interface PostActionsProps {
   toggleLike: () => void;
   toggleComments: () => void;
   toggleBookmark: () => void;
+  sharePost: () => void; // Nova prop para compartilhamento
 }
 
 export const PostActions = ({
@@ -20,6 +21,7 @@ export const PostActions = ({
   toggleLike,
   toggleComments,
   toggleBookmark,
+  sharePost,
 }: PostActionsProps) => {
   return (
     <div className="flex items-center justify-between w-full px-2">
@@ -50,6 +52,7 @@ export const PostActions = ({
           variant="ghost" 
           size="sm" 
           className="flex items-center gap-2 text-sm font-normal"
+          onClick={sharePost}
         >
           <Share2 className="h-4 w-4" />
           <span>Compartilhar</span>
