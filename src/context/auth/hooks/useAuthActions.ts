@@ -4,7 +4,52 @@ import { isValidEmail } from "@/utils/validation";
 import { toast } from "sonner";
 import { sendUserRegistrationWebhook, isWebhookConfigured } from "@/services/webhookService";
 import { debug, logError } from "@/services/debugService";
-import { loginWithoutEmailVerification } from "@/utils/supabaseHelper.ts";
+// Função incorporada do supabaseHelper para evitar problemas de importação no Vercel
+async function loginWithoutEmailVerification(email: string, password: string) {
+  try {
+    debug('auth', `Tentando login sem verificação de email: ${email}`);
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      // Se o erro for de email não confirmado, podemos tentar forçar a confirmação
+      if (error.message.includes('Email not confirmed')) {
+        debug('auth', 'Email não confirmado, tentando login alternativo');
+        
+        // Tentativa alternativa usando autenticação token
+        // Esta é apenas para desenvolvimento e pode não funcionar em todos os ambientes
+        const { data: magicData, error: magicError } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: false,
+          }
+        });
+        
+        if (magicError) {
+          logError('auth', 'Erro ao tentar login alternativo:', magicError);
+          return { success: false, error: magicError };
+        }
+        
+        return { 
+          success: true, 
+          message: 'Link de login enviado para seu email',
+          data: magicData 
+        };
+      }
+      
+      logError('auth', 'Erro ao fazer login sem verificação:', error);
+      return { success: false, error };
+    }
+    
+    return { success: true, user: data.user };
+  } catch (err) {
+    logError('auth', 'Exceção ao fazer login sem verificação:', err);
+    return { success: false, error: err };
+  }
+}
 
 export function useAuthActions(setLoading: (loading: boolean) => void) {
   const [actionInProgress, setActionInProgress] = useState(false);

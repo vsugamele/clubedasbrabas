@@ -36,7 +36,78 @@ import {
   uploadGif
 } from "@/services/postService";
 import { createPost } from "@/services/postService";
-import { uploadVideoToStorage, uploadImageToStorage } from "@/services/mediaService.ts";
+// Funções inlined do mediaService para evitar problemas de importação no Vercel
+async function uploadVideoToStorage(videoFile: File): Promise<string | null> {
+  try {
+    if (!videoFile.type.startsWith('video/')) {
+      throw new Error("O arquivo selecionado não é um vídeo válido.");
+    }
+    
+    // Criar nome único para o arquivo
+    const fileExt = videoFile.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+    const filePath = `videos/${fileName}`;
+    
+    // Upload direto para o bucket media
+    const { data, error } = await supabase.storage
+      .from('media')
+      .upload(filePath, videoFile, {
+        cacheControl: '3600',
+        upsert: true
+      });
+      
+    if (error) {
+      throw error;
+    }
+    
+    return supabase.storage.from('media').getPublicUrl(filePath).data.publicUrl;
+  } catch (error) {
+    console.error("Falha no upload do vídeo:", error);
+    // Fallback para base64 em caso de erro
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(videoFile);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  }
+}
+
+async function uploadImageToStorage(imageFile: File): Promise<string | null> {
+  try {
+    if (!imageFile.type.startsWith('image/')) {
+      throw new Error("O arquivo selecionado não é uma imagem válida.");
+    }
+    
+    // Criar nome único para o arquivo
+    const fileExt = imageFile.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+    const filePath = `images/${fileName}`;
+    
+    // Upload direto para o bucket media
+    const { data, error } = await supabase.storage
+      .from('media')
+      .upload(filePath, imageFile, {
+        cacheControl: '3600',
+        upsert: true
+      });
+      
+    if (error) {
+      throw error;
+    }
+    
+    return supabase.storage.from('media').getPublicUrl(filePath).data.publicUrl;
+  } catch (error) {
+    console.error("Falha no upload da imagem:", error);
+    // Fallback para base64 em caso de erro
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(imageFile);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  }
+}
 import type { PostData } from "@/services/postService";
 import { useAuth } from "@/context/auth";
 import { AttachmentsPreview } from "./post/AttachmentsPreview";
