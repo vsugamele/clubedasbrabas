@@ -12,8 +12,8 @@ const WEBHOOK_URLS = {
   USER_REGISTRATION: 'https://n8n-n8n.p6yhvh.easypanel.host/webhook-test/user-registration',
   
   // Webhook para processar pedidos de recuperação de senha
-  // Usando o mesmo endpoint do registro por enquanto, pois já está configurado e funcionando
-  PASSWORD_RESET: 'https://n8n-n8n.p6yhvh.easypanel.host/webhook-test/user-registration'
+  // Usando um endpoint específico para recuperação de senha
+  PASSWORD_RESET: 'https://n8n-n8n.p6yhvh.easypanel.host/webhook-test/c88c63b3-04cb-4703-b53a-34364535a772'
 };
 
 // Tipos para as requisições
