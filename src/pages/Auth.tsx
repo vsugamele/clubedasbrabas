@@ -5,9 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { sendUserRegistrationWebhook } from "@/services/webhookService";
+import { sendUserRegistrationWebhook, sendPasswordResetWebhook } from "@/services/webhookService";
 
 // Componente Auth com funcionalidade real de autenticação
 const Auth = () => {
@@ -17,8 +26,58 @@ const Auth = () => {
   const [name, setName] = useState("");
   const [activeTab, setActiveTab] = useState("login");
   const [loading, setLoading] = useState(false);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
   const navigate = useNavigate();
   
+  // Função para lidar com a solicitação de redefinição de senha
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!resetEmail || !resetEmail.includes("@")) {
+      toast.error("Por favor, informe um email válido");
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      // Enviar solicitação para Supabase
+      const { data, error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: window.location.origin + "/reset-password",
+      });
+      
+      if (error) {
+        console.error("Erro ao solicitar redefinição de senha:", error.message);
+        toast.error("Não foi possível enviar o email de redefinição. Tente novamente.");
+        return;
+      }
+      
+      // Enviar dados para webhook do n8n
+      try {
+        await sendPasswordResetWebhook({
+          email: resetEmail,
+          requested_at: new Date().toISOString()
+        });
+      } catch (webhookError) {
+        console.error("Erro ao enviar para webhook de redefinição:", webhookError);
+      }
+      
+      toast.success(`Email de redefinição enviado para ${resetEmail}. Verifique sua caixa de entrada.`, {
+        duration: 8000
+      });
+      
+      // Fechar o modal e limpar o campo
+      setResetPasswordOpen(false);
+      setResetEmail("");
+    } catch (error) {
+      console.error("Erro no processo de redefinição:", error);
+      toast.error("Ocorreu um erro inesperado. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Função real de login usando Supabase
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,6 +247,14 @@ const Auth = () => {
                   >
                     {loading ? "Entrando..." : "Entrar"}
                   </Button>
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="w-full mt-2 text-sm text-[#ff4400]" 
+                    onClick={() => setResetPasswordOpen(true)}
+                  >
+                    Esqueci minha senha
+                  </Button>
                 </form>
               </TabsContent>
 
@@ -246,6 +313,51 @@ const Auth = () => {
           </CardFooter>
         </Card>
       </div>
+      
+      {/* Modal de Redefinição de Senha */}
+      <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Recuperar senha</DialogTitle>
+            <DialogDescription>
+              Informe seu email para receber um link de redefinição de senha.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleResetPassword} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="reset-email">Email</Label>
+              <Input
+                id="reset-email"
+                type="email"
+                placeholder="seu@email.com"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+              />
+            </div>
+            
+            <DialogFooter className="pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setResetPasswordOpen(false)}
+                disabled={loading}
+                className="mr-2"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-[#ff4400] hover:bg-[#ff4400]/90"
+                disabled={loading}
+              >
+                {loading ? "Enviando..." : "Enviar link"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
