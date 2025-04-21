@@ -1,10 +1,108 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// Cache de perfis para evitar consultas repetidas
+const profileCache: Record<string, any> = {};
+
 export interface UserMention {
   id: string;
   username: string;
   full_name: string;
   avatar_url: string | null;
+}
+
+/**
+ * Busca o perfil de um usuário pelo ID com cache
+ * @param userId ID do usuário
+ * @returns Dados do perfil do usuário
+ */
+export const getUserProfile = async (userId: string) => {
+  // Verificar se o ID é válido (evitar 'unknown' ou valores inválidos)
+  if (!userId || userId === 'unknown' || !isValidUUID(userId)) {
+    console.warn(`[UserService] ID de usuário inválido: ${userId}`);
+    return null;
+  }
+
+  // Verificar se o perfil já está em cache
+  if (profileCache[userId]) {
+    console.log(`[UserService] Usando perfil em cache para ${userId}`);
+    return profileCache[userId];
+  }
+  
+  console.log(`[UserService] Buscando perfil para ${userId}`);
+  
+  try {
+    // Buscar o perfil da tabela profiles
+    const { data: profileData, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error(`[UserService] Erro ao buscar perfil: ${error.message}`);
+      return null;
+    }
+    
+    if (!profileData) {
+      console.warn(`[UserService] Perfil não encontrado para ${userId}`);
+      return null;
+    }
+    
+    // Armazenar em cache para futuras consultas
+    profileCache[userId] = profileData;
+    
+    console.log(`[UserService] Perfil encontrado para ${userId}:`, profileData);
+    return profileData;
+  } catch (error) {
+    console.error(`[UserService] Erro ao buscar perfil para ${userId}:`, error);
+    return null;
+  }
+};
+
+/**
+ * Formata o objeto autor para exibição no feed
+ * @param userId ID do usuário
+ * @param profile Opcional - perfil já carregado
+ * @returns Objeto autor formatado
+ */
+export const formatAuthor = async (userId: string, profile?: any) => {
+  // Usar perfil fornecido ou buscar
+  const userProfile = profile || await getUserProfile(userId);
+  
+  if (!userProfile) {
+    console.warn(`[UserService] Usando perfil padrão para ${userId}`);
+    return {
+      id: userId,
+      name: 'Usuário',
+      avatar: null
+    };
+  }
+  
+  // Priorizar campos conforme disponibilidade
+  return {
+    id: userId,
+    name: userProfile.full_name || userProfile.username || 'Usuário',
+    avatar: userProfile.avatar_url
+  };
+};
+
+/**
+ * Limpa o cache de perfis (chamar depois de atualizações)
+ */
+export const clearProfileCache = () => {
+  Object.keys(profileCache).forEach(key => delete profileCache[key]);
+  console.log('[UserService] Cache de perfis limpo');
+};
+
+/**
+ * Verifica se uma string é um UUID válido
+ * @param uuid String para verificar
+ * @returns true se for um UUID válido
+ */
+function isValidUUID(uuid: string) {
+  // Padrão de regex para validar UUIDs
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidPattern.test(uuid);
 }
 
 /**

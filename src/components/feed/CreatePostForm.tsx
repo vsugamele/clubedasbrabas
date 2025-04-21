@@ -31,13 +31,12 @@ import {
 } from "@/components/ui/select";
 import { postCategories } from "@/data/postCategories";
 import { 
-  createPost, 
   fetchCategories, 
   fetchCommunities, 
-  uploadGif, 
-  uploadImage, 
-  uploadVideo 
+  uploadGif
 } from "@/services/postService";
+import { createPost } from "@/services/postService";
+import { uploadVideoToStorage, uploadImageToStorage } from "@/services/mediaService";
 import type { PostData } from "@/services/postService";
 import { useAuth } from "@/context/auth";
 import { AttachmentsPreview } from "./post/AttachmentsPreview";
@@ -92,9 +91,13 @@ interface Category {
 const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => {
   const { user, profile } = useAuth();
   const [content, setContent] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(communityId || null);
-  const [selectedOption, setSelectedOption] = useState<string>(communityId ? "community" : "none");
+  const [selectedOption, setSelectedOption] = useState<string>('none');
+  const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string>("");
+  
+  // Estado para armazenar a categoria atual para debug
+  const [selectedCategoryDebug, setSelectedCategoryDebug] = useState<{id: string, name: string} | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   
@@ -285,9 +288,10 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
         // Mostramos apenas categorias que têm comunidades onde o usuário pode postar
         setCategories(filteredCategories);
         
-        if (categoriesData.length > 0 && !categoryId) {
-          setCategoryId(categoriesData[0].id);
-        }
+        console.log("Categorias disponíveis:", categoriesData.map(cat => ({ id: cat.id, name: cat.name })));
+        
+        // Não definir categoria padrão automaticamente, deixar o usuário escolher
+        // ou definir explicitamente quando em um contexto específico (comunidade)
         
         if (communityId) {
           setSelectedCommunityId(communityId);
@@ -310,11 +314,58 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
+      // Validar os arquivos antes de adicionar
+      const MAX_IMAGE_SIZE_MB = 10;
+      const MAX_VIDEO_SIZE_MB = 100;
+      const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+      const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
       const newFiles = Array.from(e.target.files);
-      setAttachments(prev => [...prev, ...newFiles]);
       
-      // Reset the input so the same file can be selected again
+      // Filtrar arquivos que excedem o tamanho ou são de tipo inválido
+      const validFiles = [];
+      const invalidFiles = [];
+      
+      for (const file of newFiles) {
+        // Verificar tamanho baseado no tipo do arquivo
+        const isVideo = file.type.startsWith('video/');
+        const maxAllowedSize = isVideo ? MAX_VIDEO_SIZE_BYTES : MAX_IMAGE_SIZE_BYTES;
+        const maxAllowedSizeMB = isVideo ? MAX_VIDEO_SIZE_MB : MAX_IMAGE_SIZE_MB;
+        
+        if (file.size > maxAllowedSize) {
+          invalidFiles.push({
+            name: file.name,
+            reason: `excede o tamanho máximo de ${maxAllowedSizeMB}MB (${(file.size / (1024 * 1024)).toFixed(1)}MB)`
+          });
+          continue;
+        }
+        
+        // Verificar tipo
+        if (file.type.startsWith('video/') && !['video/mp4', 'video/quicktime', 'video/x-m4v'].includes(file.type)) {
+          invalidFiles.push({
+            name: file.name,
+            reason: `formato de vídeo não suportado: ${file.type}. Use MP4, MOV ou M4V.`
+          });
+          continue;
+        }
+        
+        validFiles.push(file);
+      }
+      
+      // Adicionar apenas arquivos válidos
+      if (validFiles.length > 0) {
+        setAttachments(prev => [...prev, ...validFiles]);
+        console.log(`${validFiles.length} arquivo(s) válido(s) adicionado(s)`);
+      }
+      
+      // Mostrar avisos para arquivos inválidos
+      if (invalidFiles.length > 0) {
+        for (const invalid of invalidFiles) {
+          toast.error(`Erro: ${invalid.name} - ${invalid.reason}`);
+        }
+      }
+      
+      // Reset input value
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -355,34 +406,77 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
   };
   
   const handleCommunitySelect = (value: string, type: 'community' | 'category' | 'none') => {
-    if (type === 'community') {
-      setSelectedCommunityId(value);
-      setSelectedOption(value);
+    setSelectedOption(type);
+    console.log(`handleCommunitySelect: ${type} = ${value}`);
+    
+    // Se selecionou 'none', limpar tudo
+    if (type === 'none') {
+      setSelectedCommunityId(null);
+      setCategoryId("");
+      setSelectedCategoryDebug(null);
+      return;
+    }
+    
+    if (type === 'category') {
+      // Selecionou uma categoria
+      setCategoryId(value);
+      setSelectedCommunityId(null); // Limpar comunidade selecionada
       
-      // Encontrar a categoria da comunidade selecionada
+      // Debug da categoria selecionada
+      const cat = categories.find(c => c.id === value);
+      if (cat) {
+        setSelectedCategoryDebug({id: cat.id, name: cat.name});
+        console.log(`Categoria selecionada: ${cat.name} (ID: ${cat.id})`);
+      } else {
+        console.warn("Categoria não encontrada no array de categorias:", value);
+        setSelectedCategoryDebug(null);
+      }
+      
+      return;
+    }
+    
+    if (type === 'community') {
+      // Selecionou uma comunidade
+      setSelectedCommunityId(value);
+      
+      // Tentar encontrar a categoria da comunidade
+      let categoryFound = false;
+      
       for (const category of categories) {
         const community = category.communities.find(c => c.id === value);
         if (community) {
-          console.log(`Comunidade ${community.name} encontrada na categoria ${category.name} (ID: ${category.id})`);
+          console.log(`Comunidade ${community.name} pertence à categoria: ${category.name} (ID: ${category.id})`);
           setCategoryId(category.id);
-          return;
+          setSelectedCategoryDebug({id: category.id, name: category.name});
+          categoryFound = true;
+          break;
         }
       }
       
-      // Se a comunidade não estiver em nenhuma categoria, verificar nas comunidades sem categoria
-      const communityWithoutCategory = communitiesWithoutCategory.find(c => c.id === value);
-      if (communityWithoutCategory) {
-        console.log(`Comunidade ${communityWithoutCategory.name} não está em nenhuma categoria`);
-        setCategoryId("");
+      // Se não encontrou em nenhuma categoria, verificar nas comunidades sem categoria
+      if (!categoryFound) {
+        const foundCommunity = communitiesWithoutCategory.find(c => c.id === value);
+        if (foundCommunity) {
+          console.log(`Comunidade sem categoria: ${foundCommunity.name}`);
+          setCategoryId(""); // Limpar categoria
+          setSelectedCategoryDebug(null);
+        } else {
+          console.warn("Comunidade não encontrada em nenhuma lista:", value);
+        }
       }
-    } else if (type === 'category') {
-      setCategoryId(value);
-      setSelectedCommunityId(null);
-      setSelectedOption(value);
+      const selectedCategory = categories.find(cat => cat.id === value);
+      if (selectedCategory) {
+        setSelectedCategoryDebug({
+          id: selectedCategory.id,
+          name: selectedCategory.name
+        });
+        console.log(`Categoria selecionada diretamente: ${selectedCategory.name} (ID: ${selectedCategory.id})`);
+      }
     } else {
       setSelectedCommunityId(null);
       setCategoryId("");
       setSelectedOption('none');
+      setSelectedCategoryDebug(null);
     }
     setDropdownOpen(false);
   };
@@ -471,7 +565,9 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
                 id: `upload-${file.name}`,
               });
               
-              url = await uploadImage(file);
+              // Todas as imagens agora usam storage
+              url = await uploadImageToStorage(file);
+              
               console.log(`Resultado do upload da imagem ${file.name}:`, url ? (url.startsWith('data:') ? 'Base64 image (truncated)' : url) : 'null');
               
               if (url) {
@@ -495,31 +591,36 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
                 });
               }
             } else if (file.type.startsWith('video/')) {
-              console.log(`Iniciando upload do vídeo ${file.name}...`);
-              toast.loading(`Enviando vídeo ${file.name}...`, {
-                id: `upload-${file.name}`,
-              });
-              
-              url = await uploadVideo(file);
-              console.log(`Resultado do upload do vídeo ${file.name}:`, url ? (url.startsWith('data:') ? 'Base64 video (truncated)' : url) : 'null');
-              
-              if (url) {
-                uploadSuccess = true;
-                toast.success(`Vídeo ${file.name} enviado com sucesso!`, {
-                  id: `upload-${file.name}`,
+              try {
+                console.log(`Iniciando upload do vídeo ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)...`);
+                
+                // Iniciar toast com barra de progresso
+                const toastId = `upload-${file.name}`;
+                toast.loading(`Enviando vídeo...`, {
+                  id: toastId,
+                  duration: 30000, // Toast mais longo para uploads
                 });
                 
-                // Verificar se a URL é uma string base64
-                const isBase64 = url.startsWith('data:');
+                // Usar o novo serviço de upload para o Storage
+                url = await uploadVideoToStorage(file);
                 
-                mediaData.push({
-                  type: "video",
-                  url,
-                  // Se for base64, adicionar uma flag para indicar isso
-                  isBase64: isBase64
-                });
-              } else {
-                toast.error(`Falha ao enviar vídeo ${file.name}`, {
+                console.log(`Upload de vídeo concluído: ${file.name}`);
+                
+                if (url) {
+                  uploadSuccess = true;
+                  toast.success(`Vídeo enviado com sucesso!`, {
+                    id: toastId,
+                  });
+                  
+                  mediaData.push({
+                    type: "video",
+                    url
+                  });
+                }
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : "Erro desconhecido ao processar o vídeo";
+                console.error(`Erro no upload do vídeo ${file.name}:`, error);
+                toast.error(`Falha ao enviar vídeo: ${errorMessage}`, {
                   id: `upload-${file.name}`,
                 });
               }
@@ -583,9 +684,41 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
       // Garantir que sempre haja conteúdo, mesmo que vazio
       const finalContent = content.trim() || " ";
       
+      // Log detalhado da categoria antes de enviar
+      const categoryToUse = categoryId || "";
+      const categoryName = categories.find(cat => cat.id === categoryToUse)?.name || "Geral";
+      
+      console.log("========== DETALHES DO POST ==========");
+      console.log(`Categoria selecionada: ID="${categoryToUse}", Nome="${categoryName}"`);
+      console.log(`Comunidade selecionada: ${selectedCommunityId || "Nenhuma"}`);
+      console.log(`Opção selecionada: ${selectedOption}`);
+      console.log(`Categoria Debug: ${JSON.stringify(selectedCategoryDebug)}`);
+      console.log("=======================================");
+      
+      // Ajustar a categoria se necessário antes de criar o post
+      let finalCategoryId = categoryToUse;
+      
+      // Se não há categoria definida e estamos em uma comunidade específica, tentar encontrar a categoria
+      if ((!finalCategoryId || finalCategoryId === "") && selectedCommunityId) {
+        // Procurar a categoria da comunidade selecionada
+        for (const category of categories) {
+          const community = category.communities.find(c => c.id === selectedCommunityId);
+          if (community) {
+            console.log(`Ajuste automático: Comunidade ${community.name} pertence à categoria ${category.name} (ID: ${category.id})`);
+            finalCategoryId = category.id;
+            // Nota: Não chamamos setCategoryId aqui para evitar re-renderização durante o submit
+            // A atualização do estado visual acontecerá no próximo ciclo
+            break; // Sair do loop assim que encontrar a categoria
+          }
+        }
+      }
+      
+      console.log("Categoria final após ajustes:", finalCategoryId);
+      
+      // Criar o post com a categoria final (pode ser a original ou a ajustada)
       const postId = await createPost({
         content: finalContent,
-        category_id: categoryId,
+        category_id: finalCategoryId, // Usar a categoria ajustada (se houver)
         communityId: selectedCommunityId,
         media: mediaData.length > 0 ? mediaData : undefined,
         poll: pollData
@@ -598,6 +731,11 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
           id: "create-post",
         });
         
+        // Se tivemos que ajustar a categoria, atualizar o estado visual agora
+        if (finalCategoryId !== categoryToUse) {
+          setCategoryId(finalCategoryId);
+        }
+        
         // Reset form
         setContent("");
         setSelectedGif(null);
@@ -608,7 +746,8 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
         setAttachments([]);
         
         if (onPostCreated) {
-          const category = categories.find(c => c.id === categoryId);
+          // Usar a categoria final para o objeto de post
+          const category = categories.find(c => c.id === finalCategoryId);
           const newPost: PostData = {
             id: postId,
             content,
@@ -618,7 +757,7 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
               avatar: profile?.avatar_url,
             },
             category: category || { id: 'other', name: 'Categoria' },
-            createdAt: new Date(),
+            createdAt: new Date().toISOString(), // Convertendo para string ISO
             likes: 0,
             comments: 0,
             isPinned: false,

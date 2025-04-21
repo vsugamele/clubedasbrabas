@@ -174,15 +174,20 @@ export const PostHeader = ({
           <AvatarImage src={author.avatar} />
           <AvatarFallback>{author.name.substring(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
-        <div className="grid gap-0.5">
-          <div className="text-sm font-medium flex items-center gap-1">
-            <span className="hover:underline">
-              {author.name}
-            </span>
-            {author.role && (
-              <Badge variant="outline" className="text-[10px] px-1 py-0 h-auto">
-                {author.role}
-              </Badge>
+        <div className="flex flex-col">
+          <div className="flex items-center gap-1">
+            <span className="font-semibold dark:text-gray-200">{author.name}</span>
+            
+            {/* Posts podem estar em uma categoria, comunidade, ou ambos */}
+            {category && (
+              <Link 
+                to={`/categoria/${category.id}`} 
+                className="hover:underline"
+              >
+                <Badge variant="outline" className="px-2 py-0 text-xs hover:bg-primary/10 transition-colors">
+                  {category.name}
+                </Badge>
+              </Link>
             )}
             {isDeleted && (
               <Badge variant="destructive" className="ml-2 flex items-center gap-1">

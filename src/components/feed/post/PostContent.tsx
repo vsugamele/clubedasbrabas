@@ -107,35 +107,39 @@ export const PostContent = ({ content, media, poll, postId, onPollVoted }: PostC
       )}
       
       {media && media.length > 0 && (
-        <div className={`grid ${media.length > 1 ? "grid-cols-2 gap-2" : "grid-cols-1"} mb-4`}>
+        <div className={`grid ${media.length > 1 ? "grid-cols-1 md:grid-cols-2 gap-2" : "grid-cols-1"} mb-4`}>
           {media.map((item, index) => (
             <div 
               key={index} 
-              className={`rounded-lg overflow-hidden ${media.length > 1 ? "" : "w-full"}`}
-              style={item.aspectRatio ? { aspectRatio: `${item.aspectRatio}` } : {}}
+              className={`rounded-lg overflow-hidden ${media.length > 1 ? "" : "w-full max-w-full"}`}
             >
               {item.type === "image" ? (
-                <img
-                  src={item.url}
-                  alt="Media content"
-                  className="w-full h-full object-cover transition-transform hover:scale-[1.02] cursor-zoom-in"
-                  loading="lazy"
-                  style={item.url.length > 1000 ? { maxHeight: '400px' } : {}}
-                />
+                <div className="relative w-full max-h-[80vh] flex items-center justify-center bg-black/5">
+                  <img
+                    src={item.url}
+                    alt="Media content"
+                    className="max-w-full max-h-[80vh] object-contain transition-transform hover:scale-[1.02] cursor-zoom-in"
+                    loading="lazy"
+                  />
+                </div>
               ) : item.type === "video" ? (
-                <video
-                  src={item.url}
-                  className="w-full h-full object-cover"
-                  controls
-                  style={item.url.length > 1000 ? { maxHeight: '400px' } : {}}
-                />
+                <div className="relative w-full max-h-[80vh] flex items-center justify-center bg-black/5">
+                  <video
+                    src={item.url}
+                    className="max-w-full max-h-[80vh] object-contain"
+                    controls
+                    preload="metadata"
+                  />
+                </div>
               ) : (
-                <img
-                  src={item.url}
-                  alt="GIF content"
-                  className="w-full h-full object-contain"
-                  loading="lazy"
-                />
+                <div className="relative w-full max-h-[80vh] flex items-center justify-center bg-black/5">
+                  <img
+                    src={item.url}
+                    alt="GIF content"
+                    className="max-w-full max-h-[80vh] object-contain"
+                    loading="lazy"
+                  />
+                </div>
               )}
             </div>
           ))}

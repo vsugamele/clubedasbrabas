@@ -17,44 +17,30 @@ const UsefulLinks = () => {
     {
       title: "Instagram Oficial",
       description: "Siga nosso perfil oficial e fique por dentro das novidades",
-      url: "https://instagram.com/clubedasbrabas",
+      url: "https://www.instagram.com/jpfreitas06/",
       icon: <Instagram className="h-6 w-6" />,
       color: "bg-gradient-to-br from-pink-500 to-purple-600"
     },
     {
       title: "Canal no YouTube",
       description: "Tutoriais, dicas e conteúdo exclusivo em vídeo",
-      url: "https://youtube.com/clubedasbrabas",
+      url: "https://www.youtube.com/channel/UCjUoPsSp9iX0FkDsy3yV_Ng",
       icon: <Youtube className="h-6 w-6" />,
       color: "bg-gradient-to-br from-red-500 to-red-700"
     },
     {
       title: "Curso de Corte",
       description: "Aprenda técnicas avançadas de corte com nossas especialistas",
-      url: "https://cursos.clubedasbrabas.com/corte",
+      url: "https://jphaireducation.com/",
       icon: <Scissors className="h-6 w-6" />,
       color: "bg-gradient-to-br from-blue-500 to-indigo-600"
     },
     {
-      title: "E-book Gratuito",
-      description: "Baixe nosso e-book com dicas para profissionais iniciantes",
-      url: "https://clubedasbrabas.com/ebook",
-      icon: <Book className="h-6 w-6" />,
-      color: "bg-gradient-to-br from-green-500 to-emerald-600"
-    },
-    {
       title: "Agenda de Eventos",
       description: "Confira os próximos workshops e encontros da comunidade",
-      url: "https://clubedasbrabas.com/eventos",
+      url: "/events", // Link interno para a página de eventos
       icon: <Calendar className="h-6 w-6" />,
       color: "bg-gradient-to-br from-amber-500 to-orange-600"
-    },
-    {
-      title: "Descontos Exclusivos",
-      description: "Produtos e serviços com desconto para membros",
-      url: "https://clubedasbrabas.com/descontos",
-      icon: <Gift className="h-6 w-6" />,
-      color: "bg-gradient-to-br from-purple-500 to-violet-600"
     }
   ];
 

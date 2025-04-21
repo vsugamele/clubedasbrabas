@@ -1,254 +1,130 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendUserRegistrationWebhook } from "@/services/webhookService";
 
+// Componente Auth com funcionalidade real de autenticação
 const Auth = () => {
-  // Usar o hook useAuth para obter o usuário e a função de carregamento
-  const { user, loading: authLoading } = useAuth();
+  // Estados para os formulários
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [activeTab, setActiveTab] = useState("login");
-  const [formSubmitting, setFormSubmitting] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<{
-    email?: string;
-    password?: string;
-    name?: string;
-  }>({});
-  const [localLoading, setLocalLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    console.log("Auth page rendered, activeTab:", activeTab, "user:", !!user, "authLoading:", authLoading);
-    
-    // Adicionar um pequeno atraso para garantir que o redirecionamento ocorra após a autenticação completa
-    let redirectTimeout: NodeJS.Timeout;
-    
-    if (user && !formSubmitting) {
-      console.log("User is logged in, redirecting to home with delay");
-      redirectTimeout = setTimeout(() => {
-        console.log("Executing delayed redirect");
-        navigate("/", { replace: true });
-      }, 1500); // Atraso de 1.5 segundos para garantir que tudo seja carregado
-    }
-    
-    return () => {
-      // Limpar o timeout se o componente for desmontado
-      if (redirectTimeout) {
-        clearTimeout(redirectTimeout);
-      }
-    };
-  }, [user, navigate, activeTab, authLoading, formSubmitting]);
-
-  const validateForm = (isSignUp = false): boolean => {
-    const errors: {
-      email?: string;
-      password?: string;
-      name?: string;
-    } = {};
-    
-    if (!email.trim()) {
-      errors.email = "Email é obrigatório";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = "Email inválido";
-    }
-    
-    if (!password) {
-      errors.password = "Senha é obrigatória";
-    } else if (password.length < 6) {
-      errors.password = "Senha deve ter pelo menos 6 caracteres";
-    }
-    
-    if (isSignUp && !name.trim()) {
-      errors.name = "Nome é obrigatório";
-    }
-    
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
+  
+  // Função real de login usando Supabase
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Attempting to sign in with:", email);
+    console.log("Tentativa de login com:", email);
     
-    // Verificar se o formulário já está sendo enviado
-    if (formSubmitting) {
-      console.log("Form already submitting, ignoring request");
+    if (!email || !password) {
+      toast.error("Por favor, preencha todos os campos");
       return;
     }
     
-    // Validar o formulário
-    if (!validateForm()) {
-      console.log("Form validation failed");
-      return;
-    }
+    setLoading(true);
     
     try {
-      // Atualizar estado para indicar que o formulário está sendo enviado
-      setFormSubmitting(true);
-      setLocalLoading(true);
-      
-      console.log("Calling Supabase directly for authentication...");
-      
-      // Usar diretamente o cliente Supabase em vez do hook de autenticação
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) {
-        console.error("Login error:", error.message);
-        
-        // Melhorar as mensagens de erro para o usuário
-        let errorMessage = error.message;
-        
-        if (error.message.includes("Invalid login credentials")) {
-          errorMessage = "Credenciais inválidas. Verifique seu email e senha.";
-        } else if (error.message.includes("Email not confirmed")) {
-          errorMessage = "É necessário confirmar seu email antes de fazer login.";
-        }
-        
-        toast.error(errorMessage, { duration: 6000 });
-        setFormSubmitting(false);
-        setLocalLoading(false);
+        console.error("Erro no login:", error.message);
+        toast.error(error.message.includes("Invalid login") ? 
+                   "Email ou senha incorretos" : 
+                   "Erro ao fazer login. Tente novamente.");
         return;
       }
       
-      // Verificar se a sessão foi realmente estabelecida
-      if (!data.session || !data.user) {
-        console.error("Login failed: No session or user returned");
-        toast.error("Falha ao estabelecer sessão. Tente novamente.");
-        setFormSubmitting(false);
-        setLocalLoading(false);
-        return;
+      if (data.session) {
+        console.log("Login bem-sucedido!");
+        toast.success("Login realizado com sucesso!");
+        navigate("/", { replace: true });
       }
-      
-      console.log("Login successful, redirecting to home page");
-      toast.success("Login bem-sucedido!");
-      
-      // Forçar uma atualização da sessão para garantir que o estado de autenticação seja atualizado
-      try {
-        // Armazenar explicitamente os dados da sessão no localStorage para garantir persistência
-        localStorage.setItem('supabase.auth.token', JSON.stringify({
-          currentSession: data.session,
-          expiresAt: Math.floor(Date.now() / 1000) + 3600
-        }));
-        
-        console.log("Session data stored in localStorage");
-        
-        // Forçar um refresh da sessão
-        await supabase.auth.refreshSession();
-        
-        // Aguardar um pouco mais antes de redirecionar
-        setTimeout(() => {
-          console.log("Redirecting to home page after delay");
-          window.location.href = "/"; // Usar redirecionamento direto em vez do navigate
-        }, 1000);
-      } catch (refreshError) {
-        console.error("Error refreshing session:", refreshError);
-        // Mesmo com erro, tentar redirecionar
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1000);
-      }
-      
     } catch (error) {
-      console.error("Error during sign in:", error);
-      toast.error("Ocorreu um erro ao tentar fazer login. Tente novamente.");
-      
-      // Resetar o estado do formulário em caso de erro
-      setFormSubmitting(false);
-      setLocalLoading(false);
+      console.error("Erro no processo de login:", error);
+      toast.error("Ocorreu um erro inesperado. Tente novamente.");
+    } finally {
+      setLoading(false);
     }
   };
-
+  
+  // Função real de cadastro usando Supabase
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Attempting to sign up with:", email);
-    if (formSubmitting) return; // Prevent double submission
+    console.log("Tentativa de cadastro com:", name, email);
     
-    if (!validateForm(true)) {
+    if (!name || !email || !password) {
+      toast.error("Por favor, preencha todos os campos");
       return;
     }
     
-    setFormSubmitting(true);
-    setLocalLoading(true);
+    if (password.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    
+    setLoading(true);
+    
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: name
-          }
-        }
+            full_name: name,
+          },
+        },
       });
       
       if (error) {
-        console.error("Sign up error:", error.message);
-        toast.error("Ocorreu um erro ao tentar criar sua conta");
-        setFormSubmitting(false);
-        setLocalLoading(false);
+        console.error("Erro no cadastro:", error.message);
+        toast.error(error.message.includes("already registered") ? 
+                   "Este email já está cadastrado" : 
+                   "Erro ao criar conta. Tente novamente.");
         return;
       }
       
-      if (data.user) {
+      // Enviar dados para webhook do n8n (opcional)
+      try {
+        if (data.user) {
+          sendUserRegistrationWebhook({
+            email,
+            name,
+            userId: data.user.id,
+            createdAt: new Date().toISOString()
+          });
+        }
+      } catch (webhookError) {
+        console.error("Erro ao enviar para webhook:", webhookError);
+      }
+      
+      if (data.session) {
+        toast.success("Conta criada com sucesso!");
+        navigate("/", { replace: true });
+      } else {
+        toast.success(`Cadastro realizado! Verifique o email ${email} para confirmar sua conta.`, { duration: 8000 });
         setActiveTab("login");
         setPassword("");
-        
-        if (data.session) {
-          navigate("/", { replace: true });
-        } else {
-          toast.success(
-            `Cadastro realizado com sucesso! Verifique o email ${email} para confirmar sua conta antes de fazer login.`, 
-            { duration: 8000 }
-          );
-        }
       }
     } catch (error) {
-      console.error("Error during sign up:", error);
-      toast.error("Ocorreu um erro ao tentar criar sua conta");
+      console.error("Erro no processo de cadastro:", error);
+      toast.error("Ocorreu um erro inesperado. Tente novamente.");
     } finally {
-      setFormSubmitting(false);
-      setLocalLoading(false);
+      setLoading(false);
     }
   };
 
-  const componentLoading = localLoading;
-  
-  if (componentLoading) {
-    console.log("Auth page showing loading skeleton");
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-orange-50 px-4">
-        <div className="w-full max-w-md">
-          <Card className="border-[#ff920e]/20">
-            <CardHeader>
-              <Skeleton className="h-8 w-3/4 mb-2" />
-              <Skeleton className="h-4 w-full" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
+  // Interface de usuário simplificada
   return (
     <div className="flex min-h-screen items-center justify-center bg-orange-50 px-4">
       <div className="w-full max-w-md">
@@ -291,51 +167,26 @@ const Auth = () => {
                       type="email"
                       placeholder="seu@email.com"
                       value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (validationErrors.email) {
-                          setValidationErrors({ ...validationErrors, email: undefined });
-                        }
-                      }}
+                      onChange={(e) => setEmail(e.target.value)}
                       required
-                      className={`border-[#ff920e]/30 focus-visible:ring-[#ff4400] ${validationErrors.email ? "border-red-500" : ""}`}
-                      disabled={formSubmitting}
                     />
-                    {validationErrors.email && (
-                      <p className="text-sm text-red-500 mt-1">{validationErrors.email}</p>
-                    )}
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Senha</Label>
-                      <Button variant="link" size="sm" className="px-0 text-xs text-[#006bf7]">
-                        Esqueceu a senha?
-                      </Button>
-                    </div>
+                    <Label htmlFor="password">Senha</Label>
                     <Input
                       id="password"
                       type="password"
                       value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (validationErrors.password) {
-                          setValidationErrors({ ...validationErrors, password: undefined });
-                        }
-                      }}
+                      onChange={(e) => setPassword(e.target.value)}
                       required
-                      className={`border-[#ff920e]/30 focus-visible:ring-[#ff4400] ${validationErrors.password ? "border-red-500" : ""}`}
-                      disabled={formSubmitting}
                     />
-                    {validationErrors.password && (
-                      <p className="text-sm text-red-500 mt-1">{validationErrors.password}</p>
-                    )}
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full bg-[#ff4400] hover:bg-[#ff4400]/90" 
-                    disabled={formSubmitting}
+                    className="w-full bg-[#ff4400] hover:bg-[#ff4400]/90"
+                    disabled={loading}
                   >
-                    {formSubmitting ? "Entrando..." : "Entrar"}
+                    {loading ? "Entrando..." : "Entrar"}
                   </Button>
                 </form>
               </TabsContent>
@@ -349,19 +200,9 @@ const Auth = () => {
                       type="text"
                       placeholder="Seu nome"
                       value={name}
-                      onChange={(e) => {
-                        setName(e.target.value);
-                        if (validationErrors.name) {
-                          setValidationErrors({ ...validationErrors, name: undefined });
-                        }
-                      }}
+                      onChange={(e) => setName(e.target.value)}
                       required
-                      className={`border-[#ff920e]/30 focus-visible:ring-[#ff4400] ${validationErrors.name ? "border-red-500" : ""}`}
-                      disabled={formSubmitting}
                     />
-                    {validationErrors.name && (
-                      <p className="text-sm text-red-500 mt-1">{validationErrors.name}</p>
-                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email-register">Email</Label>
@@ -370,19 +211,9 @@ const Auth = () => {
                       type="email"
                       placeholder="seu@email.com"
                       value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (validationErrors.email) {
-                          setValidationErrors({ ...validationErrors, email: undefined });
-                        }
-                      }}
+                      onChange={(e) => setEmail(e.target.value)}
                       required
-                      className={`border-[#ff920e]/30 focus-visible:ring-[#ff4400] ${validationErrors.email ? "border-red-500" : ""}`}
-                      disabled={formSubmitting}
                     />
-                    {validationErrors.email && (
-                      <p className="text-sm text-red-500 mt-1">{validationErrors.email}</p>
-                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password-register">Senha</Label>
@@ -390,26 +221,16 @@ const Auth = () => {
                       id="password-register"
                       type="password"
                       value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (validationErrors.password) {
-                          setValidationErrors({ ...validationErrors, password: undefined });
-                        }
-                      }}
+                      onChange={(e) => setPassword(e.target.value)}
                       required
-                      className={`border-[#ff920e]/30 focus-visible:ring-[#ff4400] ${validationErrors.password ? "border-red-500" : ""}`}
-                      disabled={formSubmitting}
                     />
-                    {validationErrors.password && (
-                      <p className="text-sm text-red-500 mt-1">{validationErrors.password}</p>
-                    )}
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full bg-[#ff4400] hover:bg-[#ff4400]/90" 
-                    disabled={formSubmitting}
+                    className="w-full bg-[#ff4400] hover:bg-[#ff4400]/90"
+                    disabled={loading}
                   >
-                    {formSubmitting ? "Criando conta..." : "Criar conta"}
+                    {loading ? "Criando conta..." : "Criar conta"}
                   </Button>
                 </form>
               </TabsContent>

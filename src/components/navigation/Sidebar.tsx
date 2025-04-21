@@ -416,9 +416,9 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
   const CategoryItem = ({ category, isExpanded, onToggle, communities }: any) => {
     return (
       <div className="mb-2">
-        <button
+        <div 
           onClick={onToggle}
-          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-orange-50/50 dark:bg-gray-800/50 hover:bg-orange-100/70 dark:hover:bg-gray-800/70 transition-colors"
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-orange-50/50 dark:bg-gray-800/50 hover:bg-orange-100/70 dark:hover:bg-gray-800/70 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2">
             <Folder className="h-4 w-4 text-orange-500 dark:text-orange-400" />
@@ -430,7 +430,7 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
               isExpanded && "transform rotate-180"
             )}
           />
-        </button>
+        </div>
       </div>
     );
   };

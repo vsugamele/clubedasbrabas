@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getUserProfile, formatAuthor } from "./userService";
 import { isAdminByEmail } from "@/utils/adminUtils";
 
 // Interface para as opções de consulta de posts
@@ -11,78 +12,103 @@ export interface PostQueryOptions {
   isPinned?: boolean;
 }
 
-// Interface para as opções de busca de posts
-export interface FetchPostsOptions {
-  page?: number;
-  pageSize?: number;
-  limit?: number;
+// Interface para as opções de query de posts
+export interface PostQueryOptions {
   communityId?: string;
   authorId?: string;
   postId?: string;
-  categoryId?: string;
+  page?: number;
+  pageSize?: number;
   isPinned?: boolean;
+  categoryId?: string;
+}
+
+// Interface para as opções de busca de posts para o feed
+export interface FetchPostsOptions {
+  communityId?: string;
+  userId?: string;
+  postId?: string;
+  page?: number;
+  pageSize?: number;
+  isPinned?: boolean;
+  categoryId?: string;
+  showDeleted?: boolean;
+  limit?: number;
   includeDeleted?: boolean;
 }
 
-// Interface para os dados de um post
+// Interface para dados completos de um post
 export interface PostData {
   id: string;
   title?: string;
   content: string;
-  authorId: string;
+  authorId: string | null;
   author: {
     id: string;
     name: string;
-    avatar: any;
+    avatar: string | null;
   };
   communityId: string | null;
-  categoryId?: string;
+  categoryId: string | null;
+  category?: {
+    id: string;
+    name: string;
+    slug?: string;
+  } | null;
   createdAt: string;
   likes: number;
   comments: number;
   isPinned: boolean;
   isDeleted?: boolean;
-  media: any;
+  media?: {
+    type: "image" | "video" | "gif";
+    url: string;
+    aspectRatio?: number;
+  }[];
+  poll?: {
+    question: string;
+    options: string[];
+  };
 }
 
-/**
- * Verifica se um post é válido
- */
-export function isValidPost(post: any): post is Record<string, any> {
-  return post !== null &&
-    typeof post === 'object' &&
-    !('error' in post && post.error === true);
+interface PostResult {
+  posts: any[];
+  totalCount: number;
+}
+
+interface DeleteResult {
+  success: boolean;
+  error?: string;
 }
 
 /**
  * Busca posts com base nas opções fornecidas
  */
-export async function getPosts(options: PostQueryOptions = {}) {
+export async function getPosts(options: PostQueryOptions = {}): Promise<PostResult> {
   try {
-    console.log("getPosts iniciado com opções:", options);
-    
     // Inicia a query
     let query = supabase
       .from('posts')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false });
 
-    // Filtra por comunidade se especificado
+    // Aplica filtros
     if (options.communityId) {
       query = query.eq('community_id', options.communityId);
     }
 
-    // Filtra por autor se especificado
     if (options.authorId) {
       query = query.eq('author_id', options.authorId);
     }
 
-    // Filtra por id se especificado
     if (options.postId) {
       query = query.eq('id', options.postId);
     }
 
-    // Filtra por posts fixados se especificado
+    if (options.categoryId) {
+      query = query.eq('category_id', options.categoryId);
+    }
+
     if (options.isPinned !== undefined) {
       query = query.eq('is_pinned', options.isPinned);
     }
@@ -109,148 +135,133 @@ export async function getPosts(options: PostQueryOptions = {}) {
       return { posts: [], totalCount: 0 };
     }
 
-    // Obtemos dados de todos os usuários mencionados nos posts
-    const userIds = data.map(post => post.user_id).filter(Boolean);
-    const uniqueUserIds = [...new Set(userIds)];
-    
-    // Buscar dados do usuário autenticado
-    const { data: userData } = await supabase.auth.getUser();
-    const currentUser = userData?.user;
-    
-    console.log("Usuário atual:", currentUser?.id, currentUser?.email);
-    
-    // Função para buscar o perfil do usuário autenticado de forma temporária
-    const getCurrentUserProfile = async () => {
-      // Tenta obter os dados do usuário autenticado
-      if (currentUser?.id) {
-        try {
-          const { data: authProfiles } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentUser.id)
-            .single();
-            
-          if (authProfiles) {
-            console.log("Perfil do usuário encontrado:", authProfiles);
-            return {
-              id: currentUser.id,
-              name: authProfiles.full_name || authProfiles.username || currentUser.email?.split('@')[0] || 'Vinicius',
-              avatar: authProfiles.avatar_url
-            };
-          }
-        } catch (err) {
-          console.log("Erro ao buscar perfil do usuário autenticado", err);
-        }
-      }
-      
-      // Fallback para dados padrão do usuário
-      return {
-        id: currentUser?.id || 'unknown',
-        name: currentUser?.email?.split('@')[0] || 'Vinicius',
-        avatar: null
-      };
-    };
-    
-    // Obter perfil do usuário atual
-    const currentProfile = await getCurrentUserProfile();
-    
-    // Verifica os IDs dos posts
-    console.log("IDs de usuários nos posts:", uniqueUserIds);
-    
-    // Cria um mapa para acessar os perfis rapidamente
-    const userProfiles = {};
-    
-    // Adiciona o perfil do usuário atual ao mapa
-    userProfiles[currentProfile.id] = {
-      name: currentProfile.name,
-      avatar: currentProfile.avatar
-    };
-    
-    console.log("Mapa de perfis:", userProfiles);
-    
-    // Transforma os dados para o formato esperado
-    const postsData = data.map(post => {
-      // Obtém os dados do autor do post
-      const userId = post.user_id || 'unknown';
-      const userProfile = userProfiles[userId] || { name: 'Usuário', avatar: null };
-      
-      // Verifica se o post foi criado pelo usuário atual
-      const isCurrentUserPost = userId === currentUser?.id;
-      
-      // Obtém o nome do perfil do banco de dados ou do objeto de usuário autenticado
-      let authorName = userProfile.name;
-      if (isCurrentUserPost && (!authorName || authorName === 'Usuário')) {
-        // Tenta usar o nome do perfil atual
-        if (currentProfile?.name && currentProfile.name !== 'Usuário') {
-          authorName = currentProfile.name;
-        } else if (currentUser?.email) {
-          // Usa o nome de usuário do e-mail como fallback
-          authorName = currentUser.email.split('@')[0];
-          // Capitaliza a primeira letra
-          authorName = authorName.charAt(0).toUpperCase() + authorName.slice(1);
-        }
-      }
-      
-      const author = {
-        id: userId,
-        name: authorName || 'Usuário',
-        avatar: userProfile.avatar
-      };
-      
-      // Log detalhado para debug
-      if (isCurrentUserPost) {
-        console.log("Post do usuário atual!", userId, "nome:", author.name, "email:", currentUser?.email);
-      }
+    // Obter usuário atual da sessão do Supabase
+    const { data: sessionData } = await supabase.auth.getSession();
+    const currentUser = sessionData?.session?.user;
 
-      // Formata o post
-      return {
-        id: post.id || 'unknown',
-        title: post.title || '',
-        content: post.content || '',
-        authorId: userId,
-        author,
-        communityId: post.community_id || null,
-        categoryId: post.category_id || null,
-        createdAt: post.created_at || new Date().toISOString(),
-        likes: post.likes_count || 0,
-        comments: post.comments_count || 0,
-        isPinned: post.is_pinned || false,
-        isDeleted: post.is_deleted || false,
-        media: post.media_data || null
-      };
-    });
-    
-    console.log(`Posts processados: ${postsData.length}`, postsData.map(p => p.author.name));
-    
-    return { posts: postsData, totalCount: count || 0 };
+    console.log("Usuário atual:", currentUser?.id, currentUser?.email);
+
+    return {
+      posts: data || [],
+      totalCount: count || 0
+    };
   } catch (error) {
-    console.error('Erro geral ao buscar posts:', error);
+    console.error("Erro geral ao buscar posts:", error);
     return { posts: [], totalCount: 0 };
   }
 }
 
 /**
- * Busca posts para o feed (alias para getPosts com interface compatível)
+ * Busca posts formatados para o feed
  */
-export async function fetchPosts(options: FetchPostsOptions = {}) {
+export async function fetchPosts(options: FetchPostsOptions = {}): Promise<{ posts: PostData[], totalCount: number }> {
   try {
-    console.log("fetchPosts chamado com opções:", options);
+    console.log("fetchPosts iniciado com opções:", options);
     
-    const queryOptions: PostQueryOptions = {
-      page: options.page || 0,
-      pageSize: options.pageSize || options.limit || 20,
+    // Buscar categorias primeiro para poder mapear os IDs para nomes
+    const categoriesData = await fetchCategories();
+    const categoriesMap = new Map();
+    
+    // Criar um mapa de ID de categoria para objeto de categoria
+    categoriesData.forEach(category => {
+      categoriesMap.set(category.id, { 
+        id: category.id, 
+        name: category.name,
+        slug: category.slug 
+      });
+    });
+    
+    console.log("Mapa de categorias carregado:", [...categoriesMap.entries()]);
+    
+    const { posts: rawPosts, totalCount } = await getPosts({
       communityId: options.communityId,
-      authorId: options.authorId,
+      authorId: options.userId,
       postId: options.postId,
-      isPinned: options.isPinned
-    };
+      page: options.page,
+      pageSize: options.pageSize || options.limit,
+      isPinned: options.isPinned,
+      categoryId: options.categoryId
+    });
     
-    console.log("Consultando posts com:", queryOptions);
-    const result = await getPosts(queryOptions);
-    console.log(`Encontrados ${result.posts.length} posts`);
+    // Transformar dados brutos em objetos PostData
+    const formattedPosts: PostData[] = await Promise.all(rawPosts.map(async rawPost => {
+      // Verificar se temos um user_id válido - o campo correto no Supabase é user_id
+      const userId = rawPost.user_id;
+      
+      // Autor padrão para usar caso o ID seja inválido ou os dados de perfil não sejam encontrados
+      let author = {
+        id: userId || 'system',
+        name: 'Usuário',
+        avatar: null
+      };
+      
+      // Tentar buscar dados do autor apenas se tivermos um ID válido
+      if (userId) {
+        try {
+          // Usar a mesma lógica do CreatePostForm para buscar o perfil
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('avatar_url, full_name, username')
+            .eq('id', userId)
+            .single();
+          
+          if (profileData) {
+            console.log(`[PostService] Profile encontrado para post ${rawPost.id}:`, profileData);
+            author = {
+              id: userId,
+              name: profileData.full_name || profileData.username || 'Usuário',
+              avatar: profileData.avatar_url
+            };
+          } else {
+            console.warn(`[PostService] Perfil não encontrado para user_id ${userId}`);
+          }
+        } catch (err) {
+          console.error(`[PostService] Erro ao buscar perfil para ${userId}:`, err);
+        }
+      } else {
+        console.warn(`[PostService] Post ${rawPost.id} sem user_id válido`);
+      }
+      
+      // Processar mídia, se existir
+      const media = rawPost.media_data ? 
+        (Array.isArray(rawPost.media_data) ? rawPost.media_data : [rawPost.media_data]) : 
+        [];
+      
+      // Buscar a categoria pelo ID
+      const categoryId = rawPost.category_id || null;
+      
+      console.log(`Post ${rawPost.id} - category_id: ${categoryId}`);
+      
+      // Usar o mapa de categorias para obter os detalhes da categoria
+      let category = null;
+      if (categoryId && categoriesMap.has(categoryId)) {
+        category = categoriesMap.get(categoryId);
+        console.log(`Categoria encontrada para post ${rawPost.id}:`, category);
+      } else if (categoryId) {
+        console.warn(`Categoria ID ${categoryId} não encontrada no mapa para post ${rawPost.id}`);
+      }
+      
+      return {
+        id: rawPost.id,
+        title: rawPost.title || '',
+        content: rawPost.content || '',
+        authorId: userId,
+        author: author,
+        communityId: rawPost.community_id || null,
+        categoryId: categoryId,
+        // Adicionar o objeto de categoria completo
+        category: category,  
+        createdAt: rawPost.created_at || new Date().toISOString(),
+        likes: rawPost.likes_count || 0,
+        comments: rawPost.comments_count || 0,
+        isPinned: rawPost.is_pinned || false,
+        isDeleted: rawPost.is_deleted || false,
+        media: media
+      };
+    }));
     
     // Filtra por categoria se especificado
-    let filteredPosts = result.posts;
+    let filteredPosts = formattedPosts;
     if (options.categoryId) {
       console.log(`Filtrando por categoria: ${options.categoryId}`);
       filteredPosts = filteredPosts.filter(post => {
@@ -278,6 +289,7 @@ export async function fetchPosts(options: FetchPostsOptions = {}) {
       });
     }
     
+    console.log(`Posts formatados finais: ${filteredPosts.length}`);
     return { 
       posts: filteredPosts, 
       totalCount: filteredPosts.length 
@@ -294,10 +306,13 @@ export async function fetchPosts(options: FetchPostsOptions = {}) {
 export async function togglePinPost(postId: string, isPinned: boolean, userEmail?: string): Promise<boolean> {
   try {
     // Verifica se o usuário é administrador
-    if (!isAdminByEmail(userEmail)) {
+    const isAdmin = await isAdminByEmail(userEmail || '');
+    if (!isAdmin) {
       console.error("Apenas administradores podem fixar/desfixar posts");
       return false;
     }
+    
+    console.log(`Tentando ${isPinned ? 'fixar' : 'desfixar'} post ${postId} por ${userEmail}. É admin: ${isAdmin}`);
     
     // Atualiza o post
     const { error } = await supabase
@@ -310,6 +325,7 @@ export async function togglePinPost(postId: string, isPinned: boolean, userEmail
       return false;
     }
     
+    console.log(`Post ${postId} ${isPinned ? 'fixado' : 'desfixado'} com sucesso.`);
     return true;
   } catch (error) {
     console.error(`Erro ao ${isPinned ? 'fixar' : 'desfixar'} post:`, error);
@@ -319,6 +335,7 @@ export async function togglePinPost(postId: string, isPinned: boolean, userEmail
 
 /**
  * Exclui um post (apenas o autor ou um administrador pode fazer isso)
+ * Otimizado para melhor desempenho
  */
 export async function deletePost(
   postId: string,
@@ -326,41 +343,52 @@ export async function deletePost(
   userId: string | undefined
 ) {
   try {
-    // Verifica se o post existe
-    const { data: post, error: postError } = await supabase
-      .from('posts')
-      .select('user_id')
-      .eq('id', postId)
-      .single();
-
-    if (postError || !post) {
-      console.error('Erro ao buscar post para exclusão:', postError);
-      return { success: false, error: 'Post não encontrado' };
-    }
-
-    // Verifica se o usuário é o autor do post ou um administrador
-    const authorId = post.user_id;
+    // Uma otimização importante: verificar rapidamente se é admin
+    // para pular as verificações de autorização que são mais lentas
     const isAdmin = isAdminByEmail(userEmail);
-    const isAuthor = authorId === userId;
+    console.log(`Excluindo post ${postId}, usuário admin? ${isAdmin}`);
+    
+    // Se não for admin, verificar permissões
+    if (!isAdmin && userId) {
+      // Verifica se o post existe e se é autor
+      const { data: post, error: postError } = await supabase
+        .from('posts')
+        .select('user_id')
+        .eq('id', postId)
+        .single();
 
-    if (!isAdmin && !isAuthor) {
-      return { 
-        success: false, 
-        error: 'Você não tem permissão para excluir este post' 
-      };
+      if (postError) {
+        console.error('Erro ao buscar post para exclusão:', postError);
+        return { success: false, error: 'Post não encontrado' };
+      }
+
+      // Se encontramos o post, verificar se é o autor
+      if (post && post.user_id !== userId) {
+        return { 
+          success: false, 
+          error: 'Você não tem permissão para excluir este post' 
+        };
+      }
     }
 
-    // Marca o post como excluído (soft delete)
-    const { error: deleteError } = await supabase
+    // OTIMIZAÇÃO: Para que a UI responda mais rapidamente, fazemos a operação
+    // de exclusão mas retornamos sucesso imediatamente, sem esperar a conclusão
+    // isso deu a impressão da publicação desaparecer, mas o processo ainda continuar no backend
+    
+    // Iniciar a marcação de exclusão (soft delete), mas não esperar pela conclusão
+    supabase
       .from('posts')
-      .update({ is_deleted: true })
-      .eq('id', postId);
+      .update({ is_deleted: true } as any)
+      .eq('id', postId)
+      .then(({ error }) => {
+        if (error) {
+          console.error('Erro ao excluir post (background):', error);
+        } else {
+          console.log(`Post ${postId} excluído com sucesso em background`);
+        }
+      });
 
-    if (deleteError) {
-      console.error('Erro ao excluir post:', deleteError);
-      return { success: false, error: 'Erro ao excluir post' };
-    }
-
+    // Retorna sucesso imediatamente para melhorar a experiência do usuário
     return { success: true };
   } catch (error) {
     console.error('Erro geral ao excluir post:', error);
@@ -492,14 +520,33 @@ export async function fetchCategories(): Promise<Array<{id: string, name: string
 }
 
 /**
- * Função auxiliar para converter arquivo para base64
+ * Função auxiliar para converter arquivo para base64 com verificação de tamanho
  */
 async function fileToBase64(file: File): Promise<string> {
+  // Verificar tamanho do arquivo (limitar a 10MB para evitar problemas)
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(`Arquivo muito grande (${(file.size / (1024 * 1024)).toFixed(2)}MB). O tamanho máximo permitido é 10MB.`);
+  }
+  
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    
+    // Adicionar eventos de progresso para arquivos grandes
+    reader.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const progress = Math.round((event.loaded / event.total) * 100);
+        console.log(`Progresso do upload: ${progress}%`);
+      }
+    };
+    
     reader.readAsDataURL(file);
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = error => reject(error);
+    reader.onerror = error => {
+      console.error("Erro no FileReader:", error);
+      reject(error);
+    };
   });
 }
 
@@ -531,17 +578,49 @@ export async function uploadGif(gifFile: File): Promise<string | null> {
   }
 }
 
-/**
- * Faz upload de um vídeo
- */
 export async function uploadVideo(videoFile: File): Promise<string | null> {
   try {
-    // Para vídeos, vamos usar diretamente o base64 também
-    const base64Video = await fileToBase64(videoFile);
-    return base64Video;
+    // Verificar tipo do arquivo
+    if (!videoFile.type.startsWith('video/')) {
+      console.error("Tipo de arquivo inválido para vídeo:", videoFile.type);
+      throw new Error("O arquivo selecionado não é um vídeo válido.");
+    }
+    
+    console.log(`Iniciando upload de vídeo para o storage: ${videoFile.name} (${(videoFile.size / (1024 * 1024)).toFixed(2)}MB)`);
+    
+    // Gera um nome único para o arquivo
+    const fileExt = videoFile.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+    const filePath = `videos/${fileName}`;
+    
+    // Envia para o storage do Supabase
+    const { data, error } = await supabase.storage
+      .from('public')
+      .upload(filePath, videoFile, {
+        cacheControl: '3600',
+        upsert: false
+      });
+      
+    if (error) {
+      console.error('Erro ao fazer upload de vídeo para o storage:', error);
+      throw new Error(`Erro no upload: ${error.message}`);
+    }
+    
+    // Obter a URL pública do vídeo
+    const { data: publicUrlData } = supabase.storage
+      .from('public')
+      .getPublicUrl(filePath);
+      
+    const videoUrl = publicUrlData.publicUrl;
+    console.log(`Upload de vídeo concluído! URL: ${videoUrl}`);
+    
+    return videoUrl;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido ao processar o vídeo";
     console.error("Erro ao processar o vídeo:", error);
-    return null;
+    
+    // Propagar o erro para que a interface possa mostrar uma mensagem adequada
+    throw new Error(errorMessage);
   }
 }
 
@@ -556,7 +635,7 @@ export async function createPost({
   poll
 }: {
   content: string;
-  category_id: string;
+  category_id: string | null;
   communityId: string | null;
   media?: {
     type: "image" | "video" | "gif";
@@ -577,11 +656,28 @@ export async function createPost({
       return null;
     }
     
+    // Buscar informações completas do perfil do usuário antes de criar o post
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user_id)
+      .single();
+      
+    console.log("[createPost] Perfil do usuário para novo post:", profileData);
+    
+    // Tratar a categoria_id vazia para evitar erros de UUID inválido
+    let finalCategoryId = null;
+    if (category_id && category_id.trim() !== "") {
+      finalCategoryId = category_id;
+    }
+    
+    console.log(`[createPost] category_id original: "${category_id}", finalCategoryId: ${finalCategoryId}`);
+    
     const postData: any = {
       content,
-      category_id,
+      category_id: finalCategoryId, // Usar null quando a categoria está vazia
       community_id: communityId || null,
-      user_id,
+      user_id, // No Supabase, a coluna correta é user_id, não author_id
       title: content.substring(0, 50)
     };
     
@@ -602,6 +698,25 @@ export async function createPost({
     if (error) {
       console.error("Erro ao criar post:", error);
       throw error;
+    }
+    
+    if (data?.id) {
+      // Usar a função getPosts com o ID do post criado para garantir que recebemos um objeto completo
+      const { posts } = await getPosts({ postId: data.id });
+      
+      if (posts && posts.length > 0) {
+        console.log("[createPost] Post criado e carregado com sucesso:", posts[0]);
+        
+        // Importante: Verificar se user_id foi definido corretamente
+        // Não usamos author_id pois essa coluna não existe no schema atual
+        if (!posts[0].user_id && user_id) {
+          console.warn("[createPost] Post criado sem user_id! Atualizando...");
+          await supabase
+            .from("posts")
+            .update({ user_id: user_id })
+            .eq('id', data.id);
+        }
+      }
     }
     
     return data?.id || null;
