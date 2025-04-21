@@ -1,0 +1,37 @@
+:root {
+  --primary-rgb: 59, 130, 246; /* Azul (blue-500) */
+  --accent-rgb: 139, 92, 246; /* Roxo (purple-500) */
+  --success-rgb: 16, 185, 129; /* Verde (green-500) */
+  --warning-rgb: 245, 158, 11; /* Amarelo (yellow-500) */
+  --danger-rgb: 239, 68, 68; /* Vermelho (red-500) */
+  --info-rgb: 14, 165, 233; /* Azul claro (sky-500) */
+
+  /* Tema claro (padrão) */
+  --background-rgb: 255, 255, 255; /* Branco */
+  --foreground-rgb: 15, 23, 42; /* Slate-900 */
+  --muted-rgb: 148, 163, 184; /* Slate-400 */
+  --muted-foreground-rgb: 100, 116, 139; /* Slate-500 */
+  --card-rgb: 255, 255, 255; /* Branco */
+  --card-foreground-rgb: 15, 23, 42; /* Slate-900 */
+  --popover-rgb: 255, 255, 255; /* Branco */
+  --popover-foreground-rgb: 15, 23, 42; /* Slate-900 */
+  --border-rgb: 226, 232, 240; /* Slate-200 */
+  --input-rgb: 226, 232, 240; /* Slate-200 */
+  --ring-rgb: 59, 130, 246; /* Azul (blue-500) */
+}
+
+/* Tema escuro */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-rgb: 15, 23, 42; /* Slate-900 */
+    --foreground-rgb: 248, 250, 252; /* Slate-50 */
+    --muted-rgb: 100, 116, 139; /* Slate-500 */
+    --muted-foreground-rgb: 148, 163, 184; /* Slate-400 */
+    --card-rgb: 30, 41, 59; /* Slate-800 */
+    --card-foreground-rgb: 248, 250, 252; /* Slate-50 */
+    --popover-rgb: 30, 41, 59; /* Slate-800 */
+    --popover-foreground-rgb: 248, 250, 252; /* Slate-50 */
+    --border-rgb: 51, 65, 85; /* Slate-700 */
+    --input-rgb: 51, 65, 85; /* Slate-700 */
+  }
+}

@@ -1,21 +1,39 @@
 /* Estilos para melhorar a experiência móvel no painel administrativo */
 
+/* Container principal com suporte melhorado a gestos de swipe */
+.admin-panel-container {
+  width: 100%;
+  position: relative;
+  overflow-x: hidden;
+}
+
 /* Estilos para rolagem horizontal suave */
 .admin-tabs-container {
   position: relative;
-  overflow: hidden;
   width: 100%;
   margin-bottom: 1rem;
+  padding: 0 45px; /* Espaço maior para os botões de navegação */
+}
+
+.tabs-scroll-container {
+  position: relative;
+  width: 100%;
+  overflow-x: visible;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-tabs-list {
-  overflow-x: auto;
+  overflow-x: auto !important;
   scrollbar-width: thin;
   scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
   -webkit-overflow-scrolling: touch; /* Para iOS */
   scroll-behavior: smooth;
   padding-bottom: 8px;
   margin-bottom: -4px;
+  display: flex;
+  flex-wrap: nowrap;
+  touch-action: pan-x; /* Habilita explicitamente gestos horizontais */
+  cursor: grab; /* Indica que o elemento pode ser arrastado */
 }
 
 /* Ocultar a barra de rolagem em navegadores WebKit (Chrome, Safari) mantendo a funcionalidade */
@@ -35,24 +53,57 @@
 /* Indicadores de rolagem */
 .scroll-indicator-left {
   position: absolute;
-  left: 0;
+  left: 24px; /* Ajustado para ficar após o botão */
   top: 0;
   bottom: 0;
   width: 24px;
   background: linear-gradient(to right, white, transparent);
-  z-index: 10;
+  z-index: 5;
   pointer-events: none;
 }
 
 .scroll-indicator-right {
   position: absolute;
-  right: 0;
+  right: 24px; /* Ajustado para ficar antes do botão */
   top: 0;
   bottom: 0;
   width: 24px;
   background: linear-gradient(to left, white, transparent);
-  z-index: 10;
+  z-index: 5;
   pointer-events: none;
+}
+
+/* Botões de navegação para mobile */
+.scroll-button {
+  opacity: 0.85;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  touch-action: manipulation;
+  width: 35px !important;
+  height: 35px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 30 !important; /* Garantir que os botões fiquem acima de outros elementos */
+}
+
+/* Aumentar área de toque para melhor experiência em mobile */
+.scroll-button-left, .scroll-button-right {
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  min-width: 44px;
+  min-height: 44px; /* Tamanho mínimo recomendado para áreas de toque */
+}
+
+.scroll-button:active {
+  opacity: 1;
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* Estilos para os itens de abas */
+.admin-tab-trigger {
+  position: relative;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Estilos para modo escuro */
@@ -81,5 +132,55 @@
   .admin-tab-trigger {
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
+    min-width: auto;
+    white-space: nowrap;
+  }
+  
+  /* Melhorias específicas para mobile */
+  .admin-tabs-container {
+    padding: 0 45px; /* Maior espaço para os botões de navegação */
+    touch-action: pan-x; /* Habilita gestos horizontais */
+    margin-bottom: 0.75rem;
+  }
+  
+  /* Melhoria de indicação visual para item selecionado */
+  .admin-tab-trigger[data-state="active"] {
+    background-color: rgba(var(--primary-rgb), 0.15);
+    font-weight: 600;
+    position: relative;
+  }
+  
+  .admin-tab-trigger[data-state="active"]:after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 10%;
+    width: 80%;
+    height: 3px;
+    background-color: rgb(var(--primary-rgb));
+    border-radius: 3px;
+  }
+  
+  .tabs-scroll-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Remover overflow hidden que pode estar impedindo a rolagem */
+  .admin-tabs-list {
+    overflow-x: auto !important;
+  }
+  
+  /* Destacar botões de navegação para maior visibilidade */
+  .scroll-button {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(4px);
+  }
+  
+  /* Versão dark mode */
+  @media (prefers-color-scheme: dark) {
+    .scroll-button {
+      background-color: rgba(30, 41, 59, 0.8) !important;
+    }
   }
 }
