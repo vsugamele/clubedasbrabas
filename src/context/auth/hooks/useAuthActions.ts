@@ -4,7 +4,7 @@ import { isValidEmail } from "@/utils/validation";
 import { toast } from "sonner";
 import { sendUserRegistrationWebhook, isWebhookConfigured } from "@/services/webhookService";
 import { debug, logError } from "@/services/debugService";
-import { loginWithoutEmailVerification } from "@/utils/supabaseHelper";
+import { loginWithoutEmailVerification } from "@/utils/supabaseHelper.ts";
 
 export function useAuthActions(setLoading: (loading: boolean) => void) {
   const [actionInProgress, setActionInProgress] = useState(false);
