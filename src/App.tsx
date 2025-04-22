@@ -16,6 +16,7 @@ import PostRemover from "@/pages/PostRemover"; // Importando a página de remoç
 import ReferenceGallery from "@/pages/ReferenceGallery"; // Importando a página de galeria de referências
 // import Debug from "@/pages/Debug"; // Removido para resolver erro de build
 import AdminDelete from "@/pages/AdminDelete"; // Importando a página para excluir post específico
+import ResetPassword from "@/pages/ResetPassword"; // Importando a página de redefinição de senha
 import { useAuth } from "./context/auth";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
@@ -291,6 +292,7 @@ const App = () => {
           <Navigate to={location.state?.from || "/"} replace />
         )
       } />
+      <Route path="/reset-password" element={<ResetPassword />} />
       {/* Rotas protegidas */}
       <Route path="/" element={<ProtectedRoute element={<Index />} />} />
       <Route path="/admin" element={<ProtectedRoute element={<Admin />} />} />
