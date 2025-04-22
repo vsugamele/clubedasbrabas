@@ -37,6 +37,8 @@ const ResetPassword: React.FC = () => {
         setVerifyingToken(true);
         
         // Verificar se o token é válido
+        console.log("Enviando verificação de token:", { token, email, user_name: userName });
+        
         const response = await fetch("https://n8n-n8n.p6yhvh.easypanel.host/webhook-test/verify-reset-token", {
           method: "POST",
           headers: {
@@ -49,12 +51,34 @@ const ResetPassword: React.FC = () => {
           })
         });
         
-        const data = await response.json();
+        console.log("Status da resposta:", response.status);
         
-        if (data.valid) {
+        // Capturar o texto bruto da resposta primeiro para debug
+        const responseText = await response.text();
+        console.log("Resposta bruta:", responseText);
+        
+        // Tentar converter para JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+          console.log("Dados parseados:", data);
+        } catch (e) {
+          console.error("Erro ao parsear resposta JSON:", e);
+          toast.error("Erro ao processar resposta do servidor");
+          setTokenValid(false);
+          setVerifyingToken(false);
+          return;
+        }
+        
+        // Verificar se a resposta contém o campo valid
+        console.log("Token válido?", data.valid);
+        
+        if (data.valid === true) { // Verificação estrita com ===
+          console.log("Token foi validado com sucesso!");
           setTokenValid(true);
           toast.success("Token verificado. Você pode criar uma nova senha.");
         } else {
+          console.log("Token inválido ou expirado:", data);
           toast.error("Link de redefinição inválido ou expirado");
           // Removendo o redirecionamento automático
           // Agora o usuário verá a mensagem de erro na página
