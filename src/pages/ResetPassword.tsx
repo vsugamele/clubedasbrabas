@@ -39,7 +39,7 @@ const ResetPassword: React.FC = () => {
         // Verificar se o token é válido
         console.log("Enviando verificação de token:", { token, email, user_name: userName });
         
-        const response = await fetch("https://n8n-n8n.p6yhvh.easypanel.host/webhook-test/verify-reset-token", {
+        const response = await fetch("https://n8n-n8n.p6yhvh.easypanel.host/webhook/verify-reset-token", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -126,7 +126,7 @@ const ResetPassword: React.FC = () => {
     
     try {
       // Enviar para o endpoint do n8n para processar a redefinição
-      const response = await fetch("https://n8n-n8n.p6yhvh.easypanel.host/webhook-test/reset-password-confirm", {
+      const response = await fetch("https://n8n-n8n.p6yhvh.easypanel.host/webhook/reset-password-confirm", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

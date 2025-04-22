@@ -9,11 +9,11 @@ import { debug, logError, logHttpResponse } from './debugService';
 // Estas URLs devem ser configuradas nas variáveis de ambiente em produção
 const WEBHOOK_URLS = {
   // Webhook para processar cadastro de novos usuários
-  USER_REGISTRATION: 'https://n8n-n8n.p6yhvh.easypanel.host/webhook-test/user-registration',
+  USER_REGISTRATION: 'https://n8n-n8n.p6yhvh.easypanel.host/webhook/user-registration',
   
   // Webhook para processar pedidos de recuperação de senha
   // Usando um endpoint específico para recuperação de senha
-  PASSWORD_RESET: 'https://n8n-n8n.p6yhvh.easypanel.host/webhook-test/c88c63b3-04cb-4703-b53a-34364535a772'
+  PASSWORD_RESET: 'https://n8n-n8n.p6yhvh.easypanel.host/webhook/c88c63b3-04cb-4703-b53a-34364535a772'
 };
 
 // Tipos para as requisições
@@ -32,6 +32,7 @@ interface PasswordResetPayload {
   userId?: string;
   resetToken?: string;
   requested_at: string;
+  user_name?: string; // Nome do usuário para personalização do email
 }
 
 // Função para enviar dados de novo cadastro para o N8N
