@@ -19,9 +19,10 @@ const ResetPassword: React.FC = () => {
   const [verifyingToken, setVerifyingToken] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
   
-  // Obter token e email dos parâmetros da URL
+  // Obter token, email e nome (se disponível) dos parâmetros da URL
   const token = searchParams.get("token");
   const email = searchParams.get("email");
+  const userName = searchParams.get("name") || email?.split('@')[0] || "";
   
   // Verificar o token quando a página carregar
   useEffect(() => {
@@ -41,7 +42,11 @@ const ResetPassword: React.FC = () => {
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ token, email })
+          body: JSON.stringify({ 
+            token, 
+            email,
+            user_name: userName // Incluir nome do usuário para personalização
+          })
         });
         
         const data = await response.json();
@@ -51,9 +56,9 @@ const ResetPassword: React.FC = () => {
           toast.success("Token verificado. Você pode criar uma nova senha.");
         } else {
           toast.error("Link de redefinição inválido ou expirado");
-          setTimeout(() => {
-            navigate("/auth");
-          }, 3000);
+          // Removendo o redirecionamento automático
+          // Agora o usuário verá a mensagem de erro na página
+          setTokenValid(false);
         }
       } catch (error) {
         console.error("Erro ao verificar token:", error);
@@ -106,18 +111,27 @@ const ResetPassword: React.FC = () => {
           token, 
           email, 
           password,
+          user_name: userName, // Incluir o nome do usuário para personalização de emails
           app_version: "1.0.0",
           timestamp: new Date().toISOString()
         })
       });
       
+      if (!response.ok) {
+        try {
+          const errorText = await response.text();
+          console.error(`Erro HTTP ${response.status} ao enviar dados para webhook:`, errorText);
+        } catch (err) {
+          console.error("Erro ao processar resposta de erro:", err);
+        }
+        return false;
+      }
+      
       const data = await response.json();
       
       if (data.success) {
         toast.success("Senha redefinida com sucesso!");
-        setTimeout(() => {
-          navigate("/auth");
-        }, 2000);
+        navigate("/auth");
       } else {
         toast.error(data.message || "Não foi possível redefinir sua senha");
       }
