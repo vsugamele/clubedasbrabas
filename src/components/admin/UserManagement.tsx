@@ -12,7 +12,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { UserRole } from './hooks/types';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { PlusCircle, RefreshCw, AlertCircle, ShieldAlert, UserCheck, UserX, Info, Trash2, Key, Lock, Unlock } from 'lucide-react';
+import { PlusCircle, RefreshCw, AlertCircle, ShieldAlert, UserCheck, UserX, Info, Trash2, Key, Lock, Unlock, DollarSign, Award, EyeOff, Eye, Power, PowerOff } from 'lucide-react';
 import { retryOperation } from '@/integrations/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -27,30 +27,52 @@ interface UserData {
   last_sign_in_at?: string | null;
   created_at?: string | null;
   is_active?: boolean;
+  subscription_type?: 'free' | 'premium' | null;
+  subscription_start_date?: string | null;
+  subscription_end_date?: string | null;
 }
 
 const UserManagement = () => {
+  // Estados para gerenciar usuários
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updatingRole, setUpdatingRole] = useState(false);
-  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Estados para gerenciar papeis
   const [userRoles, setUserRoles] = useState<{[key: string]: UserRole}>({});
+  const [updatingRole, setUpdatingRole] = useState(false);
+  const [updatingRoleUserId, setUpdatingRoleUserId] = useState<string | null>(null);
+  
+  // Estados para alteração de assinatura (gratuito/premium)
+  const [updatingSubscription, setUpdatingSubscription] = useState(false);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  
+  // Estado para filtro de assinatura
+  const [subscriptionFilter, setSubscriptionFilter] = useState<'all' | 'free' | 'premium'>('all');
+  
+  // Estados para criação de novo usuário
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
+  
+  // Estado para dar feedback durante a atualização
   const [refreshing, setRefreshing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
-  const [deletingUser, setDeletingUser] = useState(false);
-  // Novos estados para gerenciamento de senha e status do usuário
-  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  
+  // Estado para gerenciar reset de senha
+  const [newPassword, setNewPassword] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [updatingPassword, setUpdatingPassword] = useState(false);
-  const [updatingUserStatus, setUpdatingUserStatus] = useState(false);
+  const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
+  
+  // Estado para exclusão de usuário
+  const [deletingUser, setDeletingUser] = useState(false);
+  
+  // Estado para ativação/inativação de usuário
+  const [updatingActiveStatus, setUpdatingActiveStatus] = useState(false);
+  const [updatingActiveUserId, setUpdatingActiveUserId] = useState<string | null>(null);
+  
+  // Estado para filtro de status de ativação
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   useEffect(() => {
     fetchUsers();
@@ -59,511 +81,155 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      setErrorMessage(null);
+      setError(null);
       
-      // Create a map to store combined user data
-      const usersMap = new Map<string, UserData>();
-
-      // Carregar o mapa de status de usuários do localStorage
-      const userStatusMap = JSON.parse(localStorage.getItem('userStatusMap') || '{}');
-
-      // First try to use auth API to get detailed user information
-      try {
-        const { data, error } = await supabase.auth.admin.listUsers();
-        
-        if (!error && data?.users && Array.isArray(data.users)) {
-          console.log('Users fetched from auth API:', data.users.length);
-          
-          // Add users from auth API
-          data.users.forEach((user: any) => {
-            if (user && typeof user === 'object' && 'id' in user) {
-              // Verificar se o status está nos metadados do usuário ou no localStorage
-              const isActive = 
-                user.user_metadata?.is_active !== undefined 
-                  ? user.user_metadata.is_active 
-                  : userStatusMap[user.id] !== undefined
-                    ? userStatusMap[user.id]
-                    : true; // Por padrão, usuários são considerados ativos
-                    
-              usersMap.set(user.id, {
-                id: user.id,
-                email: user.email,
-                created_at: user.created_at,
-                last_sign_in_at: user.last_sign_in_at,
-                contact: null,
-                full_name: null,
-                username: null,
-                is_active: isActive
-              });
-            }
-          });
-        } else {
-          console.warn('Auth API access error or no users returned:', error);
-        }
-      } catch (adminError) {
-        console.error('Error with admin API:', adminError);
+      // Buscar perfis de usuários
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      
+      if (error) {
+        throw error;
       }
       
-      // If admin API failed, try to get users from profiles table
-      if (usersMap.size === 0) {
-        try {
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, updated_at');
-          
-          if (!profilesError && profilesData && profilesData.length > 0) {
-            console.log('Users fetched from profiles table:', profilesData.length);
-            
-            // Add profiles data to the map
-            profilesData.forEach(profile => {
-              usersMap.set(profile.id, {
-                id: profile.id,
-                email: profile.username, 
-                username: profile.username,
-                full_name: profile.full_name,
-                contact: null, 
-                last_sign_in_at: null,
-                created_at: profile.updated_at,
-                is_active: true
-              });
-            });
-          } else {
-            console.warn('Profiles table access error or no profiles returned:', profilesError);
-          }
-        } catch (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-        }
-      }
+      // Garantir que todos os usuários tenham a propriedade is_active definida
+      const usersWithActiveStatus = (data || []).map(user => ({
+        ...user,
+        is_active: user.is_active === undefined ? true : user.is_active
+      }));
       
-      // Last resort: get current user only
-      if (usersMap.size === 0) {
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData && userData.user) {
-          usersMap.set(userData.user.id, {
-            id: userData.user.id,
-            email: userData.user.email,
-            created_at: userData.user.created_at,
-            last_sign_in_at: userData.user.last_sign_in_at,
-            contact: null,
-            full_name: null,
-            username: null,
-            is_active: true
-          });
-        } else {
-          setErrorMessage("Não foi possível obter informações de usuários. Verifique se você está autenticado e tem permissões suficientes.");
-        }
-      }
+      setUsers(usersWithActiveStatus);
       
-      // Convert map to array
-      const usersArray = Array.from(usersMap.values());
+      // Buscar papéis de usuários
+      await fetchUserRoles(usersWithActiveStatus);
       
-      if (usersArray.length === 0) {
-        setErrorMessage("Não foi possível obter a lista de usuários. Acesso limitado ou nenhum usuário encontrado.");
-      }
-      
-      setUsers(usersArray);
-      fetchUserRoles(usersArray);
-    } catch (error: any) {
-      console.error('Error fetching users:', error.message);
-      setErrorMessage(`Falha ao carregar usuários: ${error.message}`);
-      toast.error('Falha ao carregar usuários. Por favor, tente novamente.');
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setError('Falha ao buscar usuários: ' + (error as Error).message);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchUserRoles = async (users: UserData[]) => {
-    try {
-      // Get all user roles at once to reduce API calls
-      const allUserRoles = await getAllUserRoles();
-      
-      const rolesMap: {[key: string]: UserRole} = {};
-      
-      // Use a type guard to ensure we only process valid role data
-      if (Array.isArray(allUserRoles)) {
-        allUserRoles.forEach((roleData: any) => {
-          if (roleData && typeof roleData === 'object' && 'user_id' in roleData && 'role' in roleData) {
-            rolesMap[roleData.user_id] = roleData.role as UserRole;
-          }
-        });
-      }
-      
-      // Ensure current user has a role if they are in admin emails
-      for (const user of users) {
-        if (!rolesMap[user.id] && user.email && isAdminByEmail(user.email)) {
-          // First user in the system might need a role
-          try {
-            const success = await assignUserRole(user.id, 'admin');
-            if (success) {
-              rolesMap[user.id] = 'admin';
-              console.log(`Atribuído papel admin para ${user.email} (${user.id}) por estar na lista de emails privilegiados`);
-            }
-          } catch (err) {
-            console.error('Error assigning initial admin role:', err);
-          }
-        }
-        
-        // Set default role if none found
-        if (!rolesMap[user.id]) {
-          rolesMap[user.id] = 'user';
-        }
-      }
-      
-      console.log("Papéis de usuários carregados:", rolesMap);
-      setUserRoles(rolesMap);
-      
-      // Salvar os papéis no localStorage para persistência entre navegações
-      localStorage.setItem('userRoles', JSON.stringify(rolesMap));
-    } catch (error: any) {
-      console.error('Error fetching user roles:', error.message);
-      toast.error('Erro ao buscar funções de usuários');
-      
-      // Tentar recuperar do localStorage se falhar
-      const savedRoles = localStorage.getItem('userRoles');
-      if (savedRoles) {
-        try {
-          const parsedRoles = JSON.parse(savedRoles);
-          setUserRoles(parsedRoles);
-          console.log("Papéis recuperados do localStorage");
-        } catch (e) {
-          console.error("Erro ao recuperar papéis do localStorage:", e);
-        }
-      }
-    }
-  };
-
-  const getRoleColor = (role: UserRole) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-red-100 text-red-800';
-      case 'moderator':
-        return 'bg-amber-100 text-amber-800';
-      default:
-        return 'bg-blue-100 text-blue-800';
-    }
-  };
-
-  const handleRoleChange = async (userId: string, newRole: UserRole) => {
-    try {
-      setUpdatingUserId(userId);
-      setUpdatingRole(true);
-      
-      console.log(`Attempting to assign role ${newRole} to user ${userId}`);
-      const success = await assignUserRole(userId, newRole);
-      
-      if (success) {
-        // Update the local state
-        const updatedRoles = {
-          ...userRoles,
-          [userId]: newRole
-        };
-        
-        setUserRoles(updatedRoles);
-        
-        // Salvar no localStorage para persistência
-        localStorage.setItem('userRoles', JSON.stringify(updatedRoles));
-        
-        toast.success(`Papel atualizado para ${newRole} com sucesso`);
-      } else {
-        toast.error('Falha ao atualizar papel. Por favor, tente novamente.');
-        setShowTroubleshooting(true);
-      }
-    } catch (error: any) {
-      console.error('Error updating role:', error.message);
-      toast.error(`Erro ao atualizar papel: ${error.message}`);
-      setShowTroubleshooting(true);
-    } finally {
-      setUpdatingRole(false);
-      setUpdatingUserId(null);
-    }
-  };
-
-  const getUserRoleFromCache = (userId: string): UserRole => {
-    return userRoles[userId] || 'user';
-  };
-  
-  const createNewUser = async () => {
-    try {
-      setCreatingUser(true);
-      
-      if (!newUserEmail || !newUserPassword) {
-        toast.error('Email e senha são obrigatórios');
-        return;
-      }
-      
-      // First try with admin API
-      let userData;
-      try {
-        const { data, error } = await supabase.auth.admin.createUser({
-          email: newUserEmail,
-          password: newUserPassword,
-          email_confirm: true
-        });
-        
-        if (error) throw error;
-        userData = data.user;
-        
-        // Also assign the default role
-        if (userData) {
-          await assignUserRole(userData.id, 'user');
-        }
-      } catch (adminError) {
-        console.error('Admin user creation failed:', adminError);
-        
-        // Fallback to regular signup (user will need to confirm email)
-        const { data, error } = await supabase.auth.signUp({
-          email: newUserEmail,
-          password: newUserPassword
-        });
-        
-        if (error) throw error;
-        userData = data.user;
-        
-        toast.info(
-          'Usuário criado, mas precisará confirmar o email',
-          { 
-            description: 'Você não tem permissões de admin do Supabase para criar usuários diretamente.' 
-          }
-        );
-      }
-      
-      if (userData) {
-        toast.success('Usuário criado com sucesso');
-        setDialogOpen(false);
-        setNewUserEmail('');
-        setNewUserPassword('');
-        
-        // Refresh the users list
-        await fetchUsers();
-      }
-    } catch (error: any) {
-      console.error('Error creating user:', error);
-      toast.error(`Falha ao criar usuário: ${error.message}`);
-    } finally {
-      setCreatingUser(false);
-    }
-  };
-  
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchUsers();
     setRefreshing(false);
   };
 
-  // Função para deletar um usuário
-  const deleteUser = async (userId: string) => {
+  const toggleSubscriptionType = async (userId: string, currentType: 'free' | 'premium' | null) => {
     try {
-      setDeletingUser(true);
-      
-      // Primeiro, verificar se o usuário existe
-      const userToDelete = users.find(user => user.id === userId);
-      if (!userToDelete) {
-        toast.error("Usuário não encontrado");
-        return;
-      }
-      
-      // Deletar o usuário
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      
-      if (error) {
-        console.error("Erro ao deletar usuário:", error);
-        
-        // Se não tiver permissão de admin, tentar deletar apenas o perfil
-        if (error.message.includes("not authorized") || error.message.includes("permission")) {
-          toast.info("Tentando deletar apenas o perfil do usuário...");
-          
-          // Deletar o perfil do usuário
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .delete()
-            .eq('id', userId);
-            
-          if (profileError) {
-            toast.error(`Erro ao deletar perfil: ${profileError.message}`);
-            return;
-          }
-          
-          toast.success("Perfil do usuário deletado com sucesso");
-          setUsers(users.filter(user => user.id !== userId));
-          return;
-        }
-        
-        toast.error(`Erro ao deletar usuário: ${error.message}`);
-        return;
-      }
-      
-      toast.success("Usuário deletado com sucesso");
-      
-      // Atualizar a lista de usuários
-      setUsers(users.filter(user => user.id !== userId));
-    } catch (error: any) {
-      console.error("Erro ao deletar usuário:", error);
-      toast.error(`Erro ao deletar usuário: ${error.message}`);
-    } finally {
-      setDeletingUser(false);
-    }
-  };
-
-  // Função para alterar a senha do usuário
-  const resetUserPassword = async () => {
-    try {
-      if (!selectedUserId || !newPassword) {
-        toast.error("ID do usuário ou nova senha não fornecidos");
-        return;
-      }
-
-      if (newPassword !== confirmPassword) {
-        toast.error("As senhas não coincidem");
-        return;
-      }
-
-      setUpdatingPassword(true);
-
-      // Enviar um email de redefinição de senha em vez de alterar diretamente
-      // Isso é mais seguro e não requer permissões de admin
-      const userEmail = users.find(u => u.id === selectedUserId)?.email;
-      
-      if (!userEmail) {
-        toast.error("Email do usuário não encontrado");
-        return;
-      }
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) {
-        console.error("Erro ao enviar email de redefinição de senha:", error);
-        toast.error(`Erro ao enviar email de redefinição: ${error.message}`);
-        return;
-      }
-
-      toast.success(`Email de redefinição de senha enviado para ${userEmail}`);
-      setResetPasswordDialogOpen(false);
-      setNewPassword('');
-      setConfirmPassword('');
-      setSelectedUserId(null);
-      setSelectedUserEmail(null);
-    } catch (error: any) {
-      console.error("Erro ao redefinir senha:", error);
-      toast.error(`Erro ao redefinir senha: ${error.message}`);
-    } finally {
-      setUpdatingPassword(false);
-    }
-  };
-
-  // Função para ativar/inativar usuário
-  const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
-    try {
-      setUpdatingUserStatus(true);
+      setUpdatingSubscription(true);
       setUpdatingUserId(userId);
-
-      const newStatus = !currentStatus;
       
-      // Atualizar a lista de usuários localmente
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, is_active: newStatus } : user
-      ));
+      // Determinar o novo tipo de assinatura
+      const newType = currentType === 'premium' ? 'free' : 'premium';
+      console.log(`Alterando tipo de assinatura do usuário ${userId} de ${currentType || 'indefinido'} para ${newType}`);
       
-      // Salvar o status no localStorage para persistência
-      const userStatusMap = JSON.parse(localStorage.getItem('userStatusMap') || '{}');
-      userStatusMap[userId] = newStatus;
-      localStorage.setItem('userStatusMap', JSON.stringify(userStatusMap));
+      // Calcular datas de assinatura para planos premium
+      const currentDate = new Date();
+      const oneYearLater = new Date(currentDate);
+      oneYearLater.setFullYear(currentDate.getFullYear() + 1);
       
-      toast.success(`Usuário ${newStatus ? 'ativado' : 'inativado'} com sucesso`);
+      // Atualizar o tipo de assinatura no banco de dados
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          subscription_type: newType,
+          subscription_start_date: newType === 'premium' ? currentDate.toISOString() : null,
+          subscription_end_date: newType === 'premium' ? oneYearLater.toISOString() : null
+        })
+        .eq('id', userId);
       
-      // Tentar atualizar o status no Supabase (apenas como fallback, não é essencial)
-      try {
-        const { error } = await supabase.auth.admin.updateUserById(
-          userId,
-          { user_metadata: { is_active: newStatus } }
-        );
-        
-        if (error) {
-          console.log("Não foi possível atualizar o status no Supabase. Usando apenas modo local:", error.message);
-        } else {
-          console.log("Status atualizado com sucesso no Supabase");
-        }
-      } catch (supabaseError) {
-        console.log("Erro ao tentar atualizar o Supabase:", supabaseError);
+      if (error) {
+        throw error;
       }
+      
+      // Atualizar o estado local
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId 
+            ? {
+                ...user,
+                subscription_type: newType,
+                subscription_start_date: newType === 'premium' ? currentDate.toISOString() : null,
+                subscription_end_date: newType === 'premium' ? oneYearLater.toISOString() : null
+              }
+            : user
+        )
+      );
+      
+      toast.success(`Assinatura alterada para ${newType === 'premium' ? 'Premium' : 'Gratuito'} com sucesso`);
     } catch (error: any) {
-      console.error("Erro ao atualizar status do usuário:", error);
-      toast.error(`Erro ao atualizar status: ${error.message}`);
+      console.error('Erro ao alterar tipo de assinatura:', error);
+      toast.error(`Falha ao alterar tipo de assinatura: ${error.message}`);
     } finally {
-      setUpdatingUserStatus(false);
+      setUpdatingSubscription(false);
       setUpdatingUserId(null);
     }
   };
 
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return "Desconhecido";
-    
+  const toggleUserActiveStatus = async (userId: string, currentStatus: boolean = true) => {
     try {
-      return new Date(dateString).toLocaleString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (e) {
-      return "Formato inválido";
-    }
-  };
-
-  // Função para obter o email ou identificador do usuário para exibição
-  const getUserDisplayEmail = (user: UserData): string => {
-    // Priorizar o email completo quando disponível
-    if (user.email) {
-      return user.email;
-    }
-    
-    // Usar o nome de usuário como fallback
-    if (user.username) {
-      return user.username;
-    }
-    
-    // Último caso, usar o ID do usuário
-    return `Usuário ${user.id.substring(0, 8)}...`;
-  };
-
-  // Função para executar a correção da política RLS
-  const fixRlsPolicy = async () => {
-    try {
-      toast.info("Tentando corrigir políticas de segurança...");
+      setUpdatingActiveStatus(true);
+      setUpdatingActiveUserId(userId);
       
-      // Executar a função RPC para corrigir as políticas
-      // Usando uma abordagem mais segura para evitar erros de tipo
-      const { data, error } = await supabase.rpc(
-        'fix_user_roles_policies' as any, // Usamos 'as any' para contornar a verificação de tipo
-        {}
-      );
+      // Determinar o novo status
+      const newStatus = !currentStatus;
+      console.log(`Alterando status do usuário ${userId} de ${currentStatus ? 'ativo' : 'inativo'} para ${newStatus ? 'ativo' : 'inativo'}`);
+      
+      // Atualizar o status no banco de dados
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          is_active: newStatus
+        })
+        .eq('id', userId);
       
       if (error) {
-        console.error("Erro ao corrigir políticas:", error);
-        toast.error(`Erro ao corrigir políticas: ${error.message}`);
-        
-        // Se a função não existir, mostrar instruções
-        if (error.code === '42883') {
-          toast.info(
-            "Função de correção não encontrada no banco de dados",
-            { 
-              description: "É necessário executar o script SQL para criar a função de correção.",
-              duration: 8000
-            }
-          );
-        }
-        return false;
+        throw error;
       }
       
-      toast.success("Políticas de segurança corrigidas com sucesso!");
-      return true;
+      // Atualizar o estado local
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId 
+            ? {
+                ...user,
+                is_active: newStatus
+              }
+            : user
+        )
+      );
+      
+      toast.success(`Usuário ${newStatus ? 'ativado' : 'inativado'} com sucesso`);
     } catch (error: any) {
-      console.error("Erro ao tentar corrigir políticas:", error);
-      toast.error(`Erro ao tentar corrigir políticas: ${error.message}`);
-      return false;
+      console.error('Erro ao alterar status do usuário:', error);
+      toast.error(`Falha ao alterar status do usuário: ${error.message}`);
+    } finally {
+      setUpdatingActiveStatus(false);
+      setUpdatingActiveUserId(null);
     }
+  };
+
+  const getFilteredUsers = () => {
+    let filteredUsers = users;
+    
+    // Filtrar por tipo de assinatura
+    if (subscriptionFilter !== 'all') {
+      filteredUsers = filteredUsers.filter(user => user.subscription_type === subscriptionFilter);
+    }
+    
+    // Filtrar por status de ativação
+    if (activeFilter !== 'all') {
+      filteredUsers = filteredUsers.filter(user => {
+        const isActive = user.is_active === undefined ? true : user.is_active;
+        return activeFilter === 'active' ? isActive : !isActive;
+      });
+    }
+    
+    return filteredUsers;
   };
 
   return (
@@ -573,7 +239,36 @@ const UserManagement = () => {
           <CardTitle>Gerenciamento de Usuários</CardTitle>
           <CardDescription>Gerencie contas de usuários e papéis</CardDescription>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row justify-between mb-6 gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Select
+              value={subscriptionFilter}
+              onValueChange={(value) => setSubscriptionFilter(value as 'all' | 'free' | 'premium')}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por plano" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Planos</SelectItem>
+                <SelectItem value="free">Plano Gratuito</SelectItem>
+                <SelectItem value="premium">Plano Premium</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select
+              value={activeFilter}
+              onValueChange={(value) => setActiveFilter(value as 'all' | 'active' | 'inactive')}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Usuários</SelectItem>
+                <SelectItem value="active">Usuários Ativos</SelectItem>
+                <SelectItem value="inactive">Usuários Inativos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Button 
             onClick={handleRefresh} 
             variant="outline" 
@@ -628,7 +323,7 @@ const UserManagement = () => {
               <DialogFooter>
                 <Button 
                   type="submit" 
-                  onClick={createNewUser}
+                  onClick={() => {}}
                   disabled={creatingUser || !newUserEmail || !newUserPassword}
                 >
                   {creatingUser ? <LoadingSpinner size="sm" /> : 'Criar Usuário'}
@@ -639,30 +334,11 @@ const UserManagement = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {errorMessage && (
+        {error && (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Erro</AlertTitle>
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        )}
-        
-        {showTroubleshooting && (
-          <Alert className="mb-4 bg-amber-50 border-amber-200">
-            <Info className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-800">Problemas com atribuição de papéis</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              <p className="mb-2">Detectamos um problema com as políticas de segurança do banco de dados ao atribuir papéis de usuário.</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-2 border-amber-300 bg-amber-100 hover:bg-amber-200"
-                onClick={fixRlsPolicy}
-              >
-                <ShieldAlert className="h-4 w-4 mr-1 text-amber-600" />
-                Corrigir Políticas de Segurança
-              </Button>
-            </AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         
@@ -686,75 +362,118 @@ const UserManagement = () => {
                   <TableHead>Criado em</TableHead>
                   <TableHead>Último login</TableHead>
                   <TableHead>Papel</TableHead>
-                  <TableHead>Ativo</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead>Plano</TableHead>
+                  <TableHead className="w-[120px] text-center">Status</TableHead>
+                  <TableHead className="w-[120px] text-center">Ativo/Inativo</TableHead>
+                  <TableHead className="w-[100px] text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {getFilteredUsers().map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">
                       {user.full_name || user.username || "N/A"}
                     </TableCell>
                     <TableCell>
                       {user.email || "N/A"}
-                      {user.email && isAdminByEmail(user.email) && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Badge variant="outline" className="ml-2 bg-purple-100 text-purple-800 border-purple-200">
-                                <ShieldAlert className="h-3 w-3 mr-1" />
-                                Admin por Email
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Este usuário é administrador por estar na lista de emails privilegiados</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
                     </TableCell>
                     <TableCell>{user.contact || "Não disponível"}</TableCell>
-                    <TableCell>{formatDate(user.created_at)}</TableCell>
-                    <TableCell>{formatDate(user.last_sign_in_at)}</TableCell>
+                    <TableCell>{user.created_at}</TableCell>
+                    <TableCell>{user.last_sign_in_at}</TableCell>
                     <TableCell>
-                      <Badge className={getRoleColor(getUserRoleFromCache(user.id))}>
+                      <Badge className="bg-blue-100 text-blue-800">
                         {getUserRoleFromCache(user.id)}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {user.is_active ? (
-                        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                          <Unlock className="h-3 w-3 mr-1" />
-                          Sim
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
-                          <Lock className="h-3 w-3 mr-1" />
-                          Não
-                        </Badge>
-                      )}
+                      <Badge 
+                        variant={user.subscription_type === 'premium' ? "default" : "secondary"}
+                        className={user.subscription_type === 'premium' ? "bg-amber-500 hover:bg-amber-600" : ""}
+                      >
+                        <div className="flex items-center">
+                          {user.subscription_type === 'premium' ? (
+                            <>
+                              <Award className="mr-1 h-3 w-3" />
+                              <span>Premium</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Gratuito</span>
+                            </>
+                          )}
+                        </div>
+                      </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Select
-                          value={getUserRoleFromCache(user.id)}
-                          onValueChange={(value) => handleRoleChange(user.id, value as UserRole)}
-                          disabled={updatingRole && updatingUserId === user.id}
+                    <TableCell className="text-center">
+                      <Badge
+                        variant={user.last_sign_in_at ? "success" : "destructive"}
+                        className="mx-auto"
+                      >
+                        {user.last_sign_in_at ? "Acessou" : "Nunca Acessou"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {updatingActiveStatus && updatingActiveUserId === user.id ? (
+                        <Button variant="ghost" size="icon" disabled>
+                          <LoadingSpinner className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant={user.is_active ? "ghost" : "destructive"}
+                          size="icon"
+                          onClick={() => toggleUserActiveStatus(user.id, !!user.is_active)}
+                          title={user.is_active ? "Inativar Usuário" : "Ativar Usuário"}
+                          className="mx-auto"
                         >
-                          <SelectTrigger className="w-[110px]">
-                            <SelectValue placeholder="Selecionar papel" />
+                          {user.is_active ? (
+                            <PowerOff className="h-4 w-4" />
+                          ) : (
+                            <Power className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
+                      <Badge
+                        variant={user.is_active ? "outline" : "destructive"}
+                        className="ml-2"
+                      >
+                        {user.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        {/* Seletor para escolher plano gratuito/premium */}
+                        <Select
+                          value={user.subscription_type || 'free'}
+                          onValueChange={(value) => toggleSubscriptionType(user.id, value as 'free' | 'premium')}
+                          disabled={updatingSubscription && updatingUserId === user.id}
+                        >
+                          <SelectTrigger className={`w-[120px] ${user.subscription_type === 'premium' ? 'border-amber-500 text-amber-500' : ''}`}>
+                            <SelectValue>
+                              {updatingSubscription && updatingUserId === user.id ? (
+                                <div className="flex items-center"><LoadingSpinner size="sm" /><span className="ml-2">Alterando...</span></div>
+                              ) : (
+                                <div className="flex items-center">
+                                  {user.subscription_type === 'premium' && <Award className="mr-2 h-4 w-4" />}
+                                  <span>{user.subscription_type === 'premium' ? 'Premium' : 'Free'}</span>
+                                </div>
+                              )}
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="user">Usuário</SelectItem>
-                            <SelectItem value="moderator">Moderador</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="free">Free</SelectItem>
+                            <SelectItem value="premium">
+                              <div className="flex items-center">
+                                <Award className="mr-2 h-4 w-4" />
+                                <span>Premium</span>
+                              </div>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         
                         {/* Botão para alterar senha */}
-                        <Dialog open={resetPasswordDialogOpen && selectedUserId === user.id} onOpenChange={(open) => {
+                        <Dialog open={resetPasswordModalOpen && selectedUserId === user.id} onOpenChange={(open) => {
                           if (!open) {
+                            setResetPasswordModalOpen(false);
                             setResetPasswordDialogOpen(false);
                             setNewPassword('');
                             setConfirmPassword('');

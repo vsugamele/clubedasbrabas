@@ -61,9 +61,7 @@ const ContactList = () => {
                   <Avatar>
                     <AvatarImage src={contact.avatar_url} alt={contact.full_name} />
                     <AvatarFallback>
-                      {(contact.full_name && typeof contact.full_name === 'string' && !contact.full_name.includes('{{')) 
-                        ? contact.full_name.substring(0, 2).toUpperCase() 
-                        : "??"}
+                      {contact.full_name ? contact.full_name.substring(0, 2).toUpperCase() : "BR"}
                     </AvatarFallback>
                   </Avatar>
                   {contact.unread_count > 0 && (
@@ -75,14 +73,10 @@ const ContactList = () => {
                 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate text-foreground dark:text-white">
-                    {(contact.full_name && typeof contact.full_name === 'string' && !contact.full_name.includes('{{')) 
-                      ? contact.full_name 
-                      : "Usuário"}
+                    {contact.full_name || "Bruninho"}
                   </p>
                   <p className="text-sm text-muted-foreground dark:text-gray-300 truncate">
-                    @{(contact.username && typeof contact.username === 'string' && !contact.username.includes('{{')) 
-                      ? contact.username 
-                      : "usuario"}
+                    @{contact.username || "usuario"}
                   </p>
                 </div>
               </div>
@@ -109,22 +103,16 @@ const ContactList = () => {
                 <Avatar>
                   <AvatarImage src={member.avatar_url} alt={member.full_name} />
                   <AvatarFallback>
-                    {(member.full_name && typeof member.full_name === 'string' && !member.full_name.includes('{{')) 
-                      ? member.full_name.substring(0, 2).toUpperCase() 
-                      : "??"}
+                    {member.full_name ? member.full_name.substring(0, 2).toUpperCase() : "BR"}
                   </AvatarFallback>
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate text-foreground dark:text-white">
-                    {(member.full_name && typeof member.full_name === 'string' && !member.full_name.includes('{{')) 
-                      ? member.full_name 
-                      : "Usuário"}
+                    {member.full_name || "Bruninho"}
                   </p>
                   <p className="text-sm text-muted-foreground dark:text-gray-300 truncate">
-                    @{(member.username && typeof member.username === 'string' && !member.username.includes('{{')) 
-                      ? member.username 
-                      : "usuario"}
+                    @{member.username || "usuario"}
                   </p>
                 </div>
               </div>

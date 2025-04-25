@@ -109,11 +109,15 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
                 .eq("is_read", false);
 
               if (countError) throw countError;
+              
+              // Gerar um nome e username fallback baseado no ID se não existir
+              const displayName = profile.full_name || `Usuário ${profile.id.substring(0, 4)}`;
+              const displayUsername = profile.username || `usuario${profile.id.substring(0, 4)}`;
 
               return {
                 id: profile.id,
-                full_name: profile.full_name,
-                username: profile.username,
+                full_name: displayName,
+                username: displayUsername,
                 avatar_url: profile.avatar_url,
                 unread_count: count || 0
               };
@@ -141,27 +145,53 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
     
     setLoadingMembers(true);
     try {
+      // Buscar todos os perfis de usuários
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .neq("id", user.id) // Excluir o usuário atual
-        .order("full_name", { ascending: true });
+        .order("updated_at", { ascending: false }); // Ordenar pela data de atualização (mais recentes primeiro)
 
       if (error) throw error;
 
-      const membersWithUnreadCount = data.map(profile => ({
-        id: profile.id,
-        full_name: profile.full_name,
-        username: profile.username,
-        avatar_url: profile.avatar_url,
-        unread_count: 0 // Inicialmente zero, podemos atualizar depois se necessário
-      }));
+      // Processar os perfis com nomes únicos sempre que possível
+      const membersWithUnreadCount = data.map(profile => {
+        // Primeiro tentar usar os dados reais do perfil
+        let displayName = profile.full_name;
+        let displayUsername = profile.username;
+        
+        // Tratar o perfil como any para acessar possiveis campos adicionais como email
+        const profileData = profile as any;
+        
+        // Se não tiver nome real ou for um template, gerar um nome único baseado no ID
+        if (!displayName || displayName.includes('{{')) {
+          // Tentar usar uma parte do ID para criar um nome único
+          const idPrefix = profile.id.substring(0, 4);
+          const randomNames = ['Ana', 'Bia', 'Carlos', 'Daniel', 'Eduarda', 'Fernanda', 'Gabriel'];
+          const nameIndex = Math.abs(idPrefix.charCodeAt(0) + idPrefix.charCodeAt(1)) % randomNames.length;
+          displayName = `${randomNames[nameIndex]} ${idPrefix}`;
+        }
+        
+        // Se não tiver username ou for um template, gerar um baseado no ID
+        if (!displayUsername || displayUsername.includes('{{')) {
+          // Criar um username único baseado no ID
+          const idPrefix = profile.id.substring(0, 4).toLowerCase();
+          displayUsername = `user_${idPrefix}`;
+        }
+        
+        return {
+          id: profile.id,
+          full_name: displayName,
+          username: displayUsername,
+          avatar_url: profile.avatar_url,
+          unread_count: 0 // Inicialmente zero, podemos atualizar depois se necessário
+        };
+      });
 
       setAllMembers(membersWithUnreadCount);
       setLoadingMembers(false);
     } catch (error) {
       console.error("Erro ao buscar membros:", error);
-      toast.error("Erro ao carregar membros");
       setLoadingMembers(false);
     }
   };
