@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
+// Definição do tipo para acomodação dos campos existentes + novos campos
 interface UserData {
   id: string;
   email?: string | null;
@@ -26,10 +27,25 @@ interface UserData {
   contact?: string | null;
   last_sign_in_at?: string | null;
   created_at?: string | null;
+  updated_at?: string | null;
+  avatar_url?: string | null;
+  bio?: string | null;
+  headline?: string | null;
+  language?: string | null;
+  location?: string | null;
+  timezone?: string | null;
+  
+  // Campos adicionais que podem não existir no modelo padrão do Supabase
   is_active?: boolean;
   subscription_type?: 'free' | 'premium' | null;
   subscription_start_date?: string | null;
   subscription_end_date?: string | null;
+}
+
+// Tipo para a resposta da função getAllUserRoles
+interface UserRoleData {
+  user_id: string;
+  role: string;
 }
 
 const UserManagement = () => {
@@ -61,8 +77,12 @@ const UserManagement = () => {
   
   // Estado para gerenciar reset de senha
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserEmail, setSelectedUserEmail] = useState("");
   const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
   
   // Estado para exclusão de usuário
   const [deletingUser, setDeletingUser] = useState(false);
@@ -70,6 +90,7 @@ const UserManagement = () => {
   // Estado para ativação/inativação de usuário
   const [updatingActiveStatus, setUpdatingActiveStatus] = useState(false);
   const [updatingActiveUserId, setUpdatingActiveUserId] = useState<string | null>(null);
+  const [updatingUserStatus, setUpdatingUserStatus] = useState(false);
   
   // Estado para filtro de status de ativação
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -78,26 +99,210 @@ const UserManagement = () => {
     fetchUsers();
   }, []);
 
+  // Função para buscar papéis de usuários
+  const fetchUserRoles = async (users: UserData[]) => {
+    try {
+      // Buscar todos os papéis de usuários
+      const result = await getAllUserRoles();
+      const data = result.data as UserRoleData[] || [];
+      const error = result.error;
+
+      if (error) {
+        console.error('Erro ao buscar papéis de usuários:', error);
+        return;
+      }
+
+      // Criar um mapa de userId para role
+      const rolesMap: {[key: string]: UserRole} = {};
+      if (data && data.length) {
+        data.forEach(item => {
+          if (item.user_id && item.role) {
+            rolesMap[item.user_id] = item.role as UserRole;
+          }
+        });
+      }
+
+      // Definir papéis padrão para usuários sem papel específico
+      users.forEach(user => {
+        if (!rolesMap[user.id]) {
+          rolesMap[user.id] = 'user';
+        }
+      });
+
+      setUserRoles(rolesMap);
+    } catch (error) {
+      console.error('Erro ao processar papéis de usuários:', error);
+    }
+  };
+
+  // Função para obter o papel do usuário do cache
+  const getUserRoleFromCache = (userId: string): string => {
+    return userRoles[userId] || 'user';
+  };
+
+  // Função para obter o email do usuário para exibição
+  const getUserDisplayEmail = (user: UserData): string => {
+    return user.email || 'Sem email';
+  };
+
+  // Função para deletar um usuário
+  const deleteUser = async (userId: string) => {
+    try {
+      setDeletingUser(true);
+      
+      // Primeiro, remove o registro na tabela de profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+        
+      if (profileError) {
+        throw profileError;
+      }
+      
+      // Em seguida, remove o usuário da autenticação usando Admin API
+      // Nota: Em um ambiente real, isso deveria ser feito via um endpoint seguro no servidor
+      // Este exemplo simplificado não funcionará em produção sem uma API intermediária
+      // const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      // 
+      // if (authError) {
+      //   throw authError;
+      // }
+      
+      // Atualiza o estado local removendo o usuário
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+      
+      toast.success('Usuário deletado com sucesso');
+    } catch (error: any) {
+      console.error('Erro ao deletar usuário:', error);
+      toast.error(`Falha ao deletar usuário: ${error.message}`);
+    } finally {
+      setDeletingUser(false);
+    }
+  };
+
+  // Função para alternar o status do usuário (ativo/inativo)
+  const toggleUserStatus = async (userId: string, isActive: boolean) => {
+    try {
+      setUpdatingUserStatus(true);
+      setUpdatingUserId(userId);
+      
+      const newStatus = !isActive;
+      
+      // Cria um objeto com apenas os campos válidos para updates
+      const updateData: Record<string, any> = {};
+      updateData.is_active = newStatus; // Campo personalizado
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', userId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Atualiza o estado local
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId 
+            ? { ...user, is_active: newStatus } 
+            : user
+        )
+      );
+      
+      toast.success(`Status do usuário alterado para ${newStatus ? 'ativo' : 'inativo'}`);
+    } catch (error: any) {
+      console.error('Erro ao alterar status do usuário:', error);
+      toast.error(`Falha ao alterar status do usuário: ${error.message}`);
+    } finally {
+      setUpdatingUserStatus(false);
+      setUpdatingUserId(null);
+    }
+  };
+
+  // Função para enviar email de redefinição de senha
+  const resetUserPassword = async () => {
+    try {
+      setUpdatingPassword(true);
+      
+      if (!selectedUserEmail) {
+        throw new Error('Email do usuário não definido');
+      }
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(selectedUserEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success(`Email de redefinição de senha enviado para ${selectedUserEmail}`);
+      setResetPasswordModalOpen(false);
+      setResetPasswordDialogOpen(false);
+    } catch (error: any) {
+      console.error('Erro ao enviar email de redefinição de senha:', error);
+      toast.error(`Falha ao enviar email: ${error.message}`);
+    } finally {
+      setUpdatingPassword(false);
+      setSelectedUserId(null);
+      setSelectedUserEmail('');
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+  };
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError(null);
       
       // Buscar perfis de usuários
-      const { data, error } = await supabase
+      const result = await supabase
         .from('profiles')
         .select('*')
         .order('updated_at', { ascending: false });
+      
+      const data = result.data as Record<string, any>[] || [];
+      const error = result.error;
       
       if (error) {
         throw error;
       }
       
-      // Garantir que todos os usuários tenham a propriedade is_active definida
-      const usersWithActiveStatus = (data || []).map(user => ({
-        ...user,
-        is_active: user.is_active === undefined ? true : user.is_active
-      }));
+      // Processar os dados para garantir compatibilidade com nossa interface UserData
+      const usersWithActiveStatus = data.map(user => {
+        // Modelo base do usuário com os campos do Supabase
+        const userData: UserData = {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          full_name: user.full_name,
+          avatar_url: user.avatar_url,
+          bio: user.bio,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+          language: user.language,
+          location: user.location,
+          timezone: user.timezone,
+          headline: user.headline,
+          
+          // Campos personalizados ou opcionais
+          contact: user.contact || null,
+          last_sign_in_at: user.last_sign_in_at || null,
+          
+          // Status de ativação (campo personalizado)
+          is_active: user.is_active === undefined ? true : user.is_active,
+          
+          // Campos de assinatura (campos personalizados)
+          subscription_type: user.subscription_type || 'free',
+          subscription_start_date: user.subscription_start_date || null,
+          subscription_end_date: user.subscription_end_date || null
+        };
+        
+        return userData;
+      });
       
       setUsers(usersWithActiveStatus);
       
@@ -132,14 +337,16 @@ const UserManagement = () => {
       const oneYearLater = new Date(currentDate);
       oneYearLater.setFullYear(currentDate.getFullYear() + 1);
       
+      // Criar objeto com apenas os campos válidos para o update
+      const updateData: Record<string, any> = {};
+      updateData.subscription_type = newType;
+      updateData.subscription_start_date = newType === 'premium' ? currentDate.toISOString() : null;
+      updateData.subscription_end_date = newType === 'premium' ? oneYearLater.toISOString() : null;
+      
       // Atualizar o tipo de assinatura no banco de dados
       const { error } = await supabase
         .from('profiles')
-        .update({
-          subscription_type: newType,
-          subscription_start_date: newType === 'premium' ? currentDate.toISOString() : null,
-          subscription_end_date: newType === 'premium' ? oneYearLater.toISOString() : null
-        })
+        .update(updateData)
         .eq('id', userId);
       
       if (error) {
@@ -406,8 +613,8 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge
-                        variant={user.last_sign_in_at ? "success" : "destructive"}
-                        className="mx-auto"
+                        variant={user.last_sign_in_at ? "default" : "destructive"}
+                        className={`mx-auto ${user.last_sign_in_at ? "bg-green-500 hover:bg-green-600" : ""}`}
                       >
                         {user.last_sign_in_at ? "Acessou" : "Nunca Acessou"}
                       </Badge>

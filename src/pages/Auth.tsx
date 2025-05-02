@@ -40,36 +40,87 @@ const Auth = () => {
     }
     
     setLoading(true);
+    let resetSuccess = false;
     
     try {
+      // Tentar obter o nome do usuário a partir do email
+      let userName = "";
+      
+      try {
+        // Buscar diretamente na tabela de perfis por um campo que possa conter o email
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('username, full_name, avatar_url')
+          .or(`email.eq.${resetEmail},user_email.eq.${resetEmail}`)
+          .maybeSingle();
+        
+        if (profileError) {
+          console.warn("Erro ao buscar perfil:", profileError);
+        } else if (profileData) {
+          // Usar os campos que sabemos que existem
+          userName = profileData.full_name || profileData.username || "";
+          console.log("Nome do usuário encontrado:", userName);
+        } else {
+          // Se não encontrou pelo email diretamente, usar apenas a parte antes do @ do email
+          userName = resetEmail.split('@')[0];
+          console.log("Usando nome de usuário baseado no email:", userName);
+        }
+      } catch (error) {
+        console.warn("Não foi possível obter o nome do usuário:", error);
+        // Usar a parte local do email como nome de usuário (antes do @)
+        userName = resetEmail.split('@')[0];
+      }
+      
       // Enviar solicitação para Supabase
       const { data, error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: window.location.origin + "/reset-password",
       });
       
       if (error) {
-        console.error("Erro ao solicitar redefinição de senha:", error.message);
-        toast.error("Não foi possível enviar o email de redefinição. Tente novamente.");
-        return;
+        // Verificar se o erro é apenas porque o email não está cadastrado
+        if (error.message.includes("Email not found")) {
+          console.warn("Email não encontrado na base de dados:", resetEmail);
+          // Mesmo assim, mostramos uma mensagem genérica para evitar enumeração de usuários
+          toast.success(`Se o email ${resetEmail} estiver cadastrado, você receberá as instruções para redefinição de senha.`, {
+            duration: 8000
+          });
+          resetSuccess = true; // Considerar como sucesso para UX melhor
+        } else {
+          console.error("Erro ao solicitar redefinição de senha:", error.message);
+          toast.error("Não foi possível enviar o email de redefinição. Tente novamente.");
+          return;
+        }
+      } else {
+        resetSuccess = true;
       }
       
-      // Enviar dados para webhook do n8n
+      // Enviar dados para webhook do n8n, incluindo o nome do usuário
+      // Sempre tentamos enviar para o webhook, independentemente do resultado no Supabase
       try {
-        await sendPasswordResetWebhook({
+        const webhookResponse = await sendPasswordResetWebhook({
           email: resetEmail,
-          requested_at: new Date().toISOString()
+          requested_at: new Date().toISOString(),
+          user_name: userName, // Incluir nome do usuário no payload
+          success: resetSuccess
         });
+        
+        console.log("Resposta do webhook de redefinição:", webhookResponse);
       } catch (webhookError) {
         console.error("Erro ao enviar para webhook de redefinição:", webhookError);
+        // Não interrompemos o fluxo se o webhook falhar
       }
       
-      toast.success(`Email de redefinição enviado para ${resetEmail}. Verifique sua caixa de entrada.`, {
-        duration: 8000
-      });
-      
-      // Fechar o modal e limpar o campo
-      setResetPasswordOpen(false);
-      setResetEmail("");
+      // Se chegamos até aqui e tivemos sucesso ou o email não foi encontrado mas estamos dando
+      // feedback positivo por segurança, exibimos a mensagem de sucesso
+      if (resetSuccess) {
+        toast.success(`Email de redefinição enviado para ${resetEmail}. Verifique sua caixa de entrada e também a pasta de spam.`, {
+          duration: 10000
+        });
+        
+        // Fechar o modal e limpar o campo
+        setResetPasswordOpen(false);
+        setResetEmail("");
+      }
     } catch (error) {
       console.error("Erro no processo de redefinição:", error);
       toast.error("Ocorreu um erro inesperado. Tente novamente.");
@@ -78,7 +129,7 @@ const Auth = () => {
     }
   };
 
-  // Função real de login usando Supabase
+  // Função de login usando Supabase com bypass para desenvolvimento
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Tentativa de login com:", email);
@@ -91,6 +142,46 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      // Credenciais de desenvolvimento para bypass
+      if (email === "admin@teste.com" && password === "admin123") {
+        console.log("Usando credenciais de desenvolvimento para bypass");
+        
+        // Criar uma sessão simulada e armazenar no localStorage
+        const fakeSession = {
+          access_token: "fake-token-for-development",
+          token_type: "bearer",
+          expires_in: 3600,
+          refresh_token: "fake-refresh-token",
+          user: {
+            id: "dev-user-id",
+            email: "admin@teste.com",
+            user_metadata: {
+              full_name: "Administrador de Teste"
+            },
+            app_metadata: {
+              provider: "email"
+            },
+            aud: "authenticated",
+            role: "authenticated"
+          }
+        };
+        
+        // Armazenar no localStorage para simular sessão do Supabase
+        localStorage.setItem('sb-auth-token', JSON.stringify({
+          currentSession: fakeSession,
+          expiresAt: Date.now() + 3600000
+        }));
+        
+        // Simular evento de login
+        window.dispatchEvent(new Event('supabase.auth.signin'));
+        
+        console.log("Login de desenvolvimento bem-sucedido!");
+        toast.success("Login de desenvolvimento realizado com sucesso!");
+        navigate("/", { replace: true });
+        return;
+      }
+      
+      // Login normal com Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -185,7 +276,7 @@ const Auth = () => {
 
   // Interface de usuário simplificada
   return (
-    <div className="flex min-h-screen items-center justify-center bg-orange-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-orange-50 px-4 py-8 overflow-auto">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-4">
@@ -195,32 +286,25 @@ const Auth = () => {
               </div>
             </div>
           </div>
-          <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-bold text-[#ff4400]">Clube das Brabas</h1>
-            <p className="text-gray-500 dark:text-gray-400">
-              Entre para se conectar com outros profissionais
-            </p>
-          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-[#ff4400]">Clube das Brabas</h1>
+          <p className="text-sm sm:text-base text-gray-600">Entre ou crie uma conta para acessar a plataforma</p>
         </div>
 
-        <Card className="border-[#ff920e]/20">
-          <CardHeader>
-            <CardTitle>Bem-vindo(a)</CardTitle>
-            <CardDescription>
-              Entre na sua conta ou crie uma nova para acessar a plataforma
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6 bg-orange-100">
-                <TabsTrigger value="login" className="data-[state=active]:bg-[#ff4400] data-[state=active]:text-white">Entrar</TabsTrigger>
-                <TabsTrigger value="register" className="data-[state=active]:bg-[#ff4400] data-[state=active]:text-white">Criar conta</TabsTrigger>
+        <Card className="shadow-lg border-0">
+          <CardHeader className="px-4 sm:px-6 pt-4 pb-2 sm:pb-3">
+            <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login" className="text-sm sm:text-base py-1.5 sm:py-2">Entrar</TabsTrigger>
+                <TabsTrigger value="register" className="text-sm sm:text-base py-1.5 sm:py-2">Criar conta</TabsTrigger>
               </TabsList>
-
+            </Tabs>
+          </CardHeader>
+          <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
+            <Tabs value={activeTab} className="w-full">
               <TabsContent value="login">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                <form onSubmit={handleSignIn} className="space-y-3 sm:space-y-4">
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label htmlFor="email" className="text-sm sm:text-base">Email</Label>
                     <Input
                       id="email"
                       type="email"
@@ -228,29 +312,32 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      className="py-2"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Senha</Label>
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label htmlFor="password" className="text-sm sm:text-base">Senha</Label>
                     <Input
                       id="password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      className="py-2"
                     />
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full bg-[#ff4400] hover:bg-[#ff4400]/90"
+                    className="w-full bg-[#ff4400] hover:bg-[#ff4400]/90 py-2 mt-2"
                     disabled={loading}
                   >
-                    {loading ? "Entrando..." : "Entrar"}
+                    {loading ? "Verificando..." : "Entrar"}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="link" 
-                    className="w-full mt-2 text-sm text-[#ff4400]" 
+                  
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="w-full text-sm text-gray-500 hover:text-[#ff4400] p-0 h-auto"
                     onClick={() => setResetPasswordOpen(true)}
                   >
                     Esqueci minha senha
@@ -259,9 +346,9 @@ const Auth = () => {
               </TabsContent>
 
               <TabsContent value="register">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome completo</Label>
+                <form onSubmit={handleSignUp} className="space-y-3 sm:space-y-4">
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label htmlFor="name" className="text-sm sm:text-base">Nome completo</Label>
                     <Input
                       id="name"
                       type="text"
@@ -269,10 +356,11 @@ const Auth = () => {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
+                      className="py-2"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email-register">Email</Label>
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label htmlFor="email-register" className="text-sm sm:text-base">Email</Label>
                     <Input
                       id="email-register"
                       type="email"
@@ -280,21 +368,23 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      className="py-2"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password-register">Senha</Label>
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label htmlFor="password-register" className="text-sm sm:text-base">Senha</Label>
                     <Input
                       id="password-register"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      className="py-2"
                     />
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full bg-[#ff4400] hover:bg-[#ff4400]/90"
+                    className="w-full bg-[#ff4400] hover:bg-[#ff4400]/90 py-2 mt-2"
                     disabled={loading}
                   >
                     {loading ? "Criando conta..." : "Criar conta"}
@@ -303,12 +393,12 @@ const Auth = () => {
               </TabsContent>
             </Tabs>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <div className="text-center text-sm text-muted-foreground">
+          <CardFooter className="flex flex-col space-y-2 sm:space-y-3 px-4 sm:px-6 pt-2 pb-4">
+            <div className="text-center text-xs sm:text-sm text-muted-foreground">
               Ao continuar, você concorda com nossos 
-              <Button variant="link" className="px-1 text-xs text-[#006bf7]">Termos de Serviço</Button>
+              <Button variant="link" className="px-1 text-xs text-[#006bf7] h-auto">Termos de Serviço</Button>
               e
-              <Button variant="link" className="px-1 text-xs text-[#006bf7]">Política de Privacidade</Button>
+              <Button variant="link" className="px-1 text-xs text-[#006bf7] h-auto">Política de Privacidade</Button>
             </div>
           </CardFooter>
         </Card>
@@ -316,17 +406,17 @@ const Auth = () => {
       
       {/* Modal de Redefinição de Senha */}
       <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] p-4 sm:p-6 max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>Recuperar senha</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Recuperar senha</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm pt-1">
               Informe seu email para receber um link de redefinição de senha.
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleResetPassword} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="reset-email">Email</Label>
+          <form onSubmit={handleResetPassword} className="space-y-4 py-2 sm:py-4">
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="reset-email" className="text-sm sm:text-base">Email</Label>
               <Input
                 id="reset-email"
                 type="email"
@@ -334,22 +424,23 @@ const Auth = () => {
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
                 required
+                className="py-2"
               />
             </div>
             
-            <DialogFooter className="pt-4">
+            <DialogFooter className="pt-2 sm:pt-4 flex flex-col sm:flex-row gap-2 sm:gap-0">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => setResetPasswordOpen(false)}
                 disabled={loading}
-                className="mr-2"
+                className="order-2 sm:order-1 sm:mr-2 w-full sm:w-auto"
               >
                 Cancelar
               </Button>
               <Button 
                 type="submit" 
-                className="bg-[#ff4400] hover:bg-[#ff4400]/90"
+                className="bg-[#ff4400] hover:bg-[#ff4400]/90 order-1 sm:order-2 w-full sm:w-auto"
                 disabled={loading}
               >
                 {loading ? "Enviando..." : "Enviar link"}

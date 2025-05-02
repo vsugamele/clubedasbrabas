@@ -330,9 +330,9 @@ export const getCurrentRole = async (userId: string): Promise<UserRole> => {
 export const getCurrentUserRoles = getCurrentRole;
 
 /**
- * Get all user roles
+ * Get all user roles - retorna um objeto com data e error para compatibilidade
  */
-export const getAllUserRoles = async (): Promise<any[]> => {
+export const getAllUserRoles = async (): Promise<{ data: any[] | null, error: any | null }> => {
   try {
     console.log("Buscando todos os papéis de usuários...");
     
@@ -349,7 +349,7 @@ export const getAllUserRoles = async (): Promise<any[]> => {
           role
         }));
         
-        return rolesArray;
+        return { data: rolesArray, error: null };
       } catch (e) {
         console.error("Erro ao recuperar papéis do localStorage:", e);
       }
@@ -374,7 +374,7 @@ export const getAllUserRoles = async (): Promise<any[]> => {
           localStorage.setItem('userRoles', JSON.stringify(rolesMap));
         }
         
-        return syncData as any[];
+        return { data: syncData as any[], error: null };
       }
     } catch (rpcError) {
       console.error("Erro ao sincronizar papéis via RPC:", rpcError);
@@ -387,7 +387,7 @@ export const getAllUserRoles = async (): Promise<any[]> => {
     
     if (error) {
       console.error("Error fetching all user roles:", error);
-      return [];
+      return { data: null, error: error };
     }
     
     // Salvar no localStorage para futuras consultas
@@ -401,10 +401,10 @@ export const getAllUserRoles = async (): Promise<any[]> => {
       localStorage.setItem('userRoles', JSON.stringify(rolesMap));
     }
     
-    return data || [];
+    return { data: data || [], error: null };
   } catch (error) {
     console.error("Error in getAllUserRoles:", error);
-    return [];
+    return { data: [], error: error };
   }
 };
 

@@ -33,6 +33,8 @@ interface PasswordResetPayload {
   resetToken?: string;
   requested_at: string;
   user_name?: string; // Nome do usuário para personalização do email
+  success?: boolean; // Indica se a operação foi bem-sucedida (ou foi considerada bem-sucedida para UX)
+  response_message?: string; // Mensagem recebida do Supabase ou de outra fonte
 }
 
 // Função para enviar dados de novo cadastro para o N8N
