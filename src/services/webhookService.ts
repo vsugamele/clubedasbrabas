@@ -11,9 +11,13 @@ const WEBHOOK_URLS = {
   // Webhook para processar cadastro de novos usuários
   USER_REGISTRATION: 'https://n8n-n8n.p6yhvh.easypanel.host/webhook/user-registration',
   
-  // Webhook para processar pedidos de recuperação de senha
-  // Usando um endpoint específico para recuperação de senha
-  PASSWORD_RESET: 'https://n8n-n8n.p6yhvh.easypanel.host/webhook/c88c63b3-04cb-4703-b53a-34364535a772'
+  // Webhook para processar pedidos iniciais de recuperação de senha
+  // Este é chamado quando o usuário solicita a redefinição de senha
+  PASSWORD_RESET: 'https://n8n-n8n.p6yhvh.easypanel.host/webhook/c88c63b3-04cb-4703-b53a-34364535a772',
+  
+  // Webhook para confirmação de redefinição de senha
+  // Este é chamado quando o usuário clica no link enviado por email e confirma a nova senha
+  PASSWORD_RESET_CONFIRM: 'https://n8n-n8n.p6yhvh.easypanel.host/webhook/reset-password-confirm'
 };
 
 // Tipos para as requisições
@@ -35,6 +39,15 @@ interface PasswordResetPayload {
   user_name?: string; // Nome do usuário para personalização do email
   success?: boolean; // Indica se a operação foi bem-sucedida (ou foi considerada bem-sucedida para UX)
   response_message?: string; // Mensagem recebida do Supabase ou de outra fonte
+}
+
+interface PasswordResetConfirmPayload {
+  email: string;
+  userId?: string;
+  confirmed_at: string;
+  success: boolean; // A confirmação foi bem-sucedida?
+  user_name?: string;
+  error_message?: string;
 }
 
 // Função para enviar dados de novo cadastro para o N8N
@@ -124,7 +137,7 @@ export async function sendUserRegistrationWebhook(userData: UserRegistrationPayl
 }
 
 // Função para enviar solicitação de recuperação de senha para o N8N
-export async function sendPasswordResetWebhook(payload: PasswordResetPayload): Promise<boolean> {
+export async function sendPasswordResetWebhook(payload: PasswordResetPayload): Promise<any> {
   try {
     console.log(`[WEBHOOK] Enviando solicitação de recuperação de senha para: ${WEBHOOK_URLS.PASSWORD_RESET}`);
     console.log(`[WEBHOOK] Email: ${payload.email}`);
@@ -187,19 +200,85 @@ export async function sendPasswordResetWebhook(payload: PasswordResetPayload): P
       
       return false; // Nunca deveria chegar aqui devido ao tratamento acima
     } catch (fetchError) {
-      console.error('[WEBHOOK] Erro de rede:', fetchError);
+      console.error('[WEBHOOK] Erro de fetch:', fetchError);
       
       // Se estiver em ambiente de desenvolvimento, não bloquear o fluxo
       if (process.env.NODE_ENV !== 'production') {
-        console.log('[WEBHOOK] Ambiente de desenvolvimento detectado, ignorando erro');
-        mockWebhookInDev('password-reset', payload);
+        console.log('[WEBHOOK] Ambiente de desenvolvimento, simulando sucesso');
         return true;
       }
       return false;
     }
   } catch (error) {
-    console.error('[WEBHOOK] Erro geral:', error);
-    return false;
+    console.error("[WEBHOOK] Erro ao processar webhook:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Função para enviar confirmação de redefinição de senha
+// Esta função é chamada quando o usuário completa o processo de redefinição
+export async function sendPasswordResetConfirmationWebhook(payload: PasswordResetConfirmPayload & {
+  token?: string; // Token de redefinição
+  password?: string; // Nova senha (será processada pelo webhook)
+}): Promise<any> {
+  try {
+    console.log(`[WEBHOOK] Enviando confirmação de redefinição para: ${WEBHOOK_URLS.PASSWORD_RESET_CONFIRM}`);
+    console.log(`[WEBHOOK] Email: ${payload.email}`);
+    
+    // Preparar o payload
+    const webhookPayload = {
+      ...payload,
+      source: 'circle-app',
+      event: 'password_reset_confirmed',
+      timestamp: new Date().toISOString(),
+      app_version: '1.0.0'
+    };
+    
+    console.log('[WEBHOOK] Payload confirmação:', JSON.stringify(webhookPayload, null, 2));
+    
+    // Tentar fazer o POST para o webhook
+    try {
+      const response = await fetch(WEBHOOK_URLS.PASSWORD_RESET_CONFIRM, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(webhookPayload)
+      });
+      
+      // Capturar o status e texto da resposta para logging
+      const responseStatus = response.status;
+      let responseData = null;
+      
+      try {
+        // Tentar obter a resposta como JSON
+        responseData = await response.json();
+        console.log(`[WEBHOOK] Resposta confirmação JSON:`, responseData);
+      } catch (jsonError) {
+        // Se não for JSON, obter como texto
+        const responseText = await response.text();
+        console.log(`[WEBHOOK] Resposta confirmação texto: ${responseText}`);
+        // Se houver conteúdo, criar objeto simples
+        if (responseText && responseText.trim()) {
+          responseData = { message: responseText };
+        }
+      }
+      
+      if (responseStatus >= 200 && responseStatus < 400) {
+        console.log('[WEBHOOK] Confirmação enviada com sucesso!');
+        return { success: true, data: responseData };
+      }
+      
+      console.error(`[WEBHOOK] Erro ao enviar confirmação: ${responseStatus}`);
+      return { success: false, error: `HTTP ${responseStatus}`, data: responseData };
+    } catch (fetchError) {
+      console.error("[WEBHOOK] Erro ao enviar confirmação:", fetchError);
+      return { success: false, error: fetchError.message || "Network error" };
+    }
+  } catch (error) {
+    console.error("[WEBHOOK] Erro ao processar webhook de confirmação:", error);
+    return { success: false, error: error.message || "Unknown error" };
   }
 }
 
