@@ -8,9 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReferenceItem, createReference, updateReference, uploadReferenceImage, uploadReferenceAudio } from "@/services/referenceService";
+import { AudioRecorder } from "@/components/ui/audio-recorder";
 import { toast } from "sonner";
-import { Mic, Play, Pause, X, ChevronDown } from "lucide-react";
+import { Mic, Play, Pause, X, ChevronDown, Upload } from "lucide-react";
 
 interface ReferenceFormProps {
   reference: ReferenceItem | null;
@@ -149,7 +151,9 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
       }
       
       // Upload do áudio se for novo
+      // Se tem audioFile, faz upload do arquivo
       if (audioFile) {
+        console.log("Fazendo upload de arquivo de áudio");
         const uploadedAudioUrl = await uploadReferenceAudio(audioFile, userId);
         if (uploadedAudioUrl) {
           finalAudioUrl = uploadedAudioUrl;
@@ -158,6 +162,11 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
           setLoading(false);
           return;
         }
+      } 
+      // Se não tem audioFile mas tem audioUrl começando com data:, usa o base64 diretamente
+      else if (audioUrl && audioUrl.startsWith('data:')) {
+        console.log("Usando áudio gravado diretamente (base64)");
+        finalAudioUrl = audioUrl;
       }
 
       const referenceData = {
@@ -331,67 +340,92 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
 
               <div className="space-y-2">
                 <Label htmlFor="audio-description">Áudio Descritivo</Label>
-                <div className="border rounded-md p-4">
-                  {audioUrl ? (
-                    <div className="relative">
-                      <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-10 w-10 rounded-full"
-                            onClick={toggleAudioPlayback}
-                          >
-                            {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-                          </Button>
-                          <div className="text-sm">
-                            {isPlaying ? "Reproduzindo..." : "Áudio carregado"}
+                
+                <Tabs defaultValue="record" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="record" className="flex items-center gap-1">
+                      <Mic className="h-4 w-4" /> Gravar Áudio
+                    </TabsTrigger>
+                    <TabsTrigger value="upload" className="flex items-center gap-1">
+                      <Upload className="h-4 w-4" /> Fazer Upload
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="record" className="mt-4">
+                    <AudioRecorder 
+                      onAudioCaptured={(audioBase64) => {
+                        setAudioUrl(audioBase64);
+                        setAudioFile(null);
+                      }}
+                      existingAudio={audioUrl}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="upload" className="mt-4">
+                    <div className="border rounded-md p-4">
+                      {audioUrl && !audioUrl.startsWith('data:') ? (
+                        <div className="relative">
+                          <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-10 w-10 rounded-full"
+                                onClick={toggleAudioPlayback}
+                              >
+                                {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                              </Button>
+                              <div className="text-sm">
+                                {isPlaying ? "Reproduzindo..." : "Áudio carregado"}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => document.getElementById("audio-description")?.click()}
+                              >
+                                Alterar
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={removeAudio}
+                              >
+                                Remover
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => document.getElementById("audio-description")?.click()}
-                          >
-                            Alterar
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={removeAudio}
-                          >
-                            Remover
-                          </Button>
+                      ) : (
+                        <div
+                          className="flex flex-col items-center justify-center h-32 bg-muted rounded-md cursor-pointer"
+                          onClick={() => document.getElementById("audio-description")?.click()}
+                        >
+                          <Upload size={24} className="mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground mb-1">
+                            Clique para fazer upload de um áudio
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            MP3 ou WAV (máx. 5MB)
+                          </p>
                         </div>
-                      </div>
+                      )}
+                      <Input
+                        id="audio-description"
+                        type="file"
+                        accept="audio/mp3,audio/wav,audio/mpeg"
+                        className="hidden"
+                        onChange={handleAudioChange}
+                      />
                     </div>
-                  ) : (
-                    <div
-                      className="flex flex-col items-center justify-center h-32 bg-muted rounded-md cursor-pointer"
-                      onClick={() => document.getElementById("audio-description")?.click()}
-                    >
-                      <Mic size={24} className="mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Adicione um áudio descritivo
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        MP3 ou WAV (máx. 5MB)
-                      </p>
-                    </div>
-                  )}
-                  <Input
-                    id="audio-description"
-                    type="file"
-                    accept="audio/mp3,audio/wav,audio/mpeg"
-                    className="hidden"
-                    onChange={handleAudioChange}
-                  />
-                </div>
+                  </TabsContent>
+                </Tabs>
+                
                 <p className="text-xs text-muted-foreground">
                   Adicione um áudio explicando detalhes sobre o antes e depois que não são visíveis nas fotos
                 </p>

@@ -7,12 +7,14 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ReferenceModal from "@/components/references/ReferenceModal";
 import MainLayout from "@/components/layout/MainLayout";
-import { Home, BookOpen, Image, ScissorsSquare, Filter, PlusCircle } from "lucide-react";
+import { Home, BookOpen, Image, ScissorsSquare, Filter, PlusCircle, Lock, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth";
-import { isAdminByEmail } from "@/utils/adminUtils";
+import { isAdminByEmailSync } from "@/utils/adminUtils";
 import ReferenceForm from "@/components/admin/references/ReferenceForm";
+import { usePremiumFeatures } from "@/hooks/usePremiumFeatures";
+import { PremiumModal } from "@/components/ui/premium-modal";
 
 const ReferenceGallery = () => {
   const [references, setReferences] = useState<ReferenceItem[]>([]);
@@ -22,13 +24,46 @@ const ReferenceGallery = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { user } = useAuth();
+  const { canAccessGallery, showPremiumModal, setShowPremiumModal, currentFeature } = usePremiumFeatures();
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [checkingPermission, setCheckingPermission] = useState(true);
   
-  // Verificar se o usuário é admin usando a função centralizada do adminUtils
-  const isAdmin = user ? isAdminByEmail(user.email) : false;
+  // Verificar se o usuário é admin usando a função síncrona centralizada do adminUtils
+  const isAdmin = user ? isAdminByEmailSync(user.email) : false;
+  console.log(`ReferenceGallery - Verificação de admin para ${user?.email}: ${isAdmin}`);
 
+
+  // Verificar se o usuário pode acessar a galeria
   useEffect(() => {
-    loadReferences();
-  }, [selectedType]);
+    const checkGalleryAccess = async () => {
+      setCheckingPermission(true);
+      // Administradores sempre têm acesso, independente do plano
+      if (isAdmin) {
+        setHasPermission(true);
+        setCheckingPermission(false);
+        loadReferences();
+        return;
+      }
+      
+      const permission = await canAccessGallery();
+      setHasPermission(permission);
+      setCheckingPermission(false);
+      
+      // Só carrega as referências se tiver permissão
+      if (permission) {
+        loadReferences();
+      }
+    };
+    
+    checkGalleryAccess();
+  }, [canAccessGallery, isAdmin]);
+  
+  useEffect(() => {
+    // Só carrega as referências se tiver permissão
+    if (hasPermission) {
+      loadReferences();
+    }
+  }, [selectedType, hasPermission]);
   
   const handleAddReference = () => {
     setIsFormOpen(true);
@@ -123,43 +158,72 @@ const ReferenceGallery = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto py-4 px-4">
+      <PremiumModal
+        open={showPremiumModal}
+        onOpenChange={setShowPremiumModal}
+        feature={currentFeature}
+      />
+      
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <TopNavigation />
         <MobileTopNavigation />
-
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Galeria de Referências</h1>
+        
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Galeria de Referências</h1>
+          
+          <div className="flex items-center gap-3">
             {isAdmin && (
               <Button onClick={handleAddReference} className="flex items-center gap-2">
                 <PlusCircle className="h-4 w-4" />
-                Adicionar Referência
+                <span>Adicionar</span>
               </Button>
             )}
-          </div>
-
-          <div className="flex items-center gap-3 mt-4">
-            <p className="text-sm font-medium">Filtrar por tipo:</p>
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Todos os tipos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="2B">Tipo 2B</SelectItem>
-                <SelectItem value="2C">Tipo 2C</SelectItem>
-                <SelectItem value="3A">Tipo 3A</SelectItem>
-                <SelectItem value="3B">Tipo 3B</SelectItem>
-                <SelectItem value="3C">Tipo 3C</SelectItem>
-                <SelectItem value="4A">Tipo 4A</SelectItem>
-                <SelectItem value="4B">Tipo 4B</SelectItem>
-                <SelectItem value="4C">Tipo 4C</SelectItem>
-              </SelectContent>
-            </Select>
+            
+            {hasPermission && (
+              <Select value={selectedType} onValueChange={setSelectedType}>
+                <SelectTrigger className="w-[150px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filtrar por tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="2B">Tipo 2B</SelectItem>
+                  <SelectItem value="2C">Tipo 2C</SelectItem>
+                  <SelectItem value="3A">Tipo 3A</SelectItem>
+                  <SelectItem value="3B">Tipo 3B</SelectItem>
+                  <SelectItem value="3C">Tipo 3C</SelectItem>
+                  <SelectItem value="4A">Tipo 4A</SelectItem>
+                  <SelectItem value="4B">Tipo 4B</SelectItem>
+                  <SelectItem value="4C">Tipo 4C</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
-        {loading ? (
+        {checkingPermission ? (
+          <div className="flex justify-center p-12">
+            <LoadingSpinner size="lg" text="Verificando acesso..." />
+          </div>
+        ) : !hasPermission ? (
+          <div className="text-center p-12 border border-amber-200 rounded-lg bg-amber-50">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 mb-4">
+              <Lock className="h-10 w-10 text-amber-600" />
+            </div>
+            <h3 className="text-xl font-bold text-amber-800 mb-3">Acesso Exclusivo para Membros Premium</h3>
+            <p className="text-amber-700 mb-6 max-w-md mx-auto">
+              Nossa galeria de referências é um recurso exclusivo para membros do Clube das Brabas.
+              Atualize seu plano para ter acesso a todas as referências de cortes e styling.
+            </p>
+            <Button 
+              onClick={() => setShowPremiumModal(true)}
+              className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-6 rounded-full mx-auto flex items-center"
+            >
+              <Award className="mr-2 h-5 w-5" />
+              Fazer parte do Clube das Brabas
+            </Button>
+          </div>
+        ) : loading ? (
           <div className="flex justify-center p-12">
             <LoadingSpinner size="lg" text="Carregando referências..." />
           </div>

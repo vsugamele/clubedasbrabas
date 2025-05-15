@@ -465,42 +465,61 @@ export const updateReference = async (
 // Excluir uma referência
 export const deleteReference = async (id: string) => {
   try {
-    // Primeiro, verificar se o documento é uma referência
+    console.log(`Iniciando exclusão da referência com ID: ${id}`);
+    
+    // Verificar se o ID é um número válido
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) {
+      console.error(`ID inválido para exclusão: "${id}" não é um número válido`);
+      toast.error("Erro ao excluir referência: ID inválido");
+      return false;
+    }
+    
+    console.log(`ID convertido para número: ${numericId}`);
+    
+    // Primeiro, verificar se o documento existe e é uma referência
     const { data: document, error: fetchError } = await supabase
       .from("documents")
-      .select("metadata")
-      .eq("id", parseInt(id))
+      .select("*")
+      .eq("id", numericId)
       .single();
 
     if (fetchError) {
-      console.error("Erro ao verificar referência para exclusão:", fetchError);
-      toast.error("Erro ao excluir referência");
+      console.error(`Erro ao verificar referência para exclusão (ID: ${numericId}):`, fetchError);
+      toast.error("Erro ao excluir referência: documento não encontrado");
       return false;
     }
+    
+    console.log(`Documento encontrado:`, document);
 
+    // Verificar se os metadados existem e se é uma referência
     const metadata = document.metadata as Record<string, any> || {};
-    if (metadata.document_type !== "reference") {
-      console.error("Tentativa de excluir um documento que não é uma referência");
+    if (!metadata || metadata.document_type !== "reference") {
+      console.error(`Documento com ID ${numericId} não é uma referência válida:`, metadata);
       toast.error("Erro ao excluir referência: documento inválido");
       return false;
     }
+    
+    console.log(`Confirmado: documento é uma referência válida. Prosseguindo com exclusão...`);
 
+    // Executar a exclusão
     const { error } = await supabase
       .from("documents")
       .delete()
-      .eq("id", parseInt(id));
+      .eq("id", numericId);
 
     if (error) {
-      console.error("Erro ao excluir referência:", error);
-      toast.error("Erro ao excluir referência");
+      console.error(`Erro ao excluir referência (ID: ${numericId}):`, error);
+      toast.error(`Erro ao excluir referência: ${error.message || 'Erro desconhecido'}`); 
       return false;
     }
 
+    console.log(`Referência excluída com sucesso: ID ${numericId}`);
     toast.success("Referência excluída com sucesso!");
     return true;
   } catch (error) {
-    console.error("Exceção ao excluir referência:", error);
-    toast.error("Erro ao excluir referência");
+    console.error(`Exceção ao excluir referência (ID: ${id}):`, error);
+    toast.error(`Erro ao excluir referência: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     return false;
   }
 };

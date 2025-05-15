@@ -5,6 +5,7 @@ import {
   deleteReference,
   ReferenceItem,
 } from "@/services/referenceService";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -69,11 +70,25 @@ export const ReferenceManagement = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Tem certeza que deseja excluir esta referência?")) {
-      const success = await deleteReference(id);
-      if (success) {
-        loadReferences();
+    console.log(`Botão excluir clicado para referência ID: ${id}`);
+    try {
+      if (window.confirm("Tem certeza que deseja excluir esta referência?")) {
+        console.log(`Confirmação de exclusão aceita para ID: ${id}`);
+        const success = await deleteReference(id);
+        console.log(`Resultado da exclusão para ID ${id}:`, success);
+        if (success) {
+          console.log(`Recarregando lista após exclusão bem-sucedida`);
+          loadReferences();
+        } else {
+          console.error(`Falha ao excluir referência ID: ${id}`);
+          toast.error("Não foi possível excluir a referência. Verifique o console para mais detalhes.");
+        }
+      } else {
+        console.log(`Exclusão cancelada pelo usuário para ID: ${id}`);
       }
+    } catch (error) {
+      console.error(`Erro ao processar exclusão da referência ID: ${id}:`, error);
+      toast.error(`Erro ao excluir: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   };
 
@@ -172,7 +187,13 @@ export const ReferenceManagement = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(reference.id)}
+                            onClick={() => {
+                              console.log('Botão de excluir clicado diretamente');
+                              console.log('Referência para exclusão:', reference);
+                              console.log('ID da referência:', reference.id);
+                              handleDelete(reference.id);
+                            }}
+                            data-ref-id={reference.id}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
