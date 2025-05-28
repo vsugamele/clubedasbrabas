@@ -36,6 +36,7 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
   const [texture, setTexture] = useState("");
   const [cutType, setCutType] = useState("");
   const [productsUsed, setProductsUsed] = useState("");
+  const [tools, setTools] = useState<string[]>([]);
   const [estimatedTime, setEstimatedTime] = useState("");
   const [observations, setObservations] = useState("");
   
@@ -63,11 +64,18 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
       setTexture(reference.texture || "");
       setCutType(reference.cut_type || "");
       setProductsUsed(reference.products_used || "");
+      setTools(reference.tools ? reference.tools.split(", ") : []);
       setEstimatedTime(reference.estimated_time || "");
       setObservations(reference.observations || "");
       setBeforeImageUrl(reference.before_image || "");
       setAfterImageUrl(reference.after_image || "");
       setAudioUrl(reference.audio_description || "");
+      
+      // Resetar o estado de reprodução quando a referência muda
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
     }
   }, [reference]);
 
@@ -95,6 +103,12 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
       const file = e.target.files[0];
       setAudioFile(file);
       setAudioUrl(URL.createObjectURL(file));
+      
+      // Resetar o estado de reprodução quando um novo áudio é selecionado
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
     }
   };
 
@@ -103,7 +117,22 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        // Tentar reproduzir o áudio
+        const playPromise = audioRef.current.play();
+        
+        // Tratamento para browsers que implementam a reprodução como uma Promise
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              // Reprodução iniciada com sucesso
+              console.log('Reprodução de áudio iniciada com sucesso');
+            })
+            .catch(error => {
+              // Erro ao iniciar reprodução (comum em alguns navegadores sem interação do usuário)
+              console.error('Erro ao reproduzir áudio:', error);
+              toast.error('Não foi possível reproduzir o áudio automaticamente');
+            });
+        }
       }
       setIsPlaying(!isPlaying);
     }
@@ -181,6 +210,7 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
         line_type: lineType,
         texture,
         cut_type: cutType,
+        tools: tools.join(", "),
         products_used: productsUsed,
         estimated_time: estimatedTime,
         observations,
@@ -238,6 +268,7 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="2A">Tipo 2A</SelectItem>
                     <SelectItem value="2B">Tipo 2B</SelectItem>
                     <SelectItem value="2C">Tipo 2C</SelectItem>
                     <SelectItem value="3A">Tipo 3A</SelectItem>
@@ -363,7 +394,7 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
                   
                   <TabsContent value="upload" className="mt-4">
                     <div className="border rounded-md p-4">
-                      {audioUrl && !audioUrl.startsWith('data:') ? (
+                      {audioUrl ? (
                         <div className="relative">
                           <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
                           <div className="flex items-center justify-between">
@@ -378,7 +409,7 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
                                 {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                               </Button>
                               <div className="text-sm">
-                                {isPlaying ? "Reproduzindo..." : "Áudio carregado"}
+                                {isPlaying ? "Reproduzindo..." : audioUrl.startsWith('data:') ? "Áudio gravado" : "Áudio carregado"}
                               </div>
                             </div>
                             <div className="flex gap-2">
@@ -597,6 +628,185 @@ const ReferenceForm: React.FC<ReferenceFormProps> = ({
                     <SelectItem value="Corte Misto">Corte Misto</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="tools">Ferramentas</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                      id="tools"
+                    >
+                      {tools.length > 0
+                        ? `${tools.length} ferramenta${tools.length > 1 ? 's' : ''} selecionada${tools.length > 1 ? 's' : ''}`
+                        : "Selecione as ferramentas"}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <div className="p-2 space-y-2">
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="tool-tesoura-laser" 
+                            checked={tools.includes("TESOURA FIO LASER")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTools([...tools, "TESOURA FIO LASER"]);
+                              } else {
+                                setTools(tools.filter(t => t !== "TESOURA FIO LASER"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="tool-tesoura-laser" className="text-sm cursor-pointer">TESOURA FIO LASER</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="tool-tesoura-navalha" 
+                            checked={tools.includes("TESOURA FIO NAVALHA")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTools([...tools, "TESOURA FIO NAVALHA"]);
+                              } else {
+                                setTools(tools.filter(t => t !== "TESOURA FIO NAVALHA"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="tool-tesoura-navalha" className="text-sm cursor-pointer">TESOURA FIO NAVALHA</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="tool-pente-corte" 
+                            checked={tools.includes("PENTE DE CORTE")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTools([...tools, "PENTE DE CORTE"]);
+                              } else {
+                                setTools(tools.filter(t => t !== "PENTE DE CORTE"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="tool-pente-corte" className="text-sm cursor-pointer">PENTE DE CORTE</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="tool-pente-cabo" 
+                            checked={tools.includes("PENTE DE CABO")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTools([...tools, "PENTE DE CABO"]);
+                              } else {
+                                setTools(tools.filter(t => t !== "PENTE DE CABO"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="tool-pente-cabo" className="text-sm cursor-pointer">PENTE DE CABO</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="tool-pente-garfo" 
+                            checked={tools.includes("PENTE GARFO")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTools([...tools, "PENTE GARFO"]);
+                              } else {
+                                setTools(tools.filter(t => t !== "PENTE GARFO"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="tool-pente-garfo" className="text-sm cursor-pointer">PENTE GARFO</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="tool-pente-largo" 
+                            checked={tools.includes("PENTE LARGO")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTools([...tools, "PENTE LARGO"]);
+                              } else {
+                                setTools(tools.filter(t => t !== "PENTE LARGO"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="tool-pente-largo" className="text-sm cursor-pointer">PENTE LARGO</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="tool-borrifador" 
+                            checked={tools.includes("BORRIFADOR DE ÁGUA")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTools([...tools, "BORRIFADOR DE ÁGUA"]);
+                              } else {
+                                setTools(tools.filter(t => t !== "BORRIFADOR DE ÁGUA"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="tool-borrifador" className="text-sm cursor-pointer">BORRIFADOR DE ÁGUA</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="tool-prendedores" 
+                            checked={tools.includes("PRENDEDORES DE CABELO")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTools([...tools, "PRENDEDORES DE CABELO"]);
+                              } else {
+                                setTools(tools.filter(t => t !== "PRENDEDORES DE CABELO"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="tool-prendedores" className="text-sm cursor-pointer">PRENDEDORES DE CABELO</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="tool-secador" 
+                            checked={tools.includes("SECADOR")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTools([...tools, "SECADOR"]);
+                              } else {
+                                setTools(tools.filter(t => t !== "SECADOR"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="tool-secador" className="text-sm cursor-pointer">SECADOR</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="tool-difusor-manual" 
+                            checked={tools.includes("DIFUSOR MANUAL")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTools([...tools, "DIFUSOR MANUAL"]);
+                              } else {
+                                setTools(tools.filter(t => t !== "DIFUSOR MANUAL"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="tool-difusor-manual" className="text-sm cursor-pointer">DIFUSOR MANUAL</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="tool-difusor-360" 
+                            checked={tools.includes("DIFUSOR 360")}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTools([...tools, "DIFUSOR 360"]);
+                              } else {
+                                setTools(tools.filter(t => t !== "DIFUSOR 360"));
+                              }
+                            }}
+                          />
+                          <label htmlFor="tool-difusor-360" className="text-sm cursor-pointer">DIFUSOR 360</label>
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div>

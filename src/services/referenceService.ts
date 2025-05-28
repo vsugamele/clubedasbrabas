@@ -15,6 +15,7 @@ export interface ReferenceItem {
   line_type: string;
   texture: string;
   cut_type: string;
+  tools: string;
   products_used: string;
   estimated_time: string;
   observations: string;
@@ -34,6 +35,7 @@ export interface ReferenceCreateInput {
   line_type: string;
   texture: string;
   cut_type: string;
+  tools: string;
   products_used: string;
   estimated_time: string;
   observations: string;
@@ -321,6 +323,7 @@ export const createReference = async (
             line_type: reference.line_type,
             texture: reference.texture,
             cut_type: reference.cut_type,
+            tools: reference.tools,
             products_used: reference.products_used,
             estimated_time: reference.estimated_time,
             observations: reference.observations,
@@ -408,6 +411,7 @@ export const updateReference = async (
     if (reference.line_type) updatedMetadata.line_type = reference.line_type;
     if (reference.texture) updatedMetadata.texture = reference.texture;
     if (reference.cut_type) updatedMetadata.cut_type = reference.cut_type;
+    if (reference.tools) updatedMetadata.tools = reference.tools;
     if (reference.products_used) updatedMetadata.products_used = reference.products_used;
     if (reference.estimated_time) updatedMetadata.estimated_time = reference.estimated_time;
     if (reference.observations) updatedMetadata.observations = reference.observations;
