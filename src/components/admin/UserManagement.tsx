@@ -34,7 +34,7 @@ interface UserData {
   language?: string | null;
   location?: string | null;
   timezone?: string | null;
-  
+
   // Campos adicionais que podem não existir no modelo padrão do Supabase
   is_active?: boolean;
   subscription_type?: 'free' | 'premium' | null;
@@ -53,28 +53,28 @@ const UserManagement = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Estados para gerenciar papeis
-  const [userRoles, setUserRoles] = useState<{[key: string]: UserRole}>({});
+  const [userRoles, setUserRoles] = useState<{ [key: string]: UserRole }>({});
   const [updatingRole, setUpdatingRole] = useState(false);
   const [updatingRoleUserId, setUpdatingRoleUserId] = useState<string | null>(null);
-  
+
   // Estados para alteração de assinatura (gratuito/premium)
   const [updatingSubscription, setUpdatingSubscription] = useState(false);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-  
+
   // Estado para filtro de assinatura
   const [subscriptionFilter, setSubscriptionFilter] = useState<'all' | 'free' | 'premium'>('all');
-  
+
   // Estados para criação de novo usuário
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
-  
+
   // Estado para dar feedback durante a atualização
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Estado para gerenciar reset de senha
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -83,15 +83,15 @@ const UserManagement = () => {
   const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
-  
+
   // Estado para exclusão de usuário
   const [deletingUser, setDeletingUser] = useState(false);
-  
+
   // Estado para ativação/inativação de usuário
   const [updatingActiveStatus, setUpdatingActiveStatus] = useState(false);
   const [updatingActiveUserId, setUpdatingActiveUserId] = useState<string | null>(null);
   const [updatingUserStatus, setUpdatingUserStatus] = useState(false);
-  
+
   // Estado para filtro de status de ativação
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
@@ -113,7 +113,7 @@ const UserManagement = () => {
       }
 
       // Criar um mapa de userId para role
-      const rolesMap: {[key: string]: UserRole} = {};
+      const rolesMap: { [key: string]: UserRole } = {};
       if (data && data.length) {
         data.forEach(item => {
           if (item.user_id && item.role) {
@@ -145,34 +145,31 @@ const UserManagement = () => {
     return user.email || 'Sem email';
   };
 
-  // Função para deletar um usuário
+  // Função para deletar um usuário completamente (profiles + auth.users)
   const deleteUser = async (userId: string) => {
     try {
       setDeletingUser(true);
-      
-      // Primeiro, remove o registro na tabela de profiles
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
-        
-      if (profileError) {
-        throw profileError;
+
+      // Chamar a função do banco que deleta completamente o usuário
+      const { data, error } = await supabase.rpc('delete_user_completely', {
+        target_user_id: userId
+      });
+
+      if (error) {
+        throw error;
       }
-      
-      // Em seguida, remove o usuário da autenticação usando Admin API
-      // Nota: Em um ambiente real, isso deveria ser feito via um endpoint seguro no servidor
-      // Este exemplo simplificado não funcionará em produção sem uma API intermediária
-      // const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      // 
-      // if (authError) {
-      //   throw authError;
-      // }
-      
+
+      // Verificar resultado da função
+      const result = data as { success: boolean; error?: string; message?: string };
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro desconhecido ao deletar usuário');
+      }
+
       // Atualiza o estado local removendo o usuário
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
-      
-      toast.success('Usuário deletado com sucesso');
+
+      toast.success('Usuário deletado completamente com sucesso');
     } catch (error: any) {
       console.error('Erro ao deletar usuário:', error);
       toast.error(`Falha ao deletar usuário: ${error.message}`);
@@ -186,31 +183,31 @@ const UserManagement = () => {
     try {
       setUpdatingUserStatus(true);
       setUpdatingUserId(userId);
-      
+
       const newStatus = !isActive;
-      
+
       // Cria um objeto com apenas os campos válidos para updates
       const updateData: Record<string, any> = {};
       updateData.is_active = newStatus; // Campo personalizado
-      
+
       const { error } = await supabase
         .from('profiles')
         .update(updateData)
         .eq('id', userId);
-      
+
       if (error) {
         throw error;
       }
-      
+
       // Atualiza o estado local
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === userId 
-            ? { ...user, is_active: newStatus } 
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === userId
+            ? { ...user, is_active: newStatus }
             : user
         )
       );
-      
+
       toast.success(`Status do usuário alterado para ${newStatus ? 'ativo' : 'inativo'}`);
     } catch (error: any) {
       console.error('Erro ao alterar status do usuário:', error);
@@ -225,19 +222,19 @@ const UserManagement = () => {
   const resetUserPassword = async () => {
     try {
       setUpdatingPassword(true);
-      
+
       if (!selectedUserEmail) {
         throw new Error('Email do usuário não definido');
       }
-      
+
       const { error } = await supabase.auth.resetPasswordForEmail(selectedUserEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-      
+
       if (error) {
         throw error;
       }
-      
+
       toast.success(`Email de redefinição de senha enviado para ${selectedUserEmail}`);
       setResetPasswordModalOpen(false);
       setResetPasswordDialogOpen(false);
@@ -257,20 +254,20 @@ const UserManagement = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Buscar perfis de usuários
       const result = await supabase
         .from('profiles')
         .select('*')
         .order('updated_at', { ascending: false });
-      
+
       const data = result.data as Record<string, any>[] || [];
       const error = result.error;
-      
+
       if (error) {
         throw error;
       }
-      
+
       // Processar os dados para garantir compatibilidade com nossa interface UserData
       const usersWithActiveStatus = data.map(user => {
         // Modelo base do usuário com os campos do Supabase
@@ -287,28 +284,28 @@ const UserManagement = () => {
           location: user.location,
           timezone: user.timezone,
           headline: user.headline,
-          
+
           // Campos personalizados ou opcionais
           contact: user.contact || null,
           last_sign_in_at: user.last_sign_in_at || null,
-          
+
           // Status de ativação (campo personalizado)
           is_active: user.is_active === undefined ? true : user.is_active,
-          
+
           // Campos de assinatura (campos personalizados)
           subscription_type: user.subscription_type || 'free',
           subscription_start_date: user.subscription_start_date || null,
           subscription_end_date: user.subscription_end_date || null
         };
-        
+
         return userData;
       });
-      
+
       setUsers(usersWithActiveStatus);
-      
+
       // Buscar papéis de usuários
       await fetchUserRoles(usersWithActiveStatus);
-      
+
     } catch (error) {
       console.error('Error fetching users:', error);
       setError('Falha ao buscar usuários: ' + (error as Error).message);
@@ -327,46 +324,46 @@ const UserManagement = () => {
     try {
       setUpdatingSubscription(true);
       setUpdatingUserId(userId);
-      
+
       // Determinar o novo tipo de assinatura
       const newType = currentType === 'premium' ? 'free' : 'premium';
       console.log(`Alterando tipo de assinatura do usuário ${userId} de ${currentType || 'indefinido'} para ${newType}`);
-      
+
       // Calcular datas de assinatura para planos premium
       const currentDate = new Date();
       const oneYearLater = new Date(currentDate);
       oneYearLater.setFullYear(currentDate.getFullYear() + 1);
-      
+
       // Criar objeto com apenas os campos válidos para o update
       const updateData: Record<string, any> = {};
       updateData.subscription_type = newType;
       updateData.subscription_start_date = newType === 'premium' ? currentDate.toISOString() : null;
       updateData.subscription_end_date = newType === 'premium' ? oneYearLater.toISOString() : null;
-      
+
       // Atualizar o tipo de assinatura no banco de dados
       const { error } = await supabase
         .from('profiles')
         .update(updateData)
         .eq('id', userId);
-      
+
       if (error) {
         throw error;
       }
-      
+
       // Atualizar o estado local
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === userId 
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === userId
             ? {
-                ...user,
-                subscription_type: newType,
-                subscription_start_date: newType === 'premium' ? currentDate.toISOString() : null,
-                subscription_end_date: newType === 'premium' ? oneYearLater.toISOString() : null
-              }
+              ...user,
+              subscription_type: newType,
+              subscription_start_date: newType === 'premium' ? currentDate.toISOString() : null,
+              subscription_end_date: newType === 'premium' ? oneYearLater.toISOString() : null
+            }
             : user
         )
       );
-      
+
       toast.success(`Assinatura alterada para ${newType === 'premium' ? 'Premium' : 'Gratuito'} com sucesso`);
     } catch (error: any) {
       console.error('Erro ao alterar tipo de assinatura:', error);
@@ -381,11 +378,11 @@ const UserManagement = () => {
     try {
       setUpdatingActiveStatus(true);
       setUpdatingActiveUserId(userId);
-      
+
       // Determinar o novo status
       const newStatus = !currentStatus;
       console.log(`Alterando status do usuário ${userId} de ${currentStatus ? 'ativo' : 'inativo'} para ${newStatus ? 'ativo' : 'inativo'}`);
-      
+
       // Atualizar o status no banco de dados
       const { error } = await supabase
         .from('profiles')
@@ -393,23 +390,23 @@ const UserManagement = () => {
           is_active: newStatus
         })
         .eq('id', userId);
-      
+
       if (error) {
         throw error;
       }
-      
+
       // Atualizar o estado local
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === userId 
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === userId
             ? {
-                ...user,
-                is_active: newStatus
-              }
+              ...user,
+              is_active: newStatus
+            }
             : user
         )
       );
-      
+
       toast.success(`Usuário ${newStatus ? 'ativado' : 'inativado'} com sucesso`);
     } catch (error: any) {
       console.error('Erro ao alterar status do usuário:', error);
@@ -422,12 +419,12 @@ const UserManagement = () => {
 
   const getFilteredUsers = () => {
     let filteredUsers = users;
-    
+
     // Filtrar por tipo de assinatura
     if (subscriptionFilter !== 'all') {
       filteredUsers = filteredUsers.filter(user => user.subscription_type === subscriptionFilter);
     }
-    
+
     // Filtrar por status de ativação
     if (activeFilter !== 'all') {
       filteredUsers = filteredUsers.filter(user => {
@@ -435,7 +432,7 @@ const UserManagement = () => {
         return activeFilter === 'active' ? isActive : !isActive;
       });
     }
-    
+
     return filteredUsers;
   };
 
@@ -461,7 +458,7 @@ const UserManagement = () => {
                 <SelectItem value="premium">Plano Premium</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select
               value={activeFilter}
               onValueChange={(value) => setActiveFilter(value as 'all' | 'active' | 'inactive')}
@@ -476,9 +473,9 @@ const UserManagement = () => {
               </SelectContent>
             </Select>
           </div>
-          <Button 
-            onClick={handleRefresh} 
-            variant="outline" 
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
             size="sm"
             disabled={refreshing}
           >
@@ -528,9 +525,9 @@ const UserManagement = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button 
-                  type="submit" 
-                  onClick={() => {}}
+                <Button
+                  type="submit"
+                  onClick={() => { }}
                   disabled={creatingUser || !newUserEmail || !newUserPassword}
                 >
                   {creatingUser ? <LoadingSpinner size="sm" /> : 'Criar Usuário'}
@@ -548,7 +545,7 @@ const UserManagement = () => {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        
+
         {loading ? (
           <div className="flex justify-center items-center py-8">
             <LoadingSpinner size="lg" />
@@ -593,7 +590,7 @@ const UserManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge 
+                      <Badge
                         variant={user.subscription_type === 'premium' ? "default" : "secondary"}
                         className={user.subscription_type === 'premium' ? "bg-amber-500 hover:bg-amber-600" : ""}
                       >
@@ -676,7 +673,7 @@ const UserManagement = () => {
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                        
+
                         {/* Botão para alterar senha */}
                         <Dialog open={resetPasswordModalOpen && selectedUserId === user.id} onOpenChange={(open) => {
                           if (!open) {
@@ -687,8 +684,8 @@ const UserManagement = () => {
                           }
                         }}>
                           <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="icon"
                               className="h-10 w-10"
                               onClick={() => {
@@ -714,8 +711,8 @@ const UserManagement = () => {
                               </p>
                             </div>
                             <DialogFooter>
-                              <Button 
-                                type="submit" 
+                              <Button
+                                type="submit"
                                 onClick={resetUserPassword}
                                 disabled={updatingPassword}
                               >
@@ -724,10 +721,10 @@ const UserManagement = () => {
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
-                        
+
                         {/* Botão para ativar/inativar usuário */}
-                        <Button 
-                          variant={user.is_active ? "destructive" : "outline"} 
+                        <Button
+                          variant={user.is_active ? "destructive" : "outline"}
                           size="icon"
                           className="h-10 w-10"
                           onClick={() => toggleUserStatus(user.id, user.is_active || false)}
@@ -741,11 +738,11 @@ const UserManagement = () => {
                             <Unlock className="h-4 w-4" />
                           )}
                         </Button>
-                        
+
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="destructive" 
+                            <Button
+                              variant="destructive"
                               size="icon"
                               className="h-10 w-10"
                               disabled={deletingUser}
@@ -762,7 +759,7 @@ const UserManagement = () => {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction 
+                              <AlertDialogAction
                                 className="bg-red-500 hover:bg-red-600"
                                 onClick={() => deleteUser(user.id)}
                               >
