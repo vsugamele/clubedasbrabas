@@ -615,9 +615,47 @@ const UserManagement = () => {
                     <TableCell>{user.created_at}</TableCell>
                     <TableCell>{user.last_sign_in_at}</TableCell>
                     <TableCell>
-                      <Badge className="bg-blue-100 text-blue-800">
-                        {getUserRoleFromCache(user.id)}
-                      </Badge>
+                      <Select
+                        value={getUserRoleFromCache(user.id)}
+                        onValueChange={async (value) => {
+                          setUpdatingRole(true);
+                          setUpdatingRoleUserId(user.id);
+                          const success = await assignUserRole(user.id, value as UserRole);
+                          if (success) {
+                            setUserRoles(prev => ({ ...prev, [user.id]: value as UserRole }));
+                          }
+                          setUpdatingRole(false);
+                          setUpdatingRoleUserId(null);
+                        }}
+                        disabled={updatingRole && updatingRoleUserId === user.id}
+                      >
+                        <SelectTrigger className={`w-[100px] ${getUserRoleFromCache(user.id) === 'admin' ? 'border-orange-500 text-orange-600' : ''}`}>
+                          <SelectValue>
+                            {updatingRole && updatingRoleUserId === user.id ? (
+                              <div className="flex items-center"><LoadingSpinner size="sm" /></div>
+                            ) : (
+                              <div className="flex items-center">
+                                {getUserRoleFromCache(user.id) === 'admin' && <ShieldAlert className="mr-1 h-3 w-3" />}
+                                <span>{getUserRoleFromCache(user.id)}</span>
+                              </div>
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">
+                            <div className="flex items-center">
+                              <UserCheck className="mr-2 h-4 w-4" />
+                              <span>user</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="admin">
+                            <div className="flex items-center">
+                              <ShieldAlert className="mr-2 h-4 w-4 text-orange-500" />
+                              <span>admin</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
                       <Badge
