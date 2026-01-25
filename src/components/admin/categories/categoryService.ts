@@ -1,9 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Category, DeletedCategory, CategoryForm } from "./categoryService.types";
-import { 
-  queryWithRetry, 
-  asPromise, 
+import {
+  queryWithRetry,
+  asPromise,
   fetchWithTimeout,
   SHORT_TIMEOUT
 } from "../hooks/utils/queryUtils";
@@ -20,7 +20,7 @@ export const safeCategoryMapper = (data: any): Category => {
     if (!data) {
       throw new Error("Dados inválidos");
     }
-    
+
     return {
       id: data.id || "",
       name: data.name || "",
@@ -31,7 +31,7 @@ export const safeCategoryMapper = (data: any): Category => {
     };
   } catch (error) {
     console.error("Erro ao mapear categoria:", error);
-    
+
     // Retornar um objeto padrão em caso de erro
     return {
       id: data?.id || "",
@@ -47,25 +47,25 @@ export const safeCategoryMapper = (data: any): Category => {
 export const fetchCategories = async (): Promise<Category[]> => {
   try {
     console.log("Iniciando carregamento de categorias...");
-    
-    const result = await queryWithRetry<any>(() => 
+
+    const result = await queryWithRetry<any>(() =>
       asPromise(() => supabase
         .from('community_categories')
         .select('*')
         .order('order_index', { ascending: true }))
     );
-      
+
     if (result.error) {
       throw result.error;
     }
-    
+
     console.log("Categorias carregadas do Supabase:", result.data);
-    
+
     // Safely map data to Category[]
-    const categories = Array.isArray(result.data) 
+    const categories = Array.isArray(result.data)
       ? result.data.map(item => safeCategoryMapper(item))
       : [];
-      
+
     return categories;
   } catch (error) {
     handleError(error, "Não foi possível carregar as categorias");
@@ -79,36 +79,35 @@ export const addCategory = async (form: CategoryForm): Promise<Category> => {
     // Obter o usuário atual
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id;
-    
+
     if (!form.name || !form.slug) {
       throw new Error("Nome e slug são obrigatórios");
     }
-    
+
     // Verificar se já existe uma categoria com o mesmo slug
     const { data: existingCategory, error: checkError } = await supabase
       .from('community_categories')
       .select('slug')
       .eq('slug', form.slug)
       .maybeSingle();
-      
+
     if (checkError) {
       throw checkError;
     }
-    
+
     if (existingCategory) {
       throw new Error(`Já existe uma categoria com o slug "${form.slug}"`);
     }
-    
+
     // Obter o próximo order_index
     const nextOrderIndex = await getNextOrderIndex();
-    
+
     const categoryData = {
       name: form.name,
       slug: form.slug,
-      order_index: nextOrderIndex,
-      created_by: userId
+      order_index: nextOrderIndex
     };
-    
+
     // Use fetchWithTimeout para evitar problemas de conexão
     const insertPromise = async () => {
       return await supabase
@@ -117,26 +116,26 @@ export const addCategory = async (form: CategoryForm): Promise<Category> => {
         .select()
         .single();
     };
-    
+
     const { data, error } = await fetchWithTimeout(insertPromise, SHORT_TIMEOUT);
-      
+
     if (error) {
       throw error;
     }
-    
+
     if (!data) {
       throw new Error("Não foi possível obter os dados da categoria após a inserção");
     }
-    
+
     const newCategory = safeCategoryMapper(data);
-    
+
     toast.success(`Categoria "${form.name}" criada com sucesso`, { position: "bottom-right" });
     console.log("Nova categoria adicionada ao Supabase:", newCategory);
-    
+
     return newCategory;
   } catch (error) {
     handleError(error, "Não foi possível adicionar a categoria");
-    
+
     // Retornar uma categoria de fallback com os dados atuais
     return {
       id: String(Date.now()),
@@ -163,26 +162,26 @@ export const updateCategory = async (id: string, form: CategoryForm): Promise<Ca
         .select()
         .single();
     };
-    
+
     const { data, error } = await fetchWithTimeout(updatePromise, SHORT_TIMEOUT);
-      
+
     if (error) {
       throw error;
     }
-    
+
     if (!data) {
       throw new Error("Não foi possível obter os dados da categoria após a atualização");
     }
-    
+
     const updatedCategory = safeCategoryMapper(data);
-    
+
     toast.success(`Categoria "${form.name}" atualizada com sucesso`, { position: "bottom-right" });
     console.log("Categoria atualizada no Supabase:", updatedCategory);
-    
+
     return updatedCategory;
   } catch (error) {
     handleError(error, "Não foi possível atualizar a categoria");
-    
+
     // Retornar uma categoria de fallback com os dados atuais
     return {
       id,
@@ -198,72 +197,72 @@ export const updateCategory = async (id: string, form: CategoryForm): Promise<Ca
 export const deleteCategory = async (id: string): Promise<boolean> => {
   try {
     console.log("Iniciando exclusão da categoria:", id);
-    
+
     // Verificar se existem posts associados a esta categoria
     const { data: relatedPosts, error: postsError } = await supabase
       .from('posts')
       .select('id')
       .eq('category_id', id);
-    
+
     if (postsError) {
       console.error("Erro ao verificar posts relacionados:", postsError);
       throw postsError;
     }
-    
+
     const postsCount = relatedPosts?.length || 0;
     console.log(`Categoria possui ${postsCount} posts relacionados`);
-    
+
     if (postsCount > 0) {
       console.warn(`Atenção: ${postsCount} posts serão excluídos junto com a categoria`);
     }
-    
+
     // Obter informações da categoria antes de excluí-la
     const { data: categoryData, error: categoryError } = await supabase
       .from('community_categories')
       .select('*')
       .eq('id', id)
       .single();
-      
+
     if (categoryError) {
       console.error("Erro ao obter informações da categoria:", categoryError);
       throw categoryError;
     }
-    
+
     if (!categoryData) {
       console.error("Categoria não encontrada");
       throw new Error("Categoria não encontrada");
     }
-    
+
     // 1. Excluir da tabela community_categories
     console.log("Executando a exclusão da categoria na tabela community_categories");
     const { error } = await supabase
       .from('community_categories')
       .delete()
       .eq('id', id);
-    
+
     if (error) {
       console.error("Erro ao excluir categoria de community_categories:", error);
       throw error;
     }
-    
+
     // 2. Encontrar e excluir da tabela categories (usando o nome como referência)
     console.log("Procurando categoria na tabela categories para excluir");
     const { data: categoriesData, error: findError } = await supabase
       .from('categories')
       .select('id')
       .eq('name', categoryData.name);
-      
+
     if (findError) {
       console.error("Erro ao procurar categoria na tabela categories:", findError);
     } else if (categoriesData && categoriesData.length > 0) {
       console.log(`Encontrada categoria na tabela categories: ${categoriesData[0].id}`);
-      
+
       // Excluir da tabela categories
       const { error: deleteError } = await supabase
         .from('categories')
         .delete()
         .eq('id', categoriesData[0].id);
-        
+
       if (deleteError) {
         console.error("Erro ao excluir categoria da tabela categories:", deleteError);
       } else {
@@ -272,9 +271,9 @@ export const deleteCategory = async (id: string): Promise<boolean> => {
     } else {
       console.log("Categoria não encontrada na tabela categories");
     }
-    
+
     console.log("Categoria excluída com sucesso. Verificando se foi movida para deleted_categories");
-    
+
     // Verificar se a categoria foi movida para a tabela deleted_categories
     try {
       const { data: deletedData, error: deletedError } = await supabase
@@ -282,9 +281,9 @@ export const deleteCategory = async (id: string): Promise<boolean> => {
         .select('*')
         .eq('original_id', id)
         .limit(1);
-      
+
       console.log("Verificação da tabela deleted_categories:", { deletedData, deletedError });
-      
+
       if (deletedError) {
         console.warn("Erro ao verificar se a categoria foi movida para deleted_categories:", deletedError);
       } else if (deletedData && deletedData.length > 0) {
@@ -295,7 +294,7 @@ export const deleteCategory = async (id: string): Promise<boolean> => {
     } catch (checkError) {
       console.error("Erro ao verificar tabela deleted_categories:", checkError);
     }
-    
+
     return true;
   } catch (error) {
     handleError(error, "Não foi possível excluir a categoria");
@@ -310,7 +309,7 @@ export const deleteCategory = async (id: string): Promise<boolean> => {
 export const fetchDeletedCategories = async (): Promise<DeletedCategory[]> => {
   try {
     console.log("Iniciando fetchDeletedCategories");
-    
+
     // Verificar se a tabela existe usando uma consulta direta
     // Como a função RPC pode não existir ainda, usamos uma abordagem alternativa
     try {
@@ -319,9 +318,9 @@ export const fetchDeletedCategories = async (): Promise<DeletedCategory[]> => {
         'check_table_exists' as any,
         { table_name: 'deleted_categories' }
       );
-      
+
       console.log("Resultado da verificação RPC:", { tableExists, checkError });
-      
+
       if (checkError || !tableExists) {
         console.log("Tabela deleted_categories não existe ou função check_table_exists não está disponível");
         return [];
@@ -329,7 +328,7 @@ export const fetchDeletedCategories = async (): Promise<DeletedCategory[]> => {
     } catch (rpcError) {
       // Se a função RPC não existir, tentamos uma abordagem alternativa
       console.log("Função check_table_exists não está disponível, tentando consulta direta", rpcError);
-      
+
       // Tentamos fazer uma consulta direta para ver se a tabela existe
       try {
         console.log("Tentando consulta direta para verificar se a tabela existe");
@@ -337,9 +336,9 @@ export const fetchDeletedCategories = async (): Promise<DeletedCategory[]> => {
           .from('deleted_categories' as any)
           .select('id')
           .limit(1);
-          
+
         console.log("Resultado da consulta direta:", { data, error });
-        
+
         // Se der erro, provavelmente a tabela não existe
         if (error) {
           console.log("Tabela deleted_categories não existe (verificado por consulta direta)");
@@ -350,29 +349,29 @@ export const fetchDeletedCategories = async (): Promise<DeletedCategory[]> => {
         return [];
       }
     }
-    
+
     // Se chegou até aqui, a tabela provavelmente existe, então tentamos buscar os dados
     console.log("Tabela existe, buscando dados");
     const { data, error } = await supabase
       .from('deleted_categories' as any)
       .select('*')
       .order('deleted_at', { ascending: false });
-    
+
     console.log("Resultado da busca de dados:", { data, error });
-    
+
     if (error) {
       console.error("Erro ao buscar dados da tabela deleted_categories:", error);
       return [];
     }
-    
+
     // Verificar se data é um array antes de tentar mapear
     if (!Array.isArray(data)) {
       console.error("Dados retornados não são um array:", data);
       return [];
     }
-    
+
     console.log("Número de categorias excluídas encontradas:", data.length);
-    
+
     // Usar uma conversão segura para o tipo DeletedCategory
     const result = data.map(rawItem => {
       // Garantir que item é um objeto
@@ -380,10 +379,10 @@ export const fetchDeletedCategories = async (): Promise<DeletedCategory[]> => {
         console.error("Item inválido nos dados:", rawItem);
         return null;
       }
-      
+
       // Criar uma cópia segura do item
       const item = rawItem as Record<string, any>;
-      
+
       // Criar um objeto DeletedCategory com verificações de segurança
       return {
         id: typeof item.id === 'string' ? item.id : '',
@@ -397,7 +396,7 @@ export const fetchDeletedCategories = async (): Promise<DeletedCategory[]> => {
         updated_at: typeof item.updated_at === 'string' ? item.updated_at : undefined
       } as DeletedCategory;
     }).filter((item): item is DeletedCategory => item !== null); // Remover itens nulos com type guard
-    
+
     console.log("Categorias excluídas processadas:", result);
     return result;
   } catch (error) {
@@ -418,11 +417,11 @@ export const getNextOrderIndex = async (): Promise<number> => {
       .order('order_index' as any, { ascending: false })
       .limit(1)
       .single();
-    
-    const nextOrderIndex = maxOrderData && typeof (maxOrderData as any).order_index === 'number' 
-      ? (maxOrderData as any).order_index + 1 
+
+    const nextOrderIndex = maxOrderData && typeof (maxOrderData as any).order_index === 'number'
+      ? (maxOrderData as any).order_index + 1
       : 1;
-    
+
     return nextOrderIndex;
   } catch (error) {
     console.error("Erro ao obter próximo order_index:", error);
@@ -448,7 +447,7 @@ export const moveCategoryUp = async (id: string): Promise<boolean> => {
     }
 
     // Verificar se a coluna order_index existe
-    const currentOrderIndex = typeof (currentCategory as any).order_index === 'number' ? 
+    const currentOrderIndex = typeof (currentCategory as any).order_index === 'number' ?
       (currentCategory as any).order_index : 0;
 
     // Buscar a categoria acima (com order_index menor)
@@ -470,7 +469,7 @@ export const moveCategoryUp = async (id: string): Promise<boolean> => {
     }
 
     // Trocar as posições
-    const prevOrderIndex = typeof (prevCategory as any).order_index === 'number' ? 
+    const prevOrderIndex = typeof (prevCategory as any).order_index === 'number' ?
       (prevCategory as any).order_index : 0;
 
     // Atualizar a categoria atual
@@ -514,7 +513,7 @@ export const moveCategoryDown = async (id: string): Promise<boolean> => {
     }
 
     // Verificar se a coluna order_index existe
-    const currentOrderIndex = typeof (currentCategory as any).order_index === 'number' ? 
+    const currentOrderIndex = typeof (currentCategory as any).order_index === 'number' ?
       (currentCategory as any).order_index : 0;
 
     // Buscar a categoria abaixo (com order_index maior)
@@ -536,7 +535,7 @@ export const moveCategoryDown = async (id: string): Promise<boolean> => {
     }
 
     // Trocar as posições
-    const nextOrderIndex = typeof (nextCategory as any).order_index === 'number' ? 
+    const nextOrderIndex = typeof (nextCategory as any).order_index === 'number' ?
       (nextCategory as any).order_index : 0;
 
     // Atualizar a categoria atual
@@ -605,24 +604,23 @@ export const migrateCategoriesDataToSupabase = async (categories: any[]): Promis
 
   try {
     console.log("Dados a serem migrados:", categories);
-    
+
     // Obtém o ID do usuário atual com timeout
     const getUserPromise = async () => await supabase.auth.getUser();
     const { data: userData } = await fetchWithTimeout(getUserPromise, SHORT_TIMEOUT);
     const userId = userData.user?.id;
-    
+
     if (!userId) {
       throw new Error("Usuário não autenticado");
     }
-    
-    // Preparar dados para inserção no formato Supabase com userId
+
+    // Preparar dados para insercao no formato Supabase
     const categoryData = categories.map((item, index) => ({
       name: item.name,
       slug: item.id, // Usar o id como slug
-      order_index: index + 1,
-      created_by: userId // Adicionar o criador da categoria
+      order_index: index + 1
     }));
-    
+
     // Use fetchWithTimeout para evitar problemas de conexão
     const insertPromise = async () => {
       return await supabase
@@ -630,13 +628,13 @@ export const migrateCategoriesDataToSupabase = async (categories: any[]): Promis
         .insert(categoryData as any[])
         .select();
     };
-    
+
     const { data, error } = await fetchWithTimeout(insertPromise, SHORT_TIMEOUT);
-      
+
     if (error) {
       throw error;
     }
-    
+
     console.log("Categorias migradas com sucesso para o Supabase:", data);
     toast.success("Categorias migradas com sucesso para o Supabase", { position: "bottom-right" });
   } catch (error) {
@@ -648,23 +646,23 @@ export const migrateCategoriesDataToSupabase = async (categories: any[]): Promis
 export const syncCategoriesToCommunityCategories = async (): Promise<void> => {
   try {
     console.log("Iniciando sincronização de categorias...");
-    
+
     // 1. Obter todas as categorias da tabela categories
     const { data: categoriesData, error: categoriesError } = await supabase
       .from('categories')
       .select('*');
-      
+
     if (categoriesError) {
       throw categoriesError;
     }
-    
+
     if (!categoriesData || categoriesData.length === 0) {
       console.log("Nenhuma categoria encontrada para sincronizar");
       return;
     }
-    
+
     console.log(`Encontradas ${categoriesData.length} categorias para sincronizar`);
-    
+
     // 2. Para cada categoria, verificar se já existe na tabela community_categories
     for (const category of categoriesData) {
       const { data: existingData, error: checkError } = await supabase
@@ -672,12 +670,12 @@ export const syncCategoriesToCommunityCategories = async (): Promise<void> => {
         .select('id')
         .eq('name', category.name)
         .maybeSingle();
-        
+
       if (checkError) {
         console.error(`Erro ao verificar categoria ${category.name}:`, checkError);
         continue;
       }
-      
+
       // Se a categoria não existir em community_categories, inseri-la
       if (!existingData) {
         const { error: insertError } = await supabase
@@ -687,7 +685,7 @@ export const syncCategoriesToCommunityCategories = async (): Promise<void> => {
             slug: category.slug,
             order_index: categoriesData.indexOf(category) + 1
           });
-          
+
         if (insertError) {
           console.error(`Erro ao inserir categoria ${category.name} em community_categories:`, insertError);
         } else {
@@ -697,9 +695,9 @@ export const syncCategoriesToCommunityCategories = async (): Promise<void> => {
         console.log(`Categoria ${category.name} já existe em community_categories`);
       }
     }
-    
+
     console.log("Sincronização de categorias concluída");
-    
+
   } catch (error) {
     console.error("Erro ao sincronizar categorias:", error);
     toast.error("Erro ao sincronizar categorias", { position: "bottom-right" });
