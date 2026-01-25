@@ -34,6 +34,7 @@ import "@/styles/admin-mobile.css";
 import { AdminMessageComposer } from "@/components/AdminMessageComposer";
 import { TrackManagement } from "./tracks/TrackManagement";
 import { ManageLinks } from "./links/ManageLinks";
+import { BannerManagement } from "./banners/BannerManagement";
 
 interface AdminPanelProps {
   onError?: () => void;
@@ -60,8 +61,9 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
     { id: "eventos", label: "Eventos", icon: Calendar },
     { id: "trending", label: "Trending", icon: TrendingUp },
     { id: "rankings", label: "Rankings", icon: Trophy },
-    { id: "denuncias", label: "Denúncias", icon: Flag },
-    { id: "referencias", label: "Referências", icon: Image },
+    { id: "denuncias", label: "Denuncias", icon: Flag },
+    { id: "referencias", label: "Referencias", icon: Image },
+    { id: "banners", label: "Banners", icon: Image },
   ];
 
 
@@ -194,6 +196,10 @@ const AdminPanel = ({ onError, onLoad }: AdminPanelProps) => {
 
         <TabsContent value="referencias">
           <ReferenceManagement />
+        </TabsContent>
+
+        <TabsContent value="banners">
+          <BannerManagement />
         </TabsContent>
 
         {/* Abas removidas a pedido do usuário */}
