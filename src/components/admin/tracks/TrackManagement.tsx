@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadImageToStorage } from "@/services/mediaService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +21,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash, Video, GripVertical, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash, Video, GripVertical, Loader2, Upload, X, Image } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -51,6 +52,10 @@ export const TrackManagement = () => {
     const [moduleTitle, setModuleTitle] = useState("");
     const [moduleDescription, setModuleDescription] = useState("");
     const [moduleImageUrl, setModuleImageUrl] = useState("");
+    const [moduleImageFile, setModuleImageFile] = useState<File | null>(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
 
     // States for Lesson Dialog
@@ -88,14 +93,55 @@ export const TrackManagement = () => {
         }
     };
 
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                toast.error("Por favor, selecione uma imagem válida");
+                return;
+            }
+            setModuleImageFile(file);
+            const preview = URL.createObjectURL(file);
+            setImagePreview(preview);
+        }
+    };
+
+    const clearImage = () => {
+        setModuleImageFile(null);
+        setImagePreview(null);
+        setModuleImageUrl("");
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
     const handleCreateOrUpdateModule = async () => {
         if (!moduleTitle) return;
 
         try {
+            let finalImageUrl = moduleImageUrl;
+
+            // Se há um arquivo de imagem selecionado, fazer upload
+            if (moduleImageFile) {
+                setUploadingImage(true);
+                try {
+                    const uploadedUrl = await uploadImageToStorage(moduleImageFile);
+                    if (uploadedUrl) {
+                        finalImageUrl = uploadedUrl;
+                    }
+                } catch (uploadError) {
+                    console.error("Erro no upload da imagem:", uploadError);
+                    toast.error("Erro ao fazer upload da imagem");
+                    setUploadingImage(false);
+                    return;
+                }
+                setUploadingImage(false);
+            }
+
             const moduleData = {
                 title: moduleTitle,
                 description: moduleDescription,
-                image_url: moduleImageUrl,
+                image_url: finalImageUrl,
                 // If creating, put at end; if updating, keep index (or handle reorder separately)
                 order_index: editingModuleId
                     ? modules.find(m => m.id === editingModuleId)?.order_index
@@ -211,6 +257,9 @@ export const TrackManagement = () => {
             setModuleTitle(module.title);
             setModuleDescription(module.description);
             setModuleImageUrl(module.image_url || "");
+            if (module.image_url) {
+                setImagePreview(module.image_url);
+            }
         } else {
             resetModuleForm();
         }
@@ -222,6 +271,11 @@ export const TrackManagement = () => {
         setModuleTitle("");
         setModuleDescription("");
         setModuleImageUrl("");
+        setModuleImageFile(null);
+        setImagePreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
     };
 
     const openLessonDialog = (lesson?: Lesson) => {
@@ -348,18 +402,58 @@ export const TrackManagement = () => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">URL da Imagem da Capa</label>
-                            <Input
-                                value={moduleImageUrl}
-                                onChange={(e) => setModuleImageUrl(e.target.value)}
-                                placeholder="https://..."
+                            <label className="text-sm font-medium">Imagem da Capa</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageSelect}
+                                ref={fileInputRef}
+                                className="hidden"
+                                id="module-image-upload"
                             />
-                            <p className="text-xs text-muted-foreground">Cole o link da imagem de capa (opcional)</p>
+                            {imagePreview ? (
+                                <div className="relative">
+                                    <img
+                                        src={imagePreview}
+                                        alt="Preview"
+                                        className="w-full h-32 object-cover rounded-lg border"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="icon"
+                                        className="absolute top-2 right-2 h-6 w-6"
+                                        onClick={clearImage}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ) : (
+                                <label
+                                    htmlFor="module-image-upload"
+                                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                                >
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <Image className="h-8 w-8 text-muted-foreground mb-2" />
+                                        <p className="text-sm text-muted-foreground">
+                                            <span className="font-semibold">Clique para selecionar</span>
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">PNG, JPG ou WEBP</p>
+                                    </div>
+                                </label>
+                            )}
+                            <p className="text-xs text-muted-foreground">Selecione uma imagem de capa (opcional)</p>
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsModuleDialogOpen(false)}>Cancelar</Button>
-                        <Button onClick={handleCreateOrUpdateModule}>{editingModuleId ? "Salvar" : "Criar"}</Button>
+                        <Button variant="outline" onClick={() => setIsModuleDialogOpen(false)} disabled={uploadingImage}>Cancelar</Button>
+                        <Button onClick={handleCreateOrUpdateModule} disabled={uploadingImage}>
+                            {uploadingImage ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando...</>
+                            ) : (
+                                editingModuleId ? "Salvar" : "Criar"
+                            )}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

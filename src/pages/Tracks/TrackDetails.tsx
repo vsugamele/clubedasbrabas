@@ -22,6 +22,31 @@ interface Module {
     lessons: Lesson[];
 }
 
+// Função para converter URLs do YouTube para formato embed
+const getEmbedUrl = (url: string): string => {
+    if (!url) return '';
+
+    // Se já é um embed, retorna como está
+    if (url.includes('youtube.com/embed/')) {
+        return url;
+    }
+
+    // youtube.com/watch?v=VIDEO_ID
+    const watchMatch = url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/watch\?.+&v=)([^&]+)/);
+    if (watchMatch) {
+        return `https://www.youtube.com/embed/${watchMatch[1]}`;
+    }
+
+    // youtu.be/VIDEO_ID
+    const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+    if (shortMatch) {
+        return `https://www.youtube.com/embed/${shortMatch[1]}`;
+    }
+
+    // Para outros formatos (Vimeo, etc), retorna como está
+    return url;
+};
+
 const TrackDetails = () => {
     const { id } = useParams<{ id: string }>();
     const [module, setModule] = useState<Module | null>(null);
@@ -94,7 +119,7 @@ const TrackDetails = () => {
                             <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-lg relative group">
                                 {activeLesson ? (
                                     <iframe
-                                        src={activeLesson.video_url || activeLesson.content} // Just in case stored in content
+                                        src={getEmbedUrl(activeLesson.video_url || activeLesson.content)} // Just in case stored in content
                                         title={activeLesson.title}
                                         className="w-full h-full"
                                         allowFullScreen
@@ -128,8 +153,8 @@ const TrackDetails = () => {
                                                 key={lesson.id}
                                                 onClick={() => setActiveLesson(lesson)}
                                                 className={`w-full flex items-start gap-3 p-3 rounded-lg text-left transition-colors ${activeLesson?.id === lesson.id
-                                                        ? "bg-primary/10 border border-primary/20"
-                                                        : "hover:bg-muted/50"
+                                                    ? "bg-primary/10 border border-primary/20"
+                                                    : "hover:bg-muted/50"
                                                     }`}
                                             >
                                                 <div className="mt-0.5">
