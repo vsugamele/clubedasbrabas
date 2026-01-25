@@ -97,7 +97,7 @@ export const TrackManagement = () => {
         const file = e.target.files?.[0];
         if (file) {
             if (!file.type.startsWith('image/')) {
-                toast.error("Por favor, selecione uma imagem válida");
+                toast.error("Por favor, selecione uma imagem valida");
                 return;
             }
             setModuleImageFile(file);

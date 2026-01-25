@@ -218,29 +218,59 @@ const UserManagement = () => {
     }
   };
 
-  // Função para enviar email de redefinição de senha
-  const resetUserPassword = async () => {
+  // Funcao para definir nova senha diretamente pelo admin
+  const resetUserPasswordDirect = async () => {
     try {
       setUpdatingPassword(true);
 
-      if (!selectedUserEmail) {
-        throw new Error('Email do usuário não definido');
+      if (!selectedUserId) {
+        throw new Error('ID do usuario nao definido');
       }
 
-      const { error } = await supabase.auth.resetPasswordForEmail(selectedUserEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) {
-        throw error;
+      if (!newPassword || newPassword.length < 6) {
+        throw new Error('A senha deve ter pelo menos 6 caracteres');
       }
 
-      toast.success(`Email de redefinição de senha enviado para ${selectedUserEmail}`);
+      if (newPassword !== confirmPassword) {
+        throw new Error('As senhas nao coincidem');
+      }
+
+      // Obter o token de autenticacao do usuario atual
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error('Voce precisa estar autenticado');
+      }
+
+      // Chamar a Edge Function para resetar a senha
+      const response = await fetch(
+        `https://weuifmgjzkuppqqsoood.supabase.co/functions/v1/admin-reset-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            userId: selectedUserId,
+            newPassword: newPassword,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao resetar senha');
+      }
+
+      toast.success('Senha alterada com sucesso!');
       setResetPasswordModalOpen(false);
       setResetPasswordDialogOpen(false);
     } catch (error: any) {
-      console.error('Erro ao enviar email de redefinição de senha:', error);
-      toast.error(`Falha ao enviar email: ${error.message}`);
+      console.error('Erro ao alterar senha:', error);
+      toast.error(`Falha ao alterar senha: ${error.message}`);
     } finally {
       setUpdatingPassword(false);
       setSelectedUserId(null);
@@ -701,22 +731,56 @@ const UserManagement = () => {
                             <DialogHeader>
                               <DialogTitle>Redefinir Senha</DialogTitle>
                               <DialogDescription>
-                                Enviar email de redefinição de senha para {selectedUserEmail}.
+                                Definir nova senha para {selectedUserEmail}
                               </DialogDescription>
                             </DialogHeader>
-                            <div className="py-4">
-                              <p className="text-sm text-muted-foreground mb-4">
-                                Um email será enviado para o usuário com instruções para redefinir sua senha.
-                                O usuário precisará clicar no link recebido para definir uma nova senha.
-                              </p>
+                            <div className="py-4 space-y-4">
+                              <div className="space-y-2">
+                                <label htmlFor="newPassword" className="text-sm font-medium">
+                                  Nova Senha
+                                </label>
+                                <Input
+                                  id="newPassword"
+                                  type="password"
+                                  value={newPassword}
+                                  onChange={(e) => setNewPassword(e.target.value)}
+                                  placeholder="Minimo 6 caracteres"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label htmlFor="confirmPassword" className="text-sm font-medium">
+                                  Confirmar Senha
+                                </label>
+                                <Input
+                                  id="confirmPassword"
+                                  type="password"
+                                  value={confirmPassword}
+                                  onChange={(e) => setConfirmPassword(e.target.value)}
+                                  placeholder="Repita a senha"
+                                />
+                              </div>
+                              {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                                <p className="text-sm text-red-500">As senhas nao coincidem</p>
+                              )}
                             </div>
                             <DialogFooter>
                               <Button
-                                type="submit"
-                                onClick={resetUserPassword}
-                                disabled={updatingPassword}
+                                variant="outline"
+                                onClick={() => {
+                                  setResetPasswordModalOpen(false);
+                                  setResetPasswordDialogOpen(false);
+                                  setNewPassword('');
+                                  setConfirmPassword('');
+                                }}
                               >
-                                {updatingPassword ? <LoadingSpinner size="sm" /> : 'Enviar Email de Redefinição'}
+                                Cancelar
+                              </Button>
+                              <Button
+                                type="submit"
+                                onClick={resetUserPasswordDirect}
+                                disabled={updatingPassword || !newPassword || newPassword.length < 6 || newPassword !== confirmPassword}
+                              >
+                                {updatingPassword ? <LoadingSpinner size="sm" /> : 'Salvar Nova Senha'}
                               </Button>
                             </DialogFooter>
                           </DialogContent>
