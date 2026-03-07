@@ -28,6 +28,8 @@ interface UsefulLink {
     description: string | null;
     url: string;
     category: string | null;
+    show_in_sidebar?: boolean;
+    show_in_links_page?: boolean;
 }
 
 interface NavbarLink {
@@ -59,7 +61,9 @@ export const ManageLinks = () => {
         name: "",
         description: "",
         url: "",
-        category: ""
+        category: "",
+        show_in_sidebar: true,
+        show_in_links_page: true
     });
 
     const [navbarFormData, setNavbarFormData] = useState({
@@ -257,7 +261,9 @@ export const ManageLinks = () => {
                 name: link.name,
                 description: link.description || "",
                 url: link.url,
-                category: link.category || ""
+                category: link.category || "",
+                show_in_sidebar: link.show_in_sidebar !== false,
+                show_in_links_page: link.show_in_links_page !== false
             });
         } else {
             resetForm();
@@ -267,7 +273,7 @@ export const ManageLinks = () => {
 
     const resetForm = () => {
         setEditingId(null);
-        setSidebarFormData({ name: "", description: "", url: "", category: "" });
+        setSidebarFormData({ name: "", description: "", url: "", category: "", show_in_sidebar: true, show_in_links_page: true });
         setNavbarFormData({ label: "", href: "", order_index: 0, enabled: true });
     };
 
@@ -472,6 +478,22 @@ export const ManageLinks = () => {
                                     placeholder="Breve descrição sobre o recurso"
                                     rows={3}
                                 />
+                            </div>
+                            <div className="flex gap-6 mt-2">
+                                <div className="flex items-center gap-2">
+                                    <Switch
+                                        checked={sidebarFormData.show_in_sidebar}
+                                        onCheckedChange={(checked) => setSidebarFormData({ ...sidebarFormData, show_in_sidebar: checked })}
+                                    />
+                                    <Label>Mostrar na Barra Lateral</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Switch
+                                        checked={sidebarFormData.show_in_links_page}
+                                        onCheckedChange={(checked) => setSidebarFormData({ ...sidebarFormData, show_in_links_page: checked })}
+                                    />
+                                    <Label>Mostrar na Página de Links</Label>
+                                </div>
                             </div>
                         </div>
                     )}

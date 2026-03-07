@@ -8,6 +8,8 @@ export interface ExternalLink {
   url: string;
   order_index: number;
   highlighted?: boolean; // Novo campo para indicar se o link deve ser destacado
+  show_in_sidebar?: boolean;
+  show_in_links_page?: boolean;
 }
 
 // Definir os links padrão que queremos ter sempre disponíveis
@@ -16,22 +18,30 @@ const defaultLinks: Omit<ExternalLink, 'id'>[] = [
     name: 'Área de Membro',
     url: 'https://plataforma.haireducation.com.br/',
     order_index: 1,
-    highlighted: true // Destacar este link
+    highlighted: true, // Destacar este link
+    show_in_sidebar: true,
+    show_in_links_page: true
   },
   {
     name: 'Formação JP Hair Education',
     url: 'https://jphaireducation.com/',
-    order_index: 2
+    order_index: 2,
+    show_in_sidebar: true,
+    show_in_links_page: true
   },
   {
     name: 'JP Hair Collection',
     url: 'https://jpcollections.com.br/',
-    order_index: 3
+    order_index: 3,
+    show_in_sidebar: true,
+    show_in_links_page: true
   },
   {
     name: 'Cortes Descomplicados',
     url: 'https://jphaireducation.com/cortes-descomplicados',
-    order_index: 4
+    order_index: 4,
+    show_in_sidebar: true,
+    show_in_links_page: true
   }
 ];
 
@@ -94,7 +104,9 @@ export const ExternalLinksProvider = ({ children }: ExternalLinksProviderProps) 
               name: item.title || item.name || 'Link sem nome', // Tentar title primeiro (padrão do N8N/banco novo), depois name
               url: item.url,
               order_index: item.order_index || index,
-              highlighted: item.highlighted || false // Manter o highlight se existir no banco
+              highlighted: item.highlighted || false, // Manter o highlight se existir no banco
+              show_in_sidebar: item.show_in_sidebar !== false, // Padrão é true se null/undefined
+              show_in_links_page: item.show_in_links_page !== false // Padrão é true se null/undefined
             }));
             setLinks(mappedLinks);
           }

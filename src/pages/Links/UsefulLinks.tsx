@@ -37,14 +37,16 @@ const UsefulLinks = () => {
 
             if (sidebarError) throw sidebarError;
 
-            const mappedSidebarLinks = (sidebarData || []).map((link: any) => ({
-                id: link.id,
-                title: link.title || link.name || "Link sem nome",
-                description: link.description,
-                url: link.url,
-                category: link.category,
-                source: 'sidebar' as const
-            }));
+            const mappedSidebarLinks = (sidebarData || [])
+                .filter((link: any) => link.show_in_links_page !== false)
+                .map((link: any) => ({
+                    id: link.id,
+                    title: link.title || link.name || "Link sem nome",
+                    description: link.description,
+                    url: link.url,
+                    category: link.category,
+                    source: 'sidebar' as const
+                }));
 
             setSidebarLinks(mappedSidebarLinks);
 
