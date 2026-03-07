@@ -65,11 +65,7 @@ export function useProfile() {
       if (updates.username && updates.username !== currentProfile.username) {
         // Verificar se o username já existe
         const { data: existingUser, error: checkError } = await supabase
-<<<<<<< HEAD
           .from("c_profiles")
-=======
-          .from("profiles")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .select("id")
           .eq("username", updates.username)
           .neq("id", userId)
@@ -98,11 +94,7 @@ export function useProfile() {
       
       // Usar diretamente o método update para evitar conflitos de chave única
       const { data, error } = await supabase
-<<<<<<< HEAD
         .from("c_profiles")
-=======
-        .from("profiles")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update(dbUpdates)
         .eq("id", userId)
         .select()
@@ -117,11 +109,7 @@ export function useProfile() {
           
           // Tentar inserir o perfil
           const { data: insertData, error: insertError } = await supabase
-<<<<<<< HEAD
             .from("c_profiles")
-=======
-            .from("profiles")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             .insert({
               id: userId,
               ...dbUpdates

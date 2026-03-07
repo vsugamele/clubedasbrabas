@@ -3,18 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-<<<<<<< HEAD
 import { ExternalLink, Link as LinkIcon, Loader2, Globe, Search, Navigation } from "lucide-react";
-=======
-import { ExternalLink, Link as LinkIcon, Loader2, Globe, Search } from "lucide-react";
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
 import { Input } from "@/components/ui/input";
 
 interface UsefulLink {
     id: string;
     title: string;
     description: string | null;
-<<<<<<< HEAD
     url?: string;
     href?: string;
     category?: string | null;
@@ -25,15 +20,6 @@ interface UsefulLink {
 const UsefulLinks = () => {
     const [sidebarLinks, setSidebarLinks] = useState<UsefulLink[]>([]);
     const [navbarLinks, setNavbarLinks] = useState<UsefulLink[]>([]);
-=======
-    url: string;
-    category?: string | null;
-    icon?: string | null;
-}
-
-const UsefulLinks = () => {
-    const [links, setLinks] = useState<UsefulLink[]>([]);
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -43,7 +29,6 @@ const UsefulLinks = () => {
 
     const fetchLinks = async () => {
         try {
-<<<<<<< HEAD
             // Fetch sidebar links (c_external_links)
             const { data: sidebarData, error: sidebarError } = await supabase
                 .from("c_external_links")
@@ -82,15 +67,6 @@ const UsefulLinks = () => {
 
             setNavbarLinks(mappedNavbarLinks);
 
-=======
-            const { data, error } = await supabase
-                .from("useful_links") // ensure this table matches schema
-                .select("*")
-                .order("title", { ascending: true });
-
-            if (error) throw error;
-            setLinks(data || []);
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         } catch (error) {
             console.error("Erro ao carregar links:", error);
         } finally {
@@ -98,7 +74,6 @@ const UsefulLinks = () => {
         }
     };
 
-<<<<<<< HEAD
     const filterLinks = (linksArray: UsefulLink[]) => {
         return linksArray.filter(link =>
             link.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -139,11 +114,6 @@ const UsefulLinks = () => {
                 </Button>
             </CardFooter>
         </Card>
-=======
-    const filteredLinks = links.filter(link =>
-        link.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        link.description?.toLowerCase().includes(searchTerm.toLowerCase())
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     );
 
     return (
@@ -172,11 +142,7 @@ const UsefulLinks = () => {
                     <div className="flex justify-center p-12">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
-<<<<<<< HEAD
                 ) : !hasAnyLinks ? (
-=======
-                ) : filteredLinks.length === 0 ? (
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                     <div className="text-center p-12 glass-card rounded-xl">
                         <LinkIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                         <h3 className="text-xl font-semibold mb-2">Nenhum link encontrado</h3>
@@ -185,7 +151,6 @@ const UsefulLinks = () => {
                         </p>
                     </div>
                 ) : (
-<<<<<<< HEAD
                     <div className="space-y-10">
                         {/* Seção da Barra Lateral */}
                         {filteredSidebarLinks.length > 0 && (
@@ -212,39 +177,6 @@ const UsefulLinks = () => {
                                 </div>
                             </section>
                         )}
-=======
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredLinks.map((link) => (
-                            <Card key={link.id} className="card-hover glass-card border-none overflow-hidden flex flex-col h-full group">
-                                <CardHeader className="pb-2">
-                                    <div className="flex items-start justify-between">
-                                        <CardTitle className="text-lg text-primary flex items-center gap-2">
-                                            <Globe className="h-4 w-4" />
-                                            {link.title}
-                                        </CardTitle>
-                                        {link.category && (
-                                            <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
-                                                {link.category}
-                                            </span>
-                                        )}
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="flex-1">
-                                    <CardDescription className="text-sm line-clamp-3">
-                                        {link.description}
-                                    </CardDescription>
-                                </CardContent>
-                                <CardFooter className="pt-2 bg-muted/20">
-                                    <Button asChild size="sm" variant="outline" className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
-                                        <a href={link.url} target="_blank" rel="noopener noreferrer">
-                                            Acessar Recurso
-                                            <ExternalLink className="ml-2 h-3 w-3" />
-                                        </a>
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        ))}
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                     </div>
                 )}
             </div>

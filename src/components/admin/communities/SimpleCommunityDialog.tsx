@@ -74,11 +74,7 @@ export function SimpleCommunityDialog({
       console.log("Carregando categorias diretamente da tabela community_categories...");
       
       const { data, error } = await supabase
-<<<<<<< HEAD
         .from('c_community_categories')
-=======
-        .from('community_categories')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('id, name')
         .order('name');
         

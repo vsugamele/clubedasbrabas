@@ -22,11 +22,7 @@ export function AdminMessageComposer() {
         setIsSending(true);
 
         try {
-<<<<<<< HEAD
             const { error } = await supabase.from("c_admin_messages").insert({
-=======
-            const { error } = await supabase.from("admin_messages").insert({
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 title,
                 message,
             });

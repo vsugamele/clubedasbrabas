@@ -191,11 +191,7 @@ const UserManagement = () => {
       updateData.is_active = newStatus; // Campo personalizado
 
       const { error } = await supabase
-<<<<<<< HEAD
         .from('c_profiles')
-=======
-        .from('profiles')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update(updateData)
         .eq('id', userId);
 
@@ -291,11 +287,7 @@ const UserManagement = () => {
 
       // Buscar perfis de usuários
       const result = await supabase
-<<<<<<< HEAD
         .from('c_profiles')
-=======
-        .from('profiles')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*')
         .order('updated_at', { ascending: false });
 
@@ -380,11 +372,7 @@ const UserManagement = () => {
 
       // Atualizar o tipo de assinatura no banco de dados
       const { error } = await supabase
-<<<<<<< HEAD
         .from('c_profiles')
-=======
-        .from('profiles')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update(updateData)
         .eq('id', userId);
 
@@ -427,11 +415,7 @@ const UserManagement = () => {
 
       // Atualizar o status no banco de dados
       const { error } = await supabase
-<<<<<<< HEAD
         .from('c_profiles')
-=======
-        .from('profiles')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update({
           is_active: newStatus
         })

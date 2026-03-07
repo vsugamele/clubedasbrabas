@@ -47,11 +47,7 @@ export function UserNotifications() {
 
     const fetchMessages = async () => {
         const { data, error } = await supabase
-<<<<<<< HEAD
             .from("c_admin_messages")
-=======
-            .from("admin_messages")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             .select("*")
             .order("created_at", { ascending: false })
             .limit(10);

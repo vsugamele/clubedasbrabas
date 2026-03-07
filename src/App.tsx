@@ -26,10 +26,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { testAndFixCategorySync } from "./components/admin/communities/categoryIntegration";
-<<<<<<< HEAD
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
-=======
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
 
 const App = () => {
   const { user, loading, refreshSession, attemptSessionRecovery } = useAuth();
@@ -290,42 +287,41 @@ const App = () => {
   };
 
   return (
-    <Routes>
-      <Route path="/auth" element={
-        !user ? (
-          <Auth />
-        ) : (
-          <Navigate to={location.state?.from || "/"} replace />
-        )
-      } />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      {/* Rotas protegidas */}
-      <Route path="/" element={<ProtectedRoute element={<Index />} />} />
-      <Route path="/admin" element={<ProtectedRoute element={<Admin />} />} />
-      <Route path="/messages" element={<ProtectedRoute element={<Messages />} />} />
-      <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
-      <Route path="/profile/:id" element={<ProtectedRoute element={<Profile />} />} />
-      <Route path="/eventos" element={<ProtectedRoute element={<Events />} />} />
-      <Route path="/eventos/:id" element={<ProtectedRoute element={<Events />} />} />
-      <Route path="/search" element={<ProtectedRoute element={<Search />} />} />
-      <Route path="/trilhas" element={<ProtectedRoute element={<TracksList />} />} />
-      <Route path="/trilhas/:id" element={<ProtectedRoute element={<TrackDetails />} />} />
-      <Route path="/links" element={<ProtectedRoute element={<UsefulLinks />} />} />
-      <Route path="/create-post" element={<ProtectedRoute element={<CreatePost />} />} />
-      <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
-      <Route path="/trending" element={<ProtectedRoute element={<TrendingPage />} />} />
-      <Route path="/post-remover" element={<ProtectedRoute element={<PostRemover />} />} />
-      <Route path="/referencias" element={<ProtectedRoute element={<ReferenceGallery />} />} />
-      <Route path="/c/:id" element={<ProtectedRoute element={<Index />} />} />
-      <Route path="/categoria/:categoryId" element={<ProtectedRoute element={<CategoryPage />} />} />
-      { /* Rota de debug removida para resolver erro de build */}
-      <Route path="/admin-delete" element={<ProtectedRoute element={<AdminDelete />} />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-<<<<<<< HEAD
-    <InstallPrompt />
-=======
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
+    <>
+      <Routes>
+        <Route path="/auth" element={
+          !user ? (
+            <Auth />
+          ) : (
+            <Navigate to={location.state?.from || "/"} replace />
+          )
+        } />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        {/* Rotas protegidas */}
+        <Route path="/" element={<ProtectedRoute element={<Index />} />} />
+        <Route path="/admin" element={<ProtectedRoute element={<Admin />} />} />
+        <Route path="/messages" element={<ProtectedRoute element={<Messages />} />} />
+        <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
+        <Route path="/profile/:id" element={<ProtectedRoute element={<Profile />} />} />
+        <Route path="/eventos" element={<ProtectedRoute element={<Events />} />} />
+        <Route path="/eventos/:id" element={<ProtectedRoute element={<Events />} />} />
+        <Route path="/search" element={<ProtectedRoute element={<Search />} />} />
+        <Route path="/trilhas" element={<ProtectedRoute element={<TracksList />} />} />
+        <Route path="/trilhas/:id" element={<ProtectedRoute element={<TrackDetails />} />} />
+        <Route path="/links" element={<ProtectedRoute element={<UsefulLinks />} />} />
+        <Route path="/create-post" element={<ProtectedRoute element={<CreatePost />} />} />
+        <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
+        <Route path="/trending" element={<ProtectedRoute element={<TrendingPage />} />} />
+        <Route path="/post-remover" element={<ProtectedRoute element={<PostRemover />} />} />
+        <Route path="/referencias" element={<ProtectedRoute element={<ReferenceGallery />} />} />
+        <Route path="/c/:id" element={<ProtectedRoute element={<Index />} />} />
+        <Route path="/categoria/:categoryId" element={<ProtectedRoute element={<CategoryPage />} />} />
+        { /* Rota de debug removida para resolver erro de build */}
+        <Route path="/admin-delete" element={<ProtectedRoute element={<AdminDelete />} />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <InstallPrompt />
+    </>
   );
 };
 

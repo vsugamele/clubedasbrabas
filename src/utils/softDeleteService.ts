@@ -41,11 +41,7 @@ export async function softDeletePost(
     try {
       // Método alternativo: tentar primeiro fazer um update sem a coluna is_deleted
       const { error: updateError } = await supabase
-<<<<<<< HEAD
         .from('c_posts')
-=======
-        .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update({
           content: "[Este post foi removido por um administrador]",
           title: "[Post removido]"
@@ -65,11 +61,7 @@ export async function softDeletePost(
       // Se não existir, essa operação pode falhar, mas o post já foi marcado como removido
       try {
         await supabase
-<<<<<<< HEAD
           .from('c_posts')
-=======
-          .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .update({
             is_deleted: true
           })

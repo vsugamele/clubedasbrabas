@@ -5,11 +5,7 @@ import { Report, mapReportFromSupabase } from "../communities/types";
 export const fetchReports = async (): Promise<Report[]> => {
   try {
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_reports')
-=======
-      .from('reports')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .order('created_at', { ascending: false });
       
@@ -28,11 +24,7 @@ export const fetchReports = async (): Promise<Report[]> => {
 export const fetchReport = async (id: string): Promise<Report | null> => {
   try {
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_reports')
-=======
-      .from('reports')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .eq('id', id)
       .maybeSingle();
@@ -52,11 +44,7 @@ export const fetchReport = async (id: string): Promise<Report | null> => {
 export const createReport = async (report: Omit<Report, 'id' | 'createdAt' | 'status' | 'resolvedAt' | 'resolvedBy'>): Promise<Report | null> => {
   try {
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_reports')
-=======
-      .from('reports')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .insert({
         reporter_id: report.reporterId,
         target_id: report.targetId,
@@ -88,11 +76,7 @@ export const updateReportStatus = async (
     const now = new Date().toISOString();
     
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_reports')
-=======
-      .from('reports')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({
         status,
         resolved_at: now,
@@ -117,11 +101,7 @@ export const updateReportStatus = async (
 export const deleteReport = async (id: string): Promise<boolean> => {
   try {
     const { error } = await supabase
-<<<<<<< HEAD
       .from('c_reports')
-=======
-      .from('reports')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .delete()
       .eq('id', id);
       

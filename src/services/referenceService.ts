@@ -55,11 +55,7 @@ export const fetchReferences = async () => {
     // Verificar primeiro se a tabela documents existe
     try {
       const { count, error: countError } = await supabase
-<<<<<<< HEAD
         .from("c_documents")
-=======
-        .from("documents")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select("*", { count: "exact", head: true });
       
       if (countError) {
@@ -69,11 +65,7 @@ export const fetchReferences = async () => {
       
       // Se chegamos aqui, a tabela existe
       const { data, error } = await supabase
-<<<<<<< HEAD
         .from("c_documents")
-=======
-        .from("documents")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select("*");
 
       if (error) {
@@ -158,11 +150,7 @@ export const fetchReferencesByType = async (type: string) => {
     try {
       // Primeiro, vamos verificar se a tabela documents existe
       const { count, error: countError } = await supabase
-<<<<<<< HEAD
         .from("c_documents")
-=======
-        .from("documents")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select("*", { count: "exact", head: true });
       
       if (countError) {
@@ -172,11 +160,7 @@ export const fetchReferencesByType = async (type: string) => {
       
       // Se chegamos aqui, a tabela existe
       const { data, error } = await supabase
-<<<<<<< HEAD
         .from("c_documents")
-=======
-        .from("documents")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select("*");
 
       if (error) {
@@ -272,11 +256,7 @@ export const fetchReferencesByType = async (type: string) => {
 export const fetchReferenceById = async (id: string) => {
   try {
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from("c_documents")
-=======
-      .from("documents")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select("*")
       .eq("id", parseInt(id))
       .filter("metadata->document_type", "eq", "reference")
@@ -326,11 +306,7 @@ export const createReference = async (
     const now = new Date().toISOString();
     
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from("c_documents")
-=======
-      .from("documents")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .insert([
         {
           content: reference.title, // Usando o título como conteúdo
@@ -403,11 +379,7 @@ export const updateReference = async (
   try {
     // Primeiro, obter o documento atual para mesclar os metadados
     const { data: currentDoc, error: fetchError } = await supabase
-<<<<<<< HEAD
       .from("c_documents")
-=======
-      .from("documents")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select("*")
       .eq("id", parseInt(id))
       .filter("metadata->document_type", "eq", "reference")
@@ -449,11 +421,7 @@ export const updateReference = async (
 
     // Atualizar o documento
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from("c_documents")
-=======
-      .from("documents")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({
         content: currentDoc.content,
         metadata: updatedMetadata
@@ -515,11 +483,7 @@ export const deleteReference = async (id: string) => {
     
     // Primeiro, verificar se o documento existe e é uma referência
     const { data: document, error: fetchError } = await supabase
-<<<<<<< HEAD
       .from("c_documents")
-=======
-      .from("documents")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select("*")
       .eq("id", numericId)
       .single();
@@ -544,11 +508,7 @@ export const deleteReference = async (id: string) => {
 
     // Executar a exclusão
     const { error } = await supabase
-<<<<<<< HEAD
       .from("c_documents")
-=======
-      .from("documents")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .delete()
       .eq("id", numericId);
 

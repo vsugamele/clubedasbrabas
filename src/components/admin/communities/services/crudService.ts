@@ -57,11 +57,7 @@ export const addCommunity = async (form: CommunityForm): Promise<Community | nul
     
     const insertPromise = async () => {
       return await supabase
-<<<<<<< HEAD
         .from('c_communities')
-=======
-        .from('communities')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .insert({
           name: form.name,
           description: form.description,
@@ -130,11 +126,7 @@ export const updateCommunity = async (id: string, form: CommunityForm): Promise<
     
     const updatePromise = async () => {
       return await supabase
-<<<<<<< HEAD
         .from('c_communities')
-=======
-        .from('communities')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update({
           name: form.name,
           description: form.description,
@@ -181,11 +173,7 @@ export const deleteCommunity = async (id: string, name: string): Promise<boolean
   try {
     const deletePromise = async () => {
       return await supabase
-<<<<<<< HEAD
         .from('c_communities')
-=======
-        .from('communities')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .delete()
         .eq('id', id as any);
     };

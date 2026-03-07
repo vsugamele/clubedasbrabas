@@ -22,11 +22,7 @@ export async function fetchTrendingPosts(): Promise<TrendingPost[]> {
     console.log("Buscando configurações de trending...");
     // Buscar configurações de trending
     const { data: settingsData, error: settingsError } = await supabase
-<<<<<<< HEAD
       .from('c_trending_settings')
-=======
-      .from('trending_settings')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .single();
       
@@ -47,11 +43,7 @@ export async function fetchTrendingPosts(): Promise<TrendingPost[]> {
     console.log("Buscando posts em alta...");
     // Primeiro, tenta buscar posts marcados manualmente como trending
     const { data: manualTrending, error: manualError } = await supabase
-<<<<<<< HEAD
       .from('c_posts')
-=======
-      .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select(`
         id,
         content,
@@ -74,11 +66,7 @@ export async function fetchTrendingPosts(): Promise<TrendingPost[]> {
     if (!manualTrending || manualTrending.length === 0) {
       console.log("Nenhum post marcado manualmente como trending. Buscando posts populares baseados nas configurações...");
       const { data: autoTrending, error: autoError } = await supabase
-<<<<<<< HEAD
         .from('c_posts')
-=======
-        .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select(`
           id,
           content,
@@ -107,11 +95,7 @@ export async function fetchTrendingPosts(): Promise<TrendingPost[]> {
       // Buscar informações de perfil para os posts
       const userIds = [...new Set(autoTrending.map(post => post.user_id))];
       const { data: profiles, error: profilesError } = await supabase
-<<<<<<< HEAD
         .from('c_profiles')
-=======
-        .from('profiles')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('id, full_name, avatar_url')
         .in('id', userIds);
         
@@ -149,11 +133,7 @@ export async function fetchTrendingPosts(): Promise<TrendingPost[]> {
     // Buscar informações de perfil para os posts em alta
     const userIds = [...new Set(manualTrending.map(post => post.user_id))];
     const { data: profiles, error: profilesError } = await supabase
-<<<<<<< HEAD
       .from('c_profiles')
-=======
-      .from('profiles')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id, full_name, avatar_url')
       .in('id', userIds);
       

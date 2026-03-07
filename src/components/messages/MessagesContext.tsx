@@ -65,22 +65,14 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
       try {
         // Fetch users who have messaged with current user
         const { data: sentMessages, error: sentError } = await supabase
-<<<<<<< HEAD
           .from("c_direct_messages")
-=======
-          .from("direct_messages")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .select("receiver_id")
           .eq("sender_id", user.id);
 
         if (sentError) throw sentError;
 
         const { data: receivedMessages, error: receivedError } = await supabase
-<<<<<<< HEAD
           .from("c_direct_messages")
-=======
-          .from("direct_messages")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .select("sender_id")
           .eq("receiver_id", user.id);
 
@@ -100,11 +92,7 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
         // Fetch user profiles
         if (userIds.size > 0) {
           const { data: profilesData, error: profilesError } = await supabase
-<<<<<<< HEAD
             .from("c_profiles")
-=======
-            .from("profiles")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             .select("*")
             .in("id", Array.from(userIds));
 
@@ -114,11 +102,7 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
           const contactsWithUnread = await Promise.all(
             profilesData.map(async (profile) => {
               const { count, error: countError } = await supabase
-<<<<<<< HEAD
                 .from("c_direct_messages")
-=======
-                .from("direct_messages")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .select("*", { count: "exact", head: true })
                 .eq("sender_id", profile.id)
                 .eq("receiver_id", user.id)
@@ -163,11 +147,7 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
     try {
       // Buscar todos os perfis de usuários
       const { data, error } = await supabase
-<<<<<<< HEAD
         .from("c_profiles")
-=======
-        .from("profiles")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select("*")
         .neq("id", user.id) // Excluir o usuário atual
         .order("updated_at", { ascending: false }); // Ordenar pela data de atualização (mais recentes primeiro)
@@ -222,11 +202,7 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
     const fetchMessages = async () => {
       try {
         const { data, error } = await supabase
-<<<<<<< HEAD
           .from("c_direct_messages")
-=======
-          .from("direct_messages")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .select("*")
           .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedContact.id}),and(sender_id.eq.${selectedContact.id},receiver_id.eq.${user.id})`)
           .order("created_at", { ascending: true });
@@ -242,11 +218,7 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
 
         if (unreadMessages && unreadMessages.length > 0) {
           await supabase
-<<<<<<< HEAD
             .from("c_direct_messages")
-=======
-            .from("direct_messages")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             .update({ is_read: true })
             .in("id", unreadMessages.map(msg => msg.id));
 
@@ -269,21 +241,13 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
 
     // Setup realtime subscription
     const channel = supabase
-<<<<<<< HEAD
       .channel("c_direct_messages")
-=======
-      .channel("direct_messages")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
-<<<<<<< HEAD
           table: "c_direct_messages",
-=======
-          table: "direct_messages",
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedContact.id}),and(sender_id=eq.${selectedContact.id},receiver_id=eq.${user.id}))`,
         },
         (payload) => {
@@ -294,11 +258,7 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
           // If message is from the selected contact, mark as read
           if (newMessage.sender_id === selectedContact.id) {
             supabase
-<<<<<<< HEAD
               .from("c_direct_messages")
-=======
-              .from("direct_messages")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
               .update({ is_read: true })
               .eq("id", newMessage.id);
           }
@@ -322,11 +282,7 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
         {
           event: "INSERT",
           schema: "public",
-<<<<<<< HEAD
           table: "c_direct_messages",
-=======
-          table: "direct_messages",
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           filter: `or(sender_id=eq.${user.id},receiver_id=eq.${user.id})`,
         },
         async (payload) => {
@@ -346,11 +302,7 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
             // Se a mensagem é do contato selecionado, marcar como lida
             if (newMessage.sender_id === selectedContact.id && !newMessage.is_read) {
               await supabase
-<<<<<<< HEAD
                 .from("c_direct_messages")
-=======
-                .from("direct_messages")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .update({ is_read: true })
                 .eq("id", newMessage.id);
             }
@@ -365,11 +317,7 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
           if (!contactExists) {
             try {
               const { data: profileData } = await supabase
-<<<<<<< HEAD
                 .from("c_profiles")
-=======
-                .from("profiles")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .select("*")
                 .eq("id", otherUserId)
                 .single();
@@ -442,11 +390,7 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
       
       // Enviar a mensagem para o servidor
       const { data, error } = await supabase
-<<<<<<< HEAD
         .from("c_direct_messages")
-=======
-        .from("direct_messages")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .insert({
           content: tempMessage.content,
           sender_id: user.id,

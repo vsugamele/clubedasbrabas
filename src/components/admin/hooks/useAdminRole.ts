@@ -130,11 +130,7 @@ export const useAdminRole = () => {
           
           const result = await queryWithRetry(async () => {
             return await supabase
-<<<<<<< HEAD
               .from('c_user_roles')
-=======
-              .from('user_roles')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
               .select('*', { count: 'exact', head: true })
               .eq('role', 'admin');
           }, retryOptions);
@@ -157,11 +153,7 @@ export const useAdminRole = () => {
               if (!success) {
                 // If function fails, try direct insert
                 const { error: insertError } = await supabase
-<<<<<<< HEAD
                   .from('c_user_roles')
-=======
-                  .from('user_roles')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                   .insert({
                     user_id: user.id,
                     role: 'admin'

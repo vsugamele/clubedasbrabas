@@ -29,11 +29,7 @@ export const TestPostCleanup = () => {
       
       // Buscar posts que contenham a palavra "teste" ou "test" no conteúdo
       const { data, error } = await supabase
-<<<<<<< HEAD
         .from("c_posts")
-=======
-        .from("posts")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select("id, content, created_at, user_id")
         .or('content.ilike.%teste%,content.ilike.%test%')
         .order("created_at", { ascending: false });

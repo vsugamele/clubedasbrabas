@@ -25,11 +25,7 @@ const TracksList = () => {
     const fetchModules = async () => {
         try {
             const { data, error } = await supabase
-<<<<<<< HEAD
                 .from("c_modules")
-=======
-                .from("modules")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .select("*")
                 .order("order_index", { ascending: true });
 

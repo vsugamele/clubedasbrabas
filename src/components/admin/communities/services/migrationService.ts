@@ -29,11 +29,7 @@ export const migrateMockDataToSupabase = async (): Promise<void> => {
     
     // Inserir todos os dados no Supabase
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_communities')
-=======
-      .from('communities')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .insert(communityData)
       .select();
       

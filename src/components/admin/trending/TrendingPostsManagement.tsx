@@ -120,11 +120,7 @@ export const TrendingPostsManagement = () => {
       
       // Buscar posts marcados como trending
       const { data: trendingData, error: trendingError } = await supabase
-<<<<<<< HEAD
         .from('c_posts')
-=======
-        .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*, likes:likes_count, comments:comments_count, views:views_count')
         .eq('is_trending', true)
         .order('created_at', { ascending: false });
@@ -133,11 +129,7 @@ export const TrendingPostsManagement = () => {
       
       // Buscar posts populares que atendem aos critérios
       const { data: popularData, error: popularError } = await supabase
-<<<<<<< HEAD
         .from('c_posts')
-=======
-        .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*, likes:likes_count, comments:comments_count, views:views_count')
         .gte('likes_count', settings.minLikes)
         .gte('comments_count', settings.minComments)
@@ -149,11 +141,7 @@ export const TrendingPostsManagement = () => {
       
       // Buscar posts recentes para completar a lista
       const { data: recentData, error: recentError } = await supabase
-<<<<<<< HEAD
         .from('c_posts')
-=======
-        .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*, likes:likes_count, comments:comments_count, views:views_count')
         .order('created_at', { ascending: false })
         .limit(20);
@@ -221,11 +209,7 @@ export const TrendingPostsManagement = () => {
   const loadSettings = async () => {
     try {
       const { data, error } = await supabase
-<<<<<<< HEAD
         .from('c_trending_settings')
-=======
-        .from('trending_settings')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*')
         .single();
         
@@ -249,11 +233,7 @@ export const TrendingPostsManagement = () => {
     try {
       // Verificar se a tabela existe
       const { error: checkError } = await supabase
-<<<<<<< HEAD
         .from('c_trending_settings')
-=======
-        .from('trending_settings')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('count')
         .limit(1);
       
@@ -265,11 +245,7 @@ export const TrendingPostsManagement = () => {
       
       // Verificar se há algum registro
       const { data: existingData, error: countError } = await supabase
-<<<<<<< HEAD
         .from('c_trending_settings')
-=======
-        .from('trending_settings')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('id')
         .limit(1);
         
@@ -280,11 +256,7 @@ export const TrendingPostsManagement = () => {
       if (!existingData || existingData.length === 0) {
         // Inserir novo registro
         result = await supabase
-<<<<<<< HEAD
           .from('c_trending_settings')
-=======
-          .from('trending_settings')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .insert({
             min_likes: settings.minLikes,
             min_comments: settings.minComments,
@@ -293,11 +265,7 @@ export const TrendingPostsManagement = () => {
       } else {
         // Atualizar registro existente
         result = await supabase
-<<<<<<< HEAD
           .from('c_trending_settings')
-=======
-          .from('trending_settings')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .update({
             min_likes: settings.minLikes,
             min_comments: settings.minComments,
@@ -322,11 +290,7 @@ export const TrendingPostsManagement = () => {
   const updatePostTrendingStatus = async (postId: string, isTrending: boolean) => {
     try {
       const { error } = await supabase
-<<<<<<< HEAD
         .from('c_posts')
-=======
-        .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update({ is_trending: isTrending })
         .eq('id', postId);
         
@@ -349,11 +313,7 @@ export const TrendingPostsManagement = () => {
   const removePost = async (postId: string) => {
     try {
       const { error } = await supabase
-<<<<<<< HEAD
         .from('c_posts')
-=======
-        .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .delete()
         .eq('id', postId);
         
@@ -421,11 +381,7 @@ export const TrendingPostsManagement = () => {
     try {
       // Buscar os contadores atuais do post
       const { data: postData, error: fetchError } = await supabase
-<<<<<<< HEAD
         .from('c_posts')
-=======
-        .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('likes_count, comments_count, views_count')
         .eq('id', postId)
         .single();
@@ -441,11 +397,7 @@ export const TrendingPostsManagement = () => {
       
       // Atualizar o post no banco de dados
       const { error } = await supabase
-<<<<<<< HEAD
         .from('c_posts')
-=======
-        .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update({
           likes_count: likesCount,
           comments_count: commentsCount,

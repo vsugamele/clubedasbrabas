@@ -13,11 +13,7 @@ const handleError = (error: any, message: string) => {
 export const fetchUserRanking = async (userId: string): Promise<UserRanking | null> => {
   try {
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_user_rankings')
-=======
-      .from('user_rankings')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .eq('user_id', userId)
       .single();
@@ -54,11 +50,7 @@ export const createUserRanking = async (userId: string): Promise<UserRanking | n
     };
     
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_user_rankings')
-=======
-      .from('user_rankings')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .insert(rankingData)
       .select()
       .single();
@@ -82,11 +74,7 @@ export const createUserRanking = async (userId: string): Promise<UserRanking | n
 export const fetchTopRankings = async (limit: number = 10): Promise<UserRanking[]> => {
   try {
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_user_rankings')
-=======
-      .from('user_rankings')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .order('points', { ascending: false })
       .limit(limit);
@@ -136,11 +124,7 @@ export const updateUserPoints = async (
     
     // Atualizar no banco de dados
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_user_rankings')
-=======
-      .from('user_rankings')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update(updateData)
       .eq('id', currentRanking.id)
       .select()

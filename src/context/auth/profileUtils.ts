@@ -22,11 +22,7 @@ export const fetchProfile = async (userId: string): Promise<ProfileType | null> 
     
     // Primeiro, tente obter o perfil do usuário
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from("c_profiles")
-=======
-      .from("profiles")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select("*")
       .eq("id", userId)
       .maybeSingle();
@@ -96,11 +92,7 @@ export const createDefaultProfile = async (userId: string): Promise<ProfileType 
     
     // Only include fields that exist in the database schema
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from("c_profiles")
-=======
-      .from("profiles")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .insert({
         id: userId,
         username: username,

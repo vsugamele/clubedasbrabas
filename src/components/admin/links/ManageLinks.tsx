@@ -24,11 +24,7 @@ import { Label } from "@/components/ui/label";
 
 interface UsefulLink {
     id: string;
-<<<<<<< HEAD
     name: string;
-=======
-    title: string;
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     description: string | null;
     url: string;
     category: string | null;
@@ -36,13 +32,8 @@ interface UsefulLink {
 
 interface NavbarLink {
     id: string;
-<<<<<<< HEAD
     label: string;
     href: string;
-=======
-    name: string;
-    path: string;
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     order_index: number;
     enabled: boolean;
 }
@@ -65,24 +56,15 @@ export const ManageLinks = () => {
 
     // Form States
     const [sidebarFormData, setSidebarFormData] = useState({
-<<<<<<< HEAD
         name: "",
-=======
-        title: "",
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         description: "",
         url: "",
         category: ""
     });
 
     const [navbarFormData, setNavbarFormData] = useState({
-<<<<<<< HEAD
         label: "",
         href: "",
-=======
-        name: "",
-        path: "",
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         order_index: 0,
         enabled: true
     });
@@ -97,11 +79,7 @@ export const ManageLinks = () => {
         setSidebarLoading(true);
         try {
             const { data, error } = await supabase
-<<<<<<< HEAD
                 .from("c_external_links")
-=======
-                .from("useful_links")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .select("*")
                 .order("created_at", { ascending: false });
 
@@ -120,11 +98,7 @@ export const ManageLinks = () => {
         setNavbarLoading(true);
         try {
             const { data, error } = await supabase
-<<<<<<< HEAD
                 .from("c_navbar_links")
-=======
-                .from("navbar_links")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .select("*")
                 .order("order_index", { ascending: true });
 
@@ -141,11 +115,7 @@ export const ManageLinks = () => {
     // ========== CRUD OPERATIONS ==========
     const handleCreateOrUpdate = async () => {
         if (dialogType === "navbar") {
-<<<<<<< HEAD
             if (!navbarFormData.label || !navbarFormData.href) {
-=======
-            if (!navbarFormData.name || !navbarFormData.path) {
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 toast.error("Nome e caminho são obrigatórios");
                 return;
             }
@@ -153,11 +123,7 @@ export const ManageLinks = () => {
             try {
                 if (editingId) {
                     const { error } = await supabase
-<<<<<<< HEAD
                         .from("c_navbar_links")
-=======
-                        .from("navbar_links")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                         .update(navbarFormData)
                         .eq("id", editingId);
 
@@ -169,11 +135,7 @@ export const ManageLinks = () => {
                         Math.max(max, link.order_index), 0);
 
                     const { error } = await supabase
-<<<<<<< HEAD
                         .from("c_navbar_links")
-=======
-                        .from("navbar_links")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                         .insert([{ ...navbarFormData, order_index: maxOrder + 1 }]);
 
                     if (error) throw error;
@@ -188,11 +150,7 @@ export const ManageLinks = () => {
                 toast.error("Erro ao salvar link do menu");
             }
         } else {
-<<<<<<< HEAD
             if (!sidebarFormData.name || !sidebarFormData.url) {
-=======
-            if (!sidebarFormData.title || !sidebarFormData.url) {
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 toast.error("Título e URL são obrigatórios");
                 return;
             }
@@ -200,11 +158,7 @@ export const ManageLinks = () => {
             try {
                 if (editingId) {
                     const { error } = await supabase
-<<<<<<< HEAD
                         .from("c_external_links")
-=======
-                        .from("useful_links")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                         .update(sidebarFormData)
                         .eq("id", editingId);
 
@@ -212,11 +166,7 @@ export const ManageLinks = () => {
                     toast.success("Link atualizado com sucesso");
                 } else {
                     const { error } = await supabase
-<<<<<<< HEAD
                         .from("c_external_links")
-=======
-                        .from("useful_links")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                         .insert([sidebarFormData]);
 
                     if (error) throw error;
@@ -237,11 +187,7 @@ export const ManageLinks = () => {
         if (!confirm("Tem certeza que deseja excluir este link do menu?")) return;
 
         try {
-<<<<<<< HEAD
             const { error } = await supabase.from("c_navbar_links").delete().eq("id", id);
-=======
-            const { error } = await supabase.from("navbar_links").delete().eq("id", id);
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             if (error) throw error;
 
             setNavbarLinks(navbarLinks.filter(l => l.id !== id));
@@ -256,11 +202,7 @@ export const ManageLinks = () => {
         if (!confirm("Tem certeza que deseja excluir este link?")) return;
 
         try {
-<<<<<<< HEAD
             const { error } = await supabase.from("c_external_links").delete().eq("id", id);
-=======
-            const { error } = await supabase.from("useful_links").delete().eq("id", id);
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             if (error) throw error;
 
             setSidebarLinks(sidebarLinks.filter(l => l.id !== id));
@@ -274,11 +216,7 @@ export const ManageLinks = () => {
     const toggleNavbarLink = async (id: string, enabled: boolean) => {
         try {
             const { error } = await supabase
-<<<<<<< HEAD
                 .from("c_navbar_links")
-=======
-                .from("navbar_links")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .update({ enabled })
                 .eq("id", id);
 
@@ -300,13 +238,8 @@ export const ManageLinks = () => {
         if (link) {
             setEditingId(link.id);
             setNavbarFormData({
-<<<<<<< HEAD
                 label: link.label,
                 href: link.href,
-=======
-                name: link.name,
-                path: link.path,
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 order_index: link.order_index,
                 enabled: link.enabled
             });
@@ -321,11 +254,7 @@ export const ManageLinks = () => {
         if (link) {
             setEditingId(link.id);
             setSidebarFormData({
-<<<<<<< HEAD
                 name: link.name,
-=======
-                title: link.title,
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 description: link.description || "",
                 url: link.url,
                 category: link.category || ""
@@ -338,13 +267,8 @@ export const ManageLinks = () => {
 
     const resetForm = () => {
         setEditingId(null);
-<<<<<<< HEAD
         setSidebarFormData({ name: "", description: "", url: "", category: "" });
         setNavbarFormData({ label: "", href: "", order_index: 0, enabled: true });
-=======
-        setSidebarFormData({ title: "", description: "", url: "", category: "" });
-        setNavbarFormData({ name: "", path: "", order_index: 0, enabled: true });
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     };
 
     return (
@@ -389,13 +313,8 @@ export const ManageLinks = () => {
                                         <div className="flex items-center gap-4">
                                             <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
                                             <div>
-<<<<<<< HEAD
                                                 <p className="font-medium">{link.label}</p>
                                                 <p className="text-sm text-muted-foreground">{link.href}</p>
-=======
-                                                <p className="font-medium">{link.name}</p>
-                                                <p className="text-sm text-muted-foreground">{link.path}</p>
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
@@ -448,11 +367,7 @@ export const ManageLinks = () => {
                                 <Card key={link.id} className="flex flex-col">
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-lg flex justify-between items-start">
-<<<<<<< HEAD
                                             <span className="truncate pr-2">{link.name}</span>
-=======
-                                            <span className="truncate pr-2">{link.title}</span>
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                                             <div className="flex gap-1 shrink-0">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openSidebarDialog(link)}>
                                                     <Edit className="h-3.5 w-3.5 text-muted-foreground" />
@@ -499,26 +414,16 @@ export const ManageLinks = () => {
                             <div className="space-y-2">
                                 <Label>Nome *</Label>
                                 <Input
-<<<<<<< HEAD
                                     value={navbarFormData.label}
                                     onChange={(e) => setNavbarFormData({ ...navbarFormData, label: e.target.value })}
-=======
-                                    value={navbarFormData.name}
-                                    onChange={(e) => setNavbarFormData({ ...navbarFormData, name: e.target.value })}
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                                     placeholder="Ex: Início, Explorar, Trilhas"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label>Caminho (Rota) *</Label>
                                 <Input
-<<<<<<< HEAD
                                     value={navbarFormData.href}
                                     onChange={(e) => setNavbarFormData({ ...navbarFormData, href: e.target.value })}
-=======
-                                    value={navbarFormData.path}
-                                    onChange={(e) => setNavbarFormData({ ...navbarFormData, path: e.target.value })}
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                                     placeholder="Ex: /search, /trilhas, /eventos"
                                 />
                                 <p className="text-xs text-muted-foreground">
@@ -538,13 +443,8 @@ export const ManageLinks = () => {
                             <div className="space-y-2">
                                 <Label>Título *</Label>
                                 <Input
-<<<<<<< HEAD
                                     value={sidebarFormData.name}
                                     onChange={(e) => setSidebarFormData({ ...sidebarFormData, name: e.target.value })}
-=======
-                                    value={sidebarFormData.title}
-                                    onChange={(e) => setSidebarFormData({ ...sidebarFormData, title: e.target.value })}
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                                     placeholder="Ex: Trello"
                                 />
                             </div>

@@ -157,11 +157,7 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
       // Carregamos todas as categorias do banco
       const { data: categoriesData, error: categoriesError } = await retryOperation(async () => {
         return await supabase
-<<<<<<< HEAD
           .from('c_community_categories')
-=======
-          .from('community_categories')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .select('id, name, slug, order_index')
           .order('order_index', { ascending: true });
       }, 3);
@@ -179,11 +175,7 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
             // Buscamos os campos incluindo o icon que agora existe
             const { data: communitiesData, error: communitiesError } = await retryOperation(async () => {
               return await supabase
-<<<<<<< HEAD
                 .from('c_communities')
-=======
-                .from('communities')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .select('id, name, icon, category_id')
                 .eq('category_id', category.id);
             }, 3);
@@ -258,11 +250,7 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
       // Carregamos todas as comunidades sem categoria
       const { data: communitiesWithoutCategoryData, error: communitiesError } = await retryOperation(async () => {
         return await supabase
-<<<<<<< HEAD
           .from('c_communities')
-=======
-          .from('communities')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .select('id, name, icon')
           .is('category_id', null);
       }, 3);

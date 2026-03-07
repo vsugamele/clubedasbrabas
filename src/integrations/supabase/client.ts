@@ -4,13 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { toast } from 'sonner';
 
-<<<<<<< HEAD
 const SUPABASE_URL = "https://tkbivipqiewkfnhktmqq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrYml2aXBxaWV3a2ZuaGt0bXFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg0NzY4NDgsImV4cCI6MjA1NDA1Mjg0OH0.2TnLj4lriG7eoPQWDo0mV8u8YHor6bd5ItZCHYhkym0";
-=======
-const SUPABASE_URL = "https://weuifmgjzkuppqqsoood.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndldWlmbWdqemt1cHBxcXNvb29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk3Njg1MDIsImV4cCI6MjA0NTM0NDUwMn0.iTyxWaZyFQc7qqR_O6Fofkd0Bf_D0Tpn_qMTA9XR98g";
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
 
 // Configurações otimizadas para maior estabilidade
 const clientOptions = {
@@ -38,11 +33,7 @@ const clientOptions = {
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(
-<<<<<<< HEAD
   SUPABASE_URL,
-=======
-  SUPABASE_URL, 
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   SUPABASE_PUBLISHABLE_KEY,
   clientOptions
 );
@@ -51,21 +42,13 @@ export const supabase = createClient<Database>(
 supabase.auth.onAuthStateChange((event, session) => {
   // Define the event type as string to bypass TypeScript's strict checking
   const eventType: string = event;
-<<<<<<< HEAD
 
-=======
-  
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   if (eventType === 'SIGNED_OUT' || eventType === 'USER_DELETED') {
     // Clear any cached data when signed out
     localStorage.removeItem('supabase.auth.token');
     console.log("User signed out, cleared auth cache");
   }
-<<<<<<< HEAD
 
-=======
-  
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   if (eventType === 'SIGNED_IN' || eventType === 'TOKEN_REFRESHED') {
     console.log("Auth state changed:", event);
   }
@@ -81,7 +64,6 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
     } catch (e) {
       console.warn("Falha ao verificar sessão:", e);
     }
-<<<<<<< HEAD
 
     // Tentativa 2: Verificar tabela profiles
     try {
@@ -90,21 +72,10 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
         .select('id', { count: 'exact', head: true })
         .limit(1);
 
-=======
-    
-    // Tentativa 2: Verificar tabela profiles
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .limit(1);
-      
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       if (!error) return true;
     } catch (e) {
       console.warn("Falha ao verificar tabela profiles:", e);
     }
-<<<<<<< HEAD
 
     // Tentativa 3: Verificar tabela categories
     try {
@@ -113,25 +84,11 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
         .select('id', { count: 'exact', head: true })
         .limit(1);
 
-=======
-    
-    // Tentativa 3: Verificar tabela categories
-    try {
-      const { error } = await supabase
-        .from('categories')
-        .select('id', { count: 'exact', head: true })
-        .limit(1);
-      
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       if (!error) return true;
     } catch (e) {
       console.warn("Falha ao verificar tabela categories:", e);
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     return false;
   } catch (error) {
     console.error("Erro ao verificar conexão:", error);
@@ -168,15 +125,9 @@ const monitorConnectivity = () => {
         } else {
           failedRequests++;
           console.warn(`Supabase connectivity check failed (${failedRequests} consecutive failures)`);
-<<<<<<< HEAD
 
           if (failedRequests > 3) {
             toast.error("Problemas de conexão com o servidor detectados", {
-=======
-          
-          if (failedRequests > 3) {
-            toast.error("Problemas de conexão com o servidor detectados", { 
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
               id: "connectivity-issues",
               duration: 5000
             });
@@ -209,21 +160,13 @@ export const retryOperation = async <T>(
     } catch (error) {
       console.warn(`Tentativa ${attempts}/${maxAttempts} falhou:`, error);
       lastError = error;
-<<<<<<< HEAD
 
-=======
-      
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       if (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, delay));
         delay = Math.min(delay * 2, 10000); // Exponential backoff
       }
     }
   }
-<<<<<<< HEAD
 
-=======
-  
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   throw lastError;
 };

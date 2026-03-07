@@ -55,11 +55,7 @@ export const fetchNotifications = async (): Promise<Notification[]> => {
 
     // Buscar notificações do usuário
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_notifications')
-=======
-      .from('notifications')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
@@ -97,11 +93,7 @@ export const fetchNotifications = async (): Promise<Notification[]> => {
 
     // Buscar perfis dos remetentes
     const { data: profiles, error: profilesError } = await supabase
-<<<<<<< HEAD
       .from('c_profiles')
-=======
-      .from('profiles')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id, full_name, avatar_url')
       .in('id', senderIds);
 
@@ -176,11 +168,7 @@ export const markNotificationAsRead = async (id: string): Promise<boolean> => {
     }
 
     const { error } = await supabase
-<<<<<<< HEAD
       .from('c_notifications')
-=======
-      .from('notifications')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ is_read: true })
       .eq('id', id)
       .eq('user_id', user.id);
@@ -209,11 +197,7 @@ export const markAllNotificationsAsRead = async (): Promise<boolean> => {
     }
 
     const { error } = await supabase
-<<<<<<< HEAD
       .from('c_notifications')
-=======
-      .from('notifications')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ is_read: true })
       .eq('user_id', user.id)
       .eq('is_read', false);
@@ -243,11 +227,7 @@ export const deleteNotification = async (id: string): Promise<boolean> => {
     }
 
     const { error } = await supabase
-<<<<<<< HEAD
       .from('c_notifications')
-=======
-      .from('notifications')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .delete()
       .eq('id', id)
       .eq('user_id', user.id);
@@ -279,11 +259,7 @@ export const createNotification = async (
 ): Promise<string | null> => {
   try {
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_notifications')
-=======
-      .from('notifications')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .insert({
         user_id: userId,
         type,
@@ -409,11 +385,7 @@ export const createAdminPostNotification = async (
   try {
     // Buscar todos os usuários exceto o admin que criou a postagem
     const { data: profiles, error } = await supabase
-<<<<<<< HEAD
       .from('c_profiles')
-=======
-      .from('profiles')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id')
       .neq('id', adminId);
 
@@ -438,11 +410,7 @@ export const createAdminPostNotification = async (
     }));
 
     const { error: insertError } = await supabase
-<<<<<<< HEAD
       .from('c_notifications')
-=======
-      .from('notifications')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .insert(notificationsToInsert);
 
     if (insertError) {
@@ -469,11 +437,7 @@ export const createEventNotification = async (
   try {
     // Buscar todos os usuários exceto o criador do evento
     const { data: profiles, error } = await supabase
-<<<<<<< HEAD
       .from('c_profiles')
-=======
-      .from('profiles')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id')
       .neq('id', creatorId);
 
@@ -500,11 +464,7 @@ export const createEventNotification = async (
     }));
 
     const { error: insertError } = await supabase
-<<<<<<< HEAD
       .from('c_notifications')
-=======
-      .from('notifications')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .insert(notificationsToInsert);
 
     if (insertError) {

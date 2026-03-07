@@ -63,11 +63,7 @@ const TrackDetails = () => {
         try {
             // Fetch module info
             const { data: moduleData, error: moduleError } = await supabase
-<<<<<<< HEAD
                 .from("c_modules")
-=======
-                .from("modules")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .select("*")
                 .eq("id", moduleId)
                 .single();
@@ -76,11 +72,7 @@ const TrackDetails = () => {
 
             // Fetch lessons
             const { data: lessonsData, error: lessonsError } = await supabase
-<<<<<<< HEAD
                 .from("c_lessons")
-=======
-                .from("lessons")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .select("*")
                 .eq("module_id", moduleId)
                 .order("order_index", { ascending: true });

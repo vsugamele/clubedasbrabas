@@ -65,11 +65,7 @@ export const ExternalLinksProvider = ({ children }: ExternalLinksProviderProps) 
     const fetchLinks = async () => {
       try {
         const { data, error } = await supabase
-<<<<<<< HEAD
           .from('c_external_links')
-=======
-          .from('useful_links')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .select('*')
           .order('created_at', { ascending: true }); // Using created_at since order_index might not exist yet
 
@@ -85,29 +81,14 @@ export const ExternalLinksProvider = ({ children }: ExternalLinksProviderProps) 
         } else {
           // Map DB fields to ExternalLink interface
           const dbData = data || [];
-<<<<<<< HEAD
 
           if (dbData.length === 0) {
-=======
-          const mappedLinks = dbData.map((item: any, index: number) => ({
-            id: item.id,
-            name: item.title,
-            url: item.url,
-            order_index: index,
-            description: item.description,
-            category: item.category
-          }));
-
-          // If no links in DB, use default links
-          if (mappedLinks.length === 0) {
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             const defaultLinksWithIds = defaultLinks.map((link, index) => ({
               ...link,
               id: `default-${index}`
             }));
             setLinks(defaultLinksWithIds);
           } else {
-<<<<<<< HEAD
             const mappedLinks = dbData.map((item: any, index: number) => ({
               id: item.id,
               name: item.title || item.name || 'Link sem nome', // Tentar title primeiro (padrão do N8N/banco novo), depois name
@@ -116,9 +97,6 @@ export const ExternalLinksProvider = ({ children }: ExternalLinksProviderProps) 
               highlighted: item.highlighted || false // Manter o highlight se existir no banco
             }));
             setLinks(mappedLinks);
-=======
-            setLinks(mappedLinks as any);
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           }
         }
       } catch (err) {

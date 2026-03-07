@@ -40,11 +40,7 @@ const DirectPostRemoval = () => {
       
       // Buscar posts diretamente da tabela posts
       const { data, error } = await supabase
-<<<<<<< HEAD
         .from("c_posts")
-=======
-        .from("posts")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select("id, content, created_at, user_id")
         .order("created_at", { ascending: false })
         .limit(100);
@@ -58,11 +54,7 @@ const DirectPostRemoval = () => {
         (data || []).map(async (post) => {
           try {
             const { data: userData } = await supabase
-<<<<<<< HEAD
               .from("c_profiles")
-=======
-              .from("profiles")
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
               .select("full_name")
               .eq("id", post.user_id)
               .single();
@@ -142,11 +134,7 @@ const DirectPostRemoval = () => {
       
       // Excluir o post
       const { error } = await supabase
-<<<<<<< HEAD
         .from('c_posts')
-=======
-        .from('posts')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .delete()
         .eq('id', postId);
         

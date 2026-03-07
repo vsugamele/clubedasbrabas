@@ -10,17 +10,10 @@ export const fetchCommunities = async (): Promise<any[]> => {
   try {
     // Buscar comunidades com informações de categoria usando join
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_communities')
       .select(`
         *,
         c_community_categories(id, name)
-=======
-      .from('communities')
-      .select(`
-        *,
-        community_categories(id, name)
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       `)
       .order('created_at', { ascending: false });
 
@@ -35,7 +28,6 @@ export const fetchCommunities = async (): Promise<any[]> => {
     // Map the data to ensure it conforms to the Community type
     return data ? data.map(item => {
       const community = mapFromSupabase(item);
-<<<<<<< HEAD
 
       // Adicionar o nome da categoria ao objeto da comunidade
       const itemData = item as any;
@@ -44,14 +36,6 @@ export const fetchCommunities = async (): Promise<any[]> => {
         community.categoryName = catData.name;
       }
 
-=======
-      
-      // Adicionar o nome da categoria ao objeto da comunidade
-      if (item.community_categories) {
-        community.categoryName = item.community_categories.name;
-      }
-      
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       return community;
     }) : [];
   } catch (error) {
@@ -76,11 +60,7 @@ export const addCommunity = async (formData: CommunityForm): Promise<Community |
     console.log("Inserindo nova comunidade:", newCommunity);
 
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_communities')
-=======
-      .from('communities')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .insert(newCommunity)
       .select()
       .single();
@@ -105,20 +85,12 @@ export const updateCommunity = async (id: string, formData: CommunityForm): Prom
   try {
     // Construir objeto de atualização apenas com campos fornecidos
     const updates: any = {};
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     if (formData.name?.trim()) updates.name = formData.name;
     if (formData.description?.trim()) updates.description = formData.description;
     if (formData.visibility) updates.visibility = formData.visibility;
     if (formData.postingRestrictions) updates.posting_restrictions = formData.postingRestrictions;
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     // Tratar categoria de forma simplificada
     if (formData.categoryId === "") {
       console.log("Definindo categoria como null");
@@ -131,11 +103,7 @@ export const updateCommunity = async (id: string, formData: CommunityForm): Prom
     console.log(`Atualizando comunidade ${id} com:`, updates);
 
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_communities')
-=======
-      .from('communities')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update(updates)
       .eq('id', id)
       .select()
@@ -169,7 +137,6 @@ export const updateCommunity = async (id: string, formData: CommunityForm): Prom
 export const deleteCommunity = async (id: string, name: string): Promise<boolean> => {
   try {
     console.log(`Deletando comunidade: ${id} (${name})`);
-<<<<<<< HEAD
 
     // Primeiro, excluir todos os posts associados à comunidade
     console.log(`Excluindo posts associados à comunidade ${id}`);
@@ -178,31 +145,14 @@ export const deleteCommunity = async (id: string, name: string): Promise<boolean
       .delete()
       .eq('community_id', id);
 
-=======
-    
-    // Primeiro, excluir todos os posts associados à comunidade
-    console.log(`Excluindo posts associados à comunidade ${id}`);
-    const { error: postsError } = await supabase
-      .from('posts')
-      .delete()
-      .eq('community_id', id);
-    
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     if (postsError) {
       console.error("Erro ao excluir posts da comunidade:", postsError);
       throw postsError;
     }
-<<<<<<< HEAD
 
     // Depois, excluir a comunidade
     const { error } = await supabase
       .from('c_communities')
-=======
-    
-    // Depois, excluir a comunidade
-    const { error } = await supabase
-      .from('communities')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .delete()
       .eq('id', id);
 
@@ -234,11 +184,7 @@ export const deleteCommunity = async (id: string, name: string): Promise<boolean
 export const fetchCommunitiesByCategory = async (categoryId: string): Promise<Community[]> => {
   try {
     const { data, error } = await supabase
-<<<<<<< HEAD
       .from('c_communities')
-=======
-      .from('communities')
->>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .eq('category_id', categoryId)
       .order('name');
