@@ -391,6 +391,18 @@ export const ManageLinks = () => {
                                         <p className="text-sm text-muted-foreground line-clamp-3">
                                             {link.description || "Sem descrição"}
                                         </p>
+                                        <div className="flex gap-2 mt-3 mb-1">
+                                            {link.show_in_sidebar !== false && (
+                                                <span className="text-[10px] bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 px-2 py-0.5 rounded-full font-medium">
+                                                    Sidebar
+                                                </span>
+                                            )}
+                                            {link.show_in_links_page !== false && (
+                                                <span className="text-[10px] bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded-full font-medium">
+                                                    Página de Links
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="mt-4 pt-2 border-t flex items-center text-xs text-blue-500 truncate">
                                             <ExternalLink className="h-3 w-3 mr-1 shrink-0" />
                                             <a href={link.url} target="_blank" rel="noopener noreferrer" className="truncate hover:underline">
