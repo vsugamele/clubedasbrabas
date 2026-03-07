@@ -10,7 +10,11 @@ export const getUserRole = async (userId: string): Promise<UserRole | null> => {
   try {
     // First try to get the role from our database structure
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from('c_user_roles')
+=======
+      .from('user_roles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('role')
       .eq('user_id', userId)
       .single();
@@ -72,7 +76,11 @@ export const isAdmin = async (userId: string): Promise<boolean> => {
     
     // Use a direct query to avoid recursion
     const { data: roleData, error } = await supabase
+<<<<<<< HEAD
       .from('c_user_roles')
+=======
+      .from('user_roles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('role')
       .eq('user_id', userId)
       .maybeSingle();
@@ -110,7 +118,11 @@ export const checkCurrentUserRole = async (): Promise<boolean> => {
     
     // Use a direct query to avoid recursion
     const { data: roleData, error } = await supabase
+<<<<<<< HEAD
       .from('c_user_roles')
+=======
+      .from('user_roles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('role')
       .eq('user_id', data.user.id)
       .maybeSingle();
@@ -150,7 +162,11 @@ export const verifyCurrentUserRole = async (): Promise<UserRole | null> => {
     
     // Use a direct query to avoid recursion
     const { data: roleData, error } = await supabase
+<<<<<<< HEAD
       .from('c_user_roles')
+=======
+      .from('user_roles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('role')
       .eq('user_id', data.user.id)
       .maybeSingle();
@@ -250,7 +266,11 @@ const assignUserRoleDirect = async (userId: string, role: UserRole): Promise<boo
   try {
     // Primeiro verificamos se já existe um registro
     const { data: existingRole, error: checkError } = await supabase
+<<<<<<< HEAD
       .from('c_user_roles')
+=======
+      .from('user_roles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
@@ -266,7 +286,11 @@ const assignUserRoleDirect = async (userId: string, role: UserRole): Promise<boo
       
       // Tentar inserção direta como último recurso
       const { error: directInsertError } = await supabase
+<<<<<<< HEAD
         .from('c_user_roles')
+=======
+        .from('user_roles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .insert([
           { user_id: userId, role: role }
         ]);
@@ -294,7 +318,11 @@ const assignUserRoleDirect = async (userId: string, role: UserRole): Promise<boo
         
         // Tentar atualização direta como último recurso
         const { error: directUpdateError } = await supabase
+<<<<<<< HEAD
           .from('c_user_roles')
+=======
+          .from('user_roles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .update({ role: role })
           .eq('user_id', userId);
         
@@ -382,7 +410,11 @@ export const getAllUserRoles = async (): Promise<{ data: any[] | null, error: an
     
     // Último recurso: buscar diretamente da tabela
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from('c_user_roles')
+=======
+      .from('user_roles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*');
     
     if (error) {

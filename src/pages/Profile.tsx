@@ -135,7 +135,11 @@ const Profile = () => {
       
       // Primeiro, tente buscar o perfil diretamente
       const { data, error } = await supabase
+<<<<<<< HEAD
         .from("c_profiles")
+=======
+        .from("profiles")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select("*")
         .eq("id", id)
         .single();

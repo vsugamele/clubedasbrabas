@@ -15,7 +15,11 @@ export const syncCategories = async (): Promise<boolean> => {
     
     // Buscar todas as categorias da tabela categories
     const { data: categoriesData, error: categoriesError } = await supabase
+<<<<<<< HEAD
       .from('c_categories')
+=======
+      .from('categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .order('name');
       
@@ -33,7 +37,11 @@ export const syncCategories = async (): Promise<boolean> => {
     
     // Buscar categorias existentes na tabela community_categories
     const { data: existingCategories, error: existingError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('name, slug')
       .order('name');
       
@@ -81,7 +89,11 @@ export const syncCategories = async (): Promise<boolean> => {
         existingSlugs.push(uniqueSlug);
         
         const { error: insertError } = await supabase
+<<<<<<< HEAD
           .from('c_community_categories')
+=======
+          .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .insert({
             name: category.name,
             slug: uniqueSlug
@@ -112,7 +124,11 @@ export const fetchCategories = async (): Promise<Category[]> => {
     // await syncCategories();
     
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .order('name');
       
@@ -134,7 +150,11 @@ export const assignCategoryToCommunity = async (communityId: string, categoryId:
     console.log(`Atribuindo categoria ${categoryId} à comunidade ${communityId}`);
     
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from('c_communities')
+=======
+      .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ category_id: categoryId })
       .eq('id', communityId);
       
@@ -157,7 +177,11 @@ export const getCommunityCategory = async (communityId: string): Promise<Categor
   try {
     // Primeiro obtemos a comunidade com sua categoria_id
     const { data: community, error: communityError } = await supabase
+<<<<<<< HEAD
       .from('c_communities')
+=======
+      .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('category_id')
       .eq('id', communityId)
       .single();
@@ -168,7 +192,11 @@ export const getCommunityCategory = async (communityId: string): Promise<Categor
     
     // Agora buscamos os detalhes da categoria
     const { data: category, error: categoryError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .eq('id', community.category_id)
       .single();
@@ -193,7 +221,11 @@ export const cleanupCommunityCategories = async (): Promise<void> => {
     
     // Obter comunidades com categorias inválidas
     const { data: communities, error } = await supabase
+<<<<<<< HEAD
       .from('c_communities')
+=======
+      .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id, category_id')
       .not('category_id', 'is', null);
       
@@ -212,7 +244,11 @@ export const cleanupCommunityCategories = async (): Promise<void> => {
       console.log(`Limpando categoria inválida da comunidade ${community.id}`);
       
       await supabase
+<<<<<<< HEAD
         .from('c_communities')
+=======
+        .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update({ category_id: null })
         .eq('id', community.id);
     }
@@ -232,7 +268,11 @@ export const testAndFixCategorySync = async (): Promise<{success: boolean, messa
     
     // 1. Verificar categorias na tabela categories
     const { data: categoriesData, error: categoriesError } = await supabase
+<<<<<<< HEAD
       .from('c_categories')
+=======
+      .from('categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .order('name');
       
@@ -245,7 +285,11 @@ export const testAndFixCategorySync = async (): Promise<{success: boolean, messa
     
     // 2. Verificar categorias na tabela community_categories
     const { data: communityCategoriesData, error: communityCategoriesError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .order('name');
       
@@ -283,7 +327,11 @@ export const testAndFixCategorySync = async (): Promise<{success: boolean, messa
     
     // 3. Verificar comunidades com categorias
     const { data: communitiesData, error: communitiesError } = await supabase
+<<<<<<< HEAD
       .from('c_communities')
+=======
+      .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id, name, category_id')
       .not('category_id', 'is', null);
       
@@ -318,7 +366,11 @@ export const testAndFixCategorySync = async (): Promise<{success: boolean, messa
             if (matchingCategory) {
               // Atualizar a comunidade com o ID correto da categoria
               const { error: updateError } = await supabase
+<<<<<<< HEAD
                 .from('c_communities')
+=======
+                .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .update({ category_id: matchingCategory.id })
                 .eq('id', community.id);
                 
@@ -337,7 +389,11 @@ export const testAndFixCategorySync = async (): Promise<{success: boolean, messa
               existingSlugs.push(uniqueSlug);
               
               const { data: newCategory, error: insertError } = await supabase
+<<<<<<< HEAD
                 .from('c_community_categories')
+=======
+                .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .insert({
                   name: originalCategory.name,
                   slug: uniqueSlug
@@ -350,7 +406,11 @@ export const testAndFixCategorySync = async (): Promise<{success: boolean, messa
               } else {
                 // Atualizar a comunidade com o novo ID de categoria
                 const { error: updateError } = await supabase
+<<<<<<< HEAD
                   .from('c_communities')
+=======
+                  .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                   .update({ category_id: newCategory.id })
                   .eq('id', community.id);
                   
@@ -365,7 +425,11 @@ export const testAndFixCategorySync = async (): Promise<{success: boolean, messa
           } else {
             // Categoria não encontrada em nenhuma tabela, remover referência
             const { error: updateError } = await supabase
+<<<<<<< HEAD
               .from('c_communities')
+=======
+              .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
               .update({ category_id: null })
               .eq('id', community.id);
               

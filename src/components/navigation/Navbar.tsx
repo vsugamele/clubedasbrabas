@@ -49,7 +49,11 @@ const Navbar = () => {
       try {
         // Using type assertion since navbar_links table types may not be generated yet
         const { data, error } = await (supabase as any)
+<<<<<<< HEAD
           .from("c_navbar_links")
+=======
+          .from("navbar_links")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .select("name, path")
           .eq("enabled", true)
           .order("order_index", { ascending: true });

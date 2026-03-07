@@ -21,7 +21,11 @@ export const fetchEvents = async (): Promise<Event[]> => {
     
     const result = await queryWithRetry<any>(() => 
       asPromise(() => supabase
+<<<<<<< HEAD
         .from('c_events')
+=======
+        .from('events')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*')
         .order('date', { ascending: true }))
     );
@@ -55,7 +59,11 @@ export const addEvent = async (form: EventForm): Promise<Event> => {
     // Use fetchWithTimeout para evitar problemas de conexão
     const insertPromise = async () => {
       return await supabase
+<<<<<<< HEAD
         .from('c_events')
+=======
+        .from('events')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .insert(eventData)
         .select()
         .single();
@@ -113,7 +121,11 @@ export const updateEvent = async (id: string, form: EventForm): Promise<Event> =
     // Use fetchWithTimeout para evitar problemas de conexão
     const updatePromise = async () => {
       return await supabase
+<<<<<<< HEAD
         .from('c_events')
+=======
+        .from('events')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update(eventData)
         .eq('id', id)
         .select()
@@ -161,7 +173,11 @@ export const deleteEvent = async (id: string, name: string): Promise<void> => {
     // Use fetchWithTimeout para evitar problemas de conexão
     const deletePromise = async () => {
       return await supabase
+<<<<<<< HEAD
         .from('c_events')
+=======
+        .from('events')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .delete()
         .eq('id', id);
     };

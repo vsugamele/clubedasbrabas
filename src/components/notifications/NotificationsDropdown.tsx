@@ -42,7 +42,11 @@ const NotificationsDropdown = () => {
     const fetchNotifications = async () => {
       try {
         const { data, error } = await supabase
+<<<<<<< HEAD
           .from("c_notifications")
+=======
+          .from("notifications")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
@@ -100,7 +104,11 @@ const NotificationsDropdown = () => {
 
     try {
       const { error } = await supabase
+<<<<<<< HEAD
         .from("c_notifications")
+=======
+        .from("notifications")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update({ is_read: true })
         .eq("id", notificationId)
         .eq("user_id", user.id);
@@ -124,7 +132,11 @@ const NotificationsDropdown = () => {
 
     try {
       const { error } = await supabase
+<<<<<<< HEAD
         .from("c_notifications")
+=======
+        .from("notifications")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update({ is_read: true })
         .eq("user_id", user.id)
         .eq("is_read", false);

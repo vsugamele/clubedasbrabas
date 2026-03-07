@@ -51,7 +51,11 @@ export const isAdminByEmail = async (email: string | null | undefined): Promise<
   try {
     // 1. Primeiro tenta verificar no banco de dados
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from('c_profiles')
+=======
+      .from('profiles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('is_admin')
       .eq('email', normalizedEmail)
       .single();

@@ -31,7 +31,11 @@ export async function updatePostCategory(
     
     // Atualizar o post no banco de dados
     const { error } = await supabase
+<<<<<<< HEAD
       .from('c_posts')
+=======
+      .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ category_id: finalCategoryId })
       .eq('id', postId);
       
@@ -54,7 +58,11 @@ export async function updatePostCategory(
 export async function fetchAdminCategories(): Promise<{ id: string, name: string }[]> {
   try {
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from('c_categories')
+=======
+      .from('categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id, name')
       .order('name');
       

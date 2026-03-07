@@ -49,7 +49,11 @@ export const useAdminStats = () => {
         const result = await fetchWithTimeout(async () => {
           // Primeiro tenta buscar do banco de dados
           const { count, error } = await supabase
+<<<<<<< HEAD
             .from('c_profiles')
+=======
+            .from('profiles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             .select('*', { count: 'exact', head: true });
             
           if (error) throw error;
@@ -63,7 +67,11 @@ export const useAdminStats = () => {
         console.log("Buscando contagem de posts...");
         const result = await fetchWithTimeout(async () => {
           const { count, error } = await supabase
+<<<<<<< HEAD
             .from('c_posts')
+=======
+            .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             .select('*', { count: 'exact', head: true });
             
           if (error) throw error;
@@ -77,7 +85,11 @@ export const useAdminStats = () => {
         console.log("Buscando contagem de comunidades...");
         const result = await fetchWithTimeout(async () => {
           const { count, error } = await supabase
+<<<<<<< HEAD
             .from('c_communities')
+=======
+            .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             .select('*', { count: 'exact', head: true });
             
           if (error) throw error;
@@ -91,7 +103,11 @@ export const useAdminStats = () => {
         console.log("Buscando contagem de denúncias pendentes...");
         const result = await fetchWithTimeout(async () => {
           const { count, error } = await supabase
+<<<<<<< HEAD
             .from('c_reports')
+=======
+            .from('reports')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             .select('*', { count: 'exact', head: true })
             .eq('status', 'pending');
             

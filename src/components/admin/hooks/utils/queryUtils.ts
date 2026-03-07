@@ -96,16 +96,24 @@ export async function queryWithRetry<T>(
 
   while (attempts < maxAttempts!) {
     attempts++;
+<<<<<<< HEAD
 
     try {
       console.log(`Executando consulta (tentativa ${attempts}/${maxAttempts})`);
 
+=======
+    
+    try {
+      console.log(`Executando consulta (tentativa ${attempts}/${maxAttempts})`);
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       // Add timeout to the query
       const response = await withTimeout(
         Promise.resolve(queryFn()),
         timeoutMs!,
         `Tempo limite de ${timeoutMs}ms excedido na consulta ao Supabase`
       );
+<<<<<<< HEAD
 
       // If we have a Supabase response with an error property, treat it as a failure for retry
       if (response && typeof response === 'object' && 'error' in response && response.error) {
@@ -115,35 +123,67 @@ export async function queryWithRetry<T>(
         if (isRetriableError(response.error)) {
           console.warn(`Erro recuperável na tentativa ${attempts}/${maxAttempts}:`, response.error);
 
+=======
+      
+      // If we have a Supabase response with an error property, treat it as a failure for retry
+      if (response && typeof response === 'object' && 'error' in response && response.error) {
+        lastError = response.error;
+        
+        // Check if this is a retriable error
+        if (isRetriableError(response.error)) {
+          console.warn(`Erro recuperável na tentativa ${attempts}/${maxAttempts}:`, response.error);
+          
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           // If we have more attempts, wait and retry
           if (attempts < maxAttempts!) {
             const delay = Math.min(lastDelay * (factor || 1), maxDelay!);
             lastDelay = delay;
+<<<<<<< HEAD
 
             if (onRetry) {
               onRetry(attempts, delay, response.error);
             }
 
+=======
+            
+            if (onRetry) {
+              onRetry(attempts, delay, response.error);
+            }
+            
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             await wait(delay);
             continue;
           }
         }
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         // Either we've exhausted attempts or it's a non-retriable error
         console.error(`Erro final após ${attempts} tentativas:`, response.error);
         return response;
       }
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       // Success case
       return response;
     } catch (error) {
       console.error(`Exceção na tentativa ${attempts}/${maxAttempts}:`, error);
       lastError = error;
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       // If we have more attempts, wait and retry
       if (attempts < maxAttempts!) {
         const delay = Math.min(lastDelay * (factor || 1), maxDelay!);
         lastDelay = delay;
+<<<<<<< HEAD
 
         if (onRetry) {
           onRetry(attempts, delay, error);
@@ -153,11 +193,26 @@ export async function queryWithRetry<T>(
         continue;
       }
 
+=======
+        
+        if (onRetry) {
+          onRetry(attempts, delay, error);
+        }
+        
+        await wait(delay);
+        continue;
+      }
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       // Re-throw the last error
       throw error;
     }
   }
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   // This should not happen, but TypeScript requires a return
   throw lastError || new Error(`Falha após ${maxAttempts} tentativas`);
 }
@@ -168,22 +223,35 @@ export async function queryWithRetry<T>(
 export function isRetriableError(error: any): boolean {
   // Network errors, timeouts, 5xx errors are retriable
   if (!error) return false;
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   // Network error codes
   const retriableErrorCodes = [
     'ETIMEDOUT', 'ECONNRESET', 'ECONNABORTED', 'ENOTFOUND', 'EAI_AGAIN',
     'NETWORK_ERROR', 'TIMEOUT', 'CONNECTION_CLOSED', 'CONNECTION_ERROR',
     'SERVER_ERROR', 'INTERNAL_ERROR'
   ];
+<<<<<<< HEAD
 
   if (error.code && retriableErrorCodes.includes(error.code)) {
     return true;
   }
 
+=======
+  
+  if (error.code && retriableErrorCodes.includes(error.code)) {
+    return true;
+  }
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   // Status codes 408, 429, 500, 502, 503, 504 são recuperáveis
   if (error.status) {
     return [408, 429, 500, 502, 503, 504].includes(error.status);
   }
+<<<<<<< HEAD
 
   // Check error message for common network issues
   if (error.message) {
@@ -197,6 +265,21 @@ export function isRetriableError(error: any): boolean {
     );
   }
 
+=======
+  
+  // Check error message for common network issues
+  if (error.message) {
+    const networkErrorTerms = [
+      'timeout', 'network', 'connection', 'offline', 'unreachable', 
+      'refused', 'reset', 'aborted', 'failed', 'temporary'
+    ];
+    
+    return networkErrorTerms.some(term => 
+      error.message.toLowerCase().includes(term)
+    );
+  }
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   return false;
 }
 
@@ -205,36 +288,60 @@ export function isRetriableError(error: any): boolean {
  */
 export function isNetworkRelatedError(error: any): boolean {
   if (!error) return false;
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   // Check specific error codes that indicate network issues
   if (error.code) {
     const networkErrorCodes = [
       'ETIMEDOUT', 'ECONNRESET', 'ECONNABORTED', 'ENOTFOUND', 'EAI_AGAIN',
       'ERR_NETWORK', 'ERR_CONNECTION_REFUSED', 'ERR_INTERNET_DISCONNECTED'
     ];
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     if (networkErrorCodes.includes(error.code)) {
       return true;
     }
   }
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   // Check error message for network-related terms
   if (error.message) {
     const networkErrorTerms = [
       'network', 'connection', 'internet', 'offline', 'timeout', 'unreachable',
       'refused', 'reset', 'aborted'
     ];
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     if (networkErrorTerms.some(term => error.message.toLowerCase().includes(term))) {
       return true;
     }
   }
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   // Check for specific HTTP status codes that might indicate network issues
   if (error.status && (error.status === 0 || error.status >= 500)) {
     return true;
   }
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   return false;
 }
 
@@ -254,18 +361,30 @@ export async function waitForConnection(timeoutMs = 10000): Promise<boolean> {
       resolve(true);
       return;
     }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     const timeout = setTimeout(() => {
       window.removeEventListener('online', onOnline);
       resolve(false);
     }, timeoutMs);
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     function onOnline() {
       clearTimeout(timeout);
       window.removeEventListener('online', onOnline);
       resolve(true);
     }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     window.addEventListener('online', onOnline);
   });
 }
@@ -277,7 +396,11 @@ export async function checkSupabaseAvailability(supabase: SupabaseClient): Promi
   try {
     // Use a very lightweight query to check availability
     const startTime = performance.now();
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     // First try a simple health check using auth.getSession()
     try {
       const { data, error } = await supabase.auth.getSession();
@@ -289,10 +412,17 @@ export async function checkSupabaseAvailability(supabase: SupabaseClient): Promi
     } catch (sessionError) {
       console.warn("Erro ao verificar sessão:", sessionError);
     }
+<<<<<<< HEAD
 
     // Tentar várias tabelas em caso de falha
     const tables = ['profiles', 'c_community_categories', 'user_roles'];
 
+=======
+    
+    // Tentar várias tabelas em caso de falha
+    const tables = ['profiles', 'community_categories', 'user_roles'];
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     for (const table of tables) {
       try {
         const { error } = await supabase
@@ -300,7 +430,11 @@ export async function checkSupabaseAvailability(supabase: SupabaseClient): Promi
           .select('id', { count: 'exact', head: true })
           .limit(1)
           .maybeSingle();
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         if (!error) {
           const elapsed = performance.now() - startTime;
           console.log(`Verificação de disponibilidade do Supabase (${table}) levou ${elapsed.toFixed(2)}ms`);
@@ -311,11 +445,19 @@ export async function checkSupabaseAvailability(supabase: SupabaseClient): Promi
         continue;
       }
     }
+<<<<<<< HEAD
 
     // Se chegou aqui, tentar uma última verificação simplificada
     try {
       const { error } = await supabase.from('c_profiles').select('count', { count: 'exact', head: true });
 
+=======
+    
+    // Se chegou aqui, tentar uma última verificação simplificada
+    try {
+      const { error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       if (!error) {
         const elapsed = performance.now() - startTime;
         console.log(`Verificação de disponibilidade do Supabase (count) levou ${elapsed.toFixed(2)}ms`);
@@ -324,7 +466,11 @@ export async function checkSupabaseAvailability(supabase: SupabaseClient): Promi
     } catch (countError) {
       console.warn("Erro ao verificar contagem de perfis:", countError);
     }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     // Se chegou aqui, todas as tentativas falharam
     return false;
   } catch (error) {
@@ -337,18 +483,30 @@ export async function checkSupabaseAvailability(supabase: SupabaseClient): Promi
  * Setup a connection keep-alive ping to prevent connection timeouts
  */
 export function setupConnectionKeepAlive(
+<<<<<<< HEAD
   supabase: SupabaseClient,
   intervalMs: number = 25000
 ): { stopKeepAlive: () => void } {
   console.log("Configurando keep-alive para a conexão Supabase");
 
+=======
+  supabase: SupabaseClient, 
+  intervalMs: number = 25000
+): { stopKeepAlive: () => void } {
+  console.log("Configurando keep-alive para a conexão Supabase");
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   // Function to ping the Supabase server
   const pingServer = async () => {
     try {
       const startTime = performance.now();
       // Tentar múltiplas tabelas para maior robustez
       const tables = ['profiles', 'community_categories', 'user_roles'];
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       for (const table of tables) {
         try {
           await supabase.from(table).select('id', { count: 'exact', head: true }).limit(1);
@@ -359,7 +517,11 @@ export function setupConnectionKeepAlive(
           continue; // Tentar próxima tabela
         }
       }
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       // Último recurso: fazer um ping simples na sessão Auth
       try {
         await supabase.auth.getSession();
@@ -369,12 +531,17 @@ export function setupConnectionKeepAlive(
       } catch (err) {
         console.warn("Falha no ping de keep-alive (auth):", err);
       }
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       console.warn("Todos os pings de keep-alive falharam");
     } catch (error) {
       console.warn("Falha no ping de keep-alive:", error);
     }
   };
+<<<<<<< HEAD
 
   // Executar ping inicial imediatamente
   pingServer();
@@ -382,6 +549,15 @@ export function setupConnectionKeepAlive(
   // Set up the interval
   const intervalId = setInterval(pingServer, intervalMs);
 
+=======
+  
+  // Executar ping inicial imediatamente
+  pingServer();
+  
+  // Set up the interval
+  const intervalId = setInterval(pingServer, intervalMs);
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   // Return a function to stop the keep-alive
   return {
     stopKeepAlive: () => {
@@ -395,7 +571,11 @@ export function setupConnectionKeepAlive(
 export const createReliableSupabaseClient = (supabase: SupabaseClient) => {
   // Configura ping periódico para manter conexão viva
   const { stopKeepAlive } = setupConnectionKeepAlive(supabase);
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   return {
     supabase, // Retorna o cliente original (não temos como alterar o cliente em si)
     stopKeepAlive // Método para interromper pings

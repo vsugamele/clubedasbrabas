@@ -109,12 +109,20 @@ export const CategoryManagement = () => {
     try {
       // Atualizar no banco de dados
       const { error: error1 } = await supabase
+<<<<<<< HEAD
         .from('c_community_categories')
+=======
+        .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update({ order_index: category1.order_index })
         .eq('id', category1.id);
         
       const { error: error2 } = await supabase
+<<<<<<< HEAD
         .from('c_community_categories')
+=======
+        .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update({ order_index: category2.order_index })
         .eq('id', category2.id);
         

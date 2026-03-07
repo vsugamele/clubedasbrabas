@@ -92,7 +92,11 @@ export function usePremiumFeatures() {
       
       // Buscar diretamente da tabela profiles
       const { data, error } = await supabase
+<<<<<<< HEAD
         .from('c_profiles')
+=======
+        .from('profiles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*')
         .eq('id', user.id)
         .single();
@@ -178,7 +182,11 @@ export function usePremiumFeatures() {
       // 3. Verificar na tabela user_roles (método oficial)
       // Tentar buscar o papel diretamente sem .single() para evitar erros
       const { data, error } = await supabase
+<<<<<<< HEAD
         .from('c_user_roles')
+=======
+        .from('user_roles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*')
         .eq('user_id', userId);
         
@@ -202,7 +210,11 @@ export function usePremiumFeatures() {
             // Tentar inserir diretamente na tabela user_roles
             try {
               await supabase
+<<<<<<< HEAD
                 .from('c_user_roles')
+=======
+                .from('user_roles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .upsert([{ user_id: userId, role: 'admin' }]);
                 
               console.log('Privilégio de admin inserido com sucesso!');  
@@ -301,7 +313,11 @@ export function usePremiumFeatures() {
     try {
       // Conta quantos posts o usuário já criou
       const { data, error, count } = await supabase
+<<<<<<< HEAD
         .from('c_posts')
+=======
+        .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*', { count: 'exact', head: false })
         .eq('author_id', user.id);
 

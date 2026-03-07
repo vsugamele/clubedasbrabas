@@ -55,7 +55,11 @@ export default function AdminPostManager() {
       
       // Buscar posts com simplificação para evitar erros de relação
       const { data, error } = await supabase
+<<<<<<< HEAD
         .from('c_posts')
+=======
+        .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select(`
           id, 
           title, 

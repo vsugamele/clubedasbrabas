@@ -28,8 +28,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface Lesson {
     id: string;
     title: string;
+<<<<<<< HEAD
     video_url?: string;
     content?: string;
+=======
+    video_url: string;
+    content: string;
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     order_index: number;
 }
 
@@ -72,8 +77,13 @@ export const TrackManagement = () => {
         setLoading(true);
         try {
             const { data, error } = await supabase
+<<<<<<< HEAD
                 .from("c_modules")
                 .select("*, c_lessons(*)")
+=======
+                .from("modules")
+                .select("*, lessons(*)")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .order("order_index", { ascending: true });
 
             if (error) throw error;
@@ -81,7 +91,11 @@ export const TrackManagement = () => {
             // Sort lessons by order_index
             const modulesWithSortedLessons = data?.map(m => ({
                 ...m,
+<<<<<<< HEAD
                 lessons: m.c_lessons?.sort((a: any, b: any) => a.order_index - b.order_index) || []
+=======
+                lessons: m.lessons?.sort((a: any, b: any) => a.order_index - b.order_index)
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             })) || [];
 
             setModules(modulesWithSortedLessons);
@@ -150,7 +164,11 @@ export const TrackManagement = () => {
 
             if (editingModuleId) {
                 const { error } = await supabase
+<<<<<<< HEAD
                     .from("c_modules")
+=======
+                    .from("modules")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                     .update(moduleData)
                     .eq("id", editingModuleId);
 
@@ -158,7 +176,11 @@ export const TrackManagement = () => {
                 toast.success("Trilha atualizada com sucesso");
             } else {
                 const { error } = await supabase
+<<<<<<< HEAD
                     .from("c_modules")
+=======
+                    .from("modules")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                     .insert([moduleData]);
 
                 if (error) throw error;
@@ -178,7 +200,11 @@ export const TrackManagement = () => {
         if (!confirm("Tem certeza que deseja excluir esta trilha? Todas as aulas serão excluídas.")) return;
 
         try {
+<<<<<<< HEAD
             const { error } = await supabase.from("c_modules").delete().eq("id", id);
+=======
+            const { error } = await supabase.from("modules").delete().eq("id", id);
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             if (error) throw error;
 
             setModules(modules.filter(m => m.id !== id));
@@ -204,7 +230,11 @@ export const TrackManagement = () => {
 
             if (editingLessonId) {
                 const { error } = await supabase
+<<<<<<< HEAD
                     .from("c_lessons")
+=======
+                    .from("lessons")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                     .update(lessonData)
                     .eq("id", editingLessonId);
 
@@ -212,7 +242,11 @@ export const TrackManagement = () => {
                 toast.success("Aula atualizada com sucesso");
             } else {
                 const { error } = await supabase
+<<<<<<< HEAD
                     .from("c_lessons")
+=======
+                    .from("lessons")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                     .insert([lessonData]);
 
                 if (error) throw error;
@@ -232,7 +266,11 @@ export const TrackManagement = () => {
         if (!confirm("Tem certeza que deseja excluir esta aula?")) return;
 
         try {
+<<<<<<< HEAD
             const { error } = await supabase.from("c_lessons").delete().eq("id", id);
+=======
+            const { error } = await supabase.from("lessons").delete().eq("id", id);
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             if (error) throw error;
 
             // Optimistic update

@@ -10,7 +10,11 @@ export const updateCommunityVisibility = async (
 ): Promise<void> => {
   try {
     const { error } = await supabase
+<<<<<<< HEAD
       .from('c_communities')
+=======
+      .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ visibility } as any)
       .eq('id', id as any);
       
@@ -34,7 +38,11 @@ export const updateCommunityPostingRestrictions = async (
 ): Promise<void> => {
   try {
     const { error } = await supabase
+<<<<<<< HEAD
       .from('c_communities')
+=======
+      .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ posting_restrictions: postingRestrictions } as any)
       .eq('id', id as any);
       

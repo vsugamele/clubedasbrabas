@@ -88,7 +88,11 @@ export async function getPosts(options: PostQueryOptions = {}): Promise<PostResu
   try {
     // Inicia a query
     let query = supabase
+<<<<<<< HEAD
       .from('c_posts')
+=======
+      .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false });
 
@@ -200,7 +204,11 @@ export async function fetchPosts(options: FetchPostsOptions = {}): Promise<{ pos
         try {
           // Usar a mesma lógica do CreatePostForm para buscar o perfil
           const { data: profileData } = await supabase
+<<<<<<< HEAD
             .from('c_profiles')
+=======
+            .from('profiles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             .select('avatar_url, full_name, username')
             .eq('id', userId)
             .single();
@@ -316,7 +324,11 @@ export async function togglePinPost(postId: string, isPinned: boolean, userEmail
     
     // Atualiza o post
     const { error } = await supabase
+<<<<<<< HEAD
       .from('c_posts')
+=======
+      .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ is_pinned: isPinned })
       .eq('id', postId);
       
@@ -352,7 +364,11 @@ export async function deletePost(
     if (!isAdmin && userId) {
       // Verifica se o post existe e se é autor
       const { data: post, error: postError } = await supabase
+<<<<<<< HEAD
         .from('c_posts')
+=======
+        .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('user_id')
         .eq('id', postId)
         .single();
@@ -377,7 +393,11 @@ export async function deletePost(
     
     // Iniciar a marcação de exclusão (soft delete), mas não esperar pela conclusão
     supabase
+<<<<<<< HEAD
       .from('c_posts')
+=======
+      .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ is_deleted: true } as any)
       .eq('id', postId)
       .then(({ error }) => {
@@ -412,7 +432,11 @@ export async function forceDeletePost(postId: string, userEmail: string | undefi
     
     // Verifica se o post existe
     const { data: post, error: postError } = await supabase
+<<<<<<< HEAD
       .from('c_posts')
+=======
+      .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id')
       .eq('id', postId)
       .single();
@@ -424,7 +448,11 @@ export async function forceDeletePost(postId: string, userEmail: string | undefi
     
     // Exclui permanentemente o post
     const { error: deleteError } = await supabase
+<<<<<<< HEAD
       .from('c_posts')
+=======
+      .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .delete()
       .eq('id', postId);
       
@@ -452,7 +480,11 @@ export async function forceDeletePost(postId: string, userEmail: string | undefi
 export async function getCommunities() {
   try {
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from('c_communities')
+=======
+      .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id, name, posting_restrictions');
 
     if (error) {
@@ -477,7 +509,11 @@ export async function getCommunities() {
 export async function fetchCommunities(): Promise<Array<{id: string, name: string, posting_restrictions: string}>> {
   try {
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from('c_communities')
+=======
+      .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id, name, posting_restrictions')
       .order('name');
       
@@ -504,7 +540,11 @@ export async function fetchCategories(): Promise<Array<{id: string, name: string
   try {
     console.log("Buscando categorias da tabela community_categories para posts...");
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id, name, slug');
       
     if (error) {
@@ -658,7 +698,11 @@ export async function createPost({
     
     // Buscar informações completas do perfil do usuário antes de criar o post
     const { data: profileData } = await supabase
+<<<<<<< HEAD
       .from('c_profiles')
+=======
+      .from('profiles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .eq('id', user_id)
       .single();
@@ -690,7 +734,11 @@ export async function createPost({
     }
     
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from("c_posts")
+=======
+      .from("posts")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .insert(postData)
       .select()
       .single();
@@ -712,7 +760,11 @@ export async function createPost({
         if (!posts[0].user_id && user_id) {
           console.warn("[createPost] Post criado sem user_id! Atualizando...");
           await supabase
+<<<<<<< HEAD
             .from("c_posts")
+=======
+            .from("posts")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             .update({ user_id: user_id })
             .eq('id', data.id);
         }
@@ -743,7 +795,11 @@ export async function votePoll(postId: string, optionIndex: number): Promise<boo
     }
     
     const { data: post, error: postError } = await supabase
+<<<<<<< HEAD
       .from("c_posts")
+=======
+      .from("posts")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select("*")
       .eq("id", postId)
       .single();
@@ -785,7 +841,11 @@ export async function votePoll(postId: string, optionIndex: number): Promise<boo
     };
     
     const { error: updateError } = await supabase
+<<<<<<< HEAD
       .from("c_posts")
+=======
+      .from("posts")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({
         poll_data: updatedPollData
       })

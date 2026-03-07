@@ -33,7 +33,11 @@ export const getUserProfile = async (userId: string) => {
   try {
     // Buscar o perfil da tabela profiles
     const { data: profileData, error } = await supabase
+<<<<<<< HEAD
       .from('c_profiles')
+=======
+      .from('profiles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .eq('id', userId)
       .single();
@@ -117,7 +121,11 @@ export const searchUsersForMention = async (searchTerm: string): Promise<UserMen
     // Abordagem direta que evita verificações de papéis
     // Isso contorna o problema de recursão infinita
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from('c_profiles')
+=======
+      .from('profiles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id, username, full_name, avatar_url')
       .limit(10)
       .order('updated_at', { ascending: false });
@@ -163,7 +171,11 @@ export const fetchUsers = async (searchTerm: string) => {
   
   try {
     const { data, error } = await supabase
+<<<<<<< HEAD
       .from('c_profiles')
+=======
+      .from('profiles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id, username, full_name, avatar_url, bio')
       .or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`)
       .limit(20)

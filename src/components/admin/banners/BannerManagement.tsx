@@ -47,7 +47,11 @@ export const BannerManagement = () => {
         try {
             setLoading(true);
             const { data, error } = await supabase
+<<<<<<< HEAD
                 .from("c_banners" as any)
+=======
+                .from("banners" as any)
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .select("*")
                 .order("order_index", { ascending: true });
 
@@ -143,7 +147,11 @@ export const BannerManagement = () => {
             if (editingBanner) {
                 // Update existing
                 const { error } = await supabase
+<<<<<<< HEAD
                     .from("c_banners" as any)
+=======
+                    .from("banners" as any)
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                     .update(bannerData)
                     .eq("id", editingBanner.id);
 
@@ -152,7 +160,11 @@ export const BannerManagement = () => {
             } else {
                 // Create new
                 const { error } = await supabase
+<<<<<<< HEAD
                     .from("c_banners" as any)
+=======
+                    .from("banners" as any)
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                     .insert(bannerData);
 
                 if (error) throw error;
@@ -174,7 +186,11 @@ export const BannerManagement = () => {
         if (!confirm("Excluir este banner?")) return;
 
         try {
+<<<<<<< HEAD
             const { error } = await supabase.from("c_banners" as any).delete().eq("id", id);
+=======
+            const { error } = await supabase.from("banners" as any).delete().eq("id", id);
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             if (error) throw error;
             toast.success("Banner excluido!");
             fetchBanners();
@@ -187,7 +203,11 @@ export const BannerManagement = () => {
     const toggleActive = async (banner: Banner) => {
         try {
             const { error } = await supabase
+<<<<<<< HEAD
                 .from("c_banners" as any)
+=======
+                .from("banners" as any)
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 .update({ is_active: !banner.is_active })
                 .eq("id", banner.id);
 
@@ -205,8 +225,13 @@ export const BannerManagement = () => {
         const prev = banners[index - 1];
 
         try {
+<<<<<<< HEAD
             await supabase.from("c_banners" as any).update({ order_index: prev.order_index }).eq("id", current.id);
             await supabase.from("c_banners" as any).update({ order_index: current.order_index }).eq("id", prev.id);
+=======
+            await supabase.from("banners" as any).update({ order_index: prev.order_index }).eq("id", current.id);
+            await supabase.from("banners" as any).update({ order_index: current.order_index }).eq("id", prev.id);
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             fetchBanners();
         } catch (error) {
             console.error("Erro ao reordenar:", error);
@@ -219,8 +244,13 @@ export const BannerManagement = () => {
         const next = banners[index + 1];
 
         try {
+<<<<<<< HEAD
             await supabase.from("c_banners" as any).update({ order_index: next.order_index }).eq("id", current.id);
             await supabase.from("c_banners" as any).update({ order_index: current.order_index }).eq("id", next.id);
+=======
+            await supabase.from("banners" as any).update({ order_index: next.order_index }).eq("id", current.id);
+            await supabase.from("banners" as any).update({ order_index: current.order_index }).eq("id", next.id);
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
             fetchBanners();
         } catch (error) {
             console.error("Erro ao reordenar:", error);

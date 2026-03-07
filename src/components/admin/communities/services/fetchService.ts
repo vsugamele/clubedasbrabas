@@ -130,7 +130,11 @@ export const fetchCommunities = async (skipCache = false) => {
       // Usando retryOperation da função do cliente Supabase
       const { data, error } = await retryOperation(async () => {
         return await supabase
+<<<<<<< HEAD
           .from('c_communities')
+=======
+          .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .select('*')
           .order('name');
       }, 3);
@@ -197,7 +201,11 @@ export const fetchCommunitiesByCategory = async (categoryId: string, skipCache =
     // Usar retryOperation do cliente Supabase
     const { data, error } = await retryOperation(async () => {
       return await supabase
+<<<<<<< HEAD
         .from('c_communities')
+=======
+        .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*')
         .eq('category_id', categoryId as any)
         .order('name');
@@ -260,7 +268,11 @@ export const fetchCommunityById = async (communityId: string) => {
     
     const { data, error } = await retryOperation(async () => {
       return await supabase
+<<<<<<< HEAD
         .from('c_communities')
+=======
+        .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*, categories:category_id(id, name, slug)')
         .eq('id', communityId as any)
         .single();
@@ -310,7 +322,11 @@ export const fetchCommunitiesWithoutCategory = async (skipCache = false) => {
     
     const { data, error } = await retryOperation(async () => {
       return await supabase
+<<<<<<< HEAD
         .from('c_communities')
+=======
+        .from('communities')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*')
         .is('category_id', null)
         .order('name');

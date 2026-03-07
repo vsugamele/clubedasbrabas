@@ -25,7 +25,11 @@ export const getSuggestedConnections = async (
     // Primeiro, vamos buscar os usuários com quem o usuário atual mais interagiu
     // através de likes em posts
     const { data: likeInteractions, error: likeError } = await supabase
+<<<<<<< HEAD
       .from('c_post_likes')
+=======
+      .from('post_likes')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('post_id')
       .eq('user_id', currentUserId);
 
@@ -42,7 +46,11 @@ export const getSuggestedConnections = async (
     let interactedUserIds: string[] = [];
     if (interactedPostIds.length > 0) {
       const { data: interactedPosts, error: postsError } = await supabase
+<<<<<<< HEAD
         .from('c_posts')
+=======
+        .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('user_id')
         .in('id', interactedPostIds);
 
@@ -77,7 +85,11 @@ export const getSuggestedConnections = async (
       
       // Buscar usuários recentes que não são o usuário atual
       const { data: recentUsers, error: recentError } = await supabase
+<<<<<<< HEAD
         .from('c_profiles')
+=======
+        .from('profiles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('id')
         .neq('id', currentUserId)
         .order('updated_at', { ascending: false })
@@ -94,7 +106,11 @@ export const getSuggestedConnections = async (
     // Se ainda não tivermos usuários suficientes, buscar usuários aleatórios
     if (suggestedUserIds.length === 0) {
       const { data: randomUsers, error: randomError } = await supabase
+<<<<<<< HEAD
         .from('c_profiles')
+=======
+        .from('profiles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('id')
         .neq('id', currentUserId)
         .limit(limit);
@@ -110,7 +126,11 @@ export const getSuggestedConnections = async (
     if (suggestedUserIds.length > 0) {
       // Selecionar campos básicos que sabemos que existem
       const { data: suggestedUsers, error: usersError } = await supabase
+<<<<<<< HEAD
         .from('c_profiles')
+=======
+        .from('profiles')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('id, username, full_name, avatar_url')
         .in('id', suggestedUserIds);
 

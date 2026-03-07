@@ -46,7 +46,11 @@ const SendMessageButton: React.FC<SendMessageButtonProps> = ({
     try {
       // Verificar se o contato já existe na lista de mensagens
       const { data: existingContact, error: contactError } = await supabase
+<<<<<<< HEAD
         .from("c_profiles")
+=======
+        .from("profiles")
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select("id, username, full_name, avatar_url")
         .eq("id", userId)
         .single();

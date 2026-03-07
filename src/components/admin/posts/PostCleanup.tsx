@@ -74,7 +74,11 @@ export const PostCleanup = () => {
       
       // Excluir o post
       const { error } = await supabase
+<<<<<<< HEAD
         .from('c_posts')
+=======
+        .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .delete()
         .eq('id', postId);
         

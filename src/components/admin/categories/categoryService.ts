@@ -50,7 +50,11 @@ export const fetchCategories = async (): Promise<Category[]> => {
 
     const result = await queryWithRetry<any>(() =>
       asPromise(() => supabase
+<<<<<<< HEAD
         .from('c_community_categories')
+=======
+        .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('*')
         .order('order_index', { ascending: true }))
     );
@@ -86,7 +90,11 @@ export const addCategory = async (form: CategoryForm): Promise<Category> => {
 
     // Verificar se já existe uma categoria com o mesmo slug
     const { data: existingCategory, error: checkError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('slug')
       .eq('slug', form.slug)
       .maybeSingle();
@@ -111,7 +119,11 @@ export const addCategory = async (form: CategoryForm): Promise<Category> => {
     // Use fetchWithTimeout para evitar problemas de conexão
     const insertPromise = async () => {
       return await supabase
+<<<<<<< HEAD
         .from('c_community_categories')
+=======
+        .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .insert(categoryData)
         .select()
         .single();
@@ -153,7 +165,11 @@ export const updateCategory = async (id: string, form: CategoryForm): Promise<Ca
     // Use fetchWithTimeout para evitar problemas de conexão
     const updatePromise = async () => {
       return await supabase
+<<<<<<< HEAD
         .from('c_community_categories')
+=======
+        .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .update({
           name: form.name,
           slug: form.slug
@@ -200,7 +216,11 @@ export const deleteCategory = async (id: string): Promise<boolean> => {
 
     // Verificar se existem posts associados a esta categoria
     const { data: relatedPosts, error: postsError } = await supabase
+<<<<<<< HEAD
       .from('c_posts')
+=======
+      .from('posts')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id')
       .eq('category_id', id);
 
@@ -218,7 +238,11 @@ export const deleteCategory = async (id: string): Promise<boolean> => {
 
     // Obter informações da categoria antes de excluí-la
     const { data: categoryData, error: categoryError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .eq('id', id)
       .single();
@@ -236,7 +260,11 @@ export const deleteCategory = async (id: string): Promise<boolean> => {
     // 1. Excluir da tabela community_categories
     console.log("Executando a exclusão da categoria na tabela community_categories");
     const { error } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .delete()
       .eq('id', id);
 
@@ -248,7 +276,11 @@ export const deleteCategory = async (id: string): Promise<boolean> => {
     // 2. Encontrar e excluir da tabela categories (usando o nome como referência)
     console.log("Procurando categoria na tabela categories para excluir");
     const { data: categoriesData, error: findError } = await supabase
+<<<<<<< HEAD
       .from('c_categories')
+=======
+      .from('categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('id')
       .eq('name', categoryData.name);
 
@@ -259,7 +291,11 @@ export const deleteCategory = async (id: string): Promise<boolean> => {
 
       // Excluir da tabela categories
       const { error: deleteError } = await supabase
+<<<<<<< HEAD
         .from('c_categories')
+=======
+        .from('categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .delete()
         .eq('id', categoriesData[0].id);
 
@@ -412,7 +448,11 @@ export const getNextOrderIndex = async (): Promise<number> => {
   try {
     // Buscar o maior order_index atual
     const { data: maxOrderData, error } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .order('order_index' as any, { ascending: false })
       .limit(1)
@@ -437,7 +477,11 @@ export const moveCategoryUp = async (id: string): Promise<boolean> => {
   try {
     // Buscar a categoria atual
     const { data: currentCategory, error: currentError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .eq('id', id)
       .single();
@@ -452,7 +496,11 @@ export const moveCategoryUp = async (id: string): Promise<boolean> => {
 
     // Buscar a categoria acima (com order_index menor)
     const { data: prevCategory, error: prevError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .lt('order_index' as any, currentOrderIndex)
       .order('order_index' as any, { ascending: false })
@@ -474,7 +522,11 @@ export const moveCategoryUp = async (id: string): Promise<boolean> => {
 
     // Atualizar a categoria atual
     const { error: updateCurrentError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ order_index: prevOrderIndex } as any)
       .eq('id', id);
 
@@ -482,7 +534,11 @@ export const moveCategoryUp = async (id: string): Promise<boolean> => {
 
     // Atualizar a categoria anterior
     const { error: updatePrevError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ order_index: currentOrderIndex } as any)
       .eq('id', prevCategory.id);
 
@@ -503,7 +559,11 @@ export const moveCategoryDown = async (id: string): Promise<boolean> => {
   try {
     // Buscar a categoria atual
     const { data: currentCategory, error: currentError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .eq('id', id)
       .single();
@@ -518,7 +578,11 @@ export const moveCategoryDown = async (id: string): Promise<boolean> => {
 
     // Buscar a categoria abaixo (com order_index maior)
     const { data: nextCategory, error: nextError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*')
       .gt('order_index' as any, currentOrderIndex)
       .order('order_index' as any, { ascending: true })
@@ -540,7 +604,11 @@ export const moveCategoryDown = async (id: string): Promise<boolean> => {
 
     // Atualizar a categoria atual
     const { error: updateCurrentError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ order_index: nextOrderIndex } as any)
       .eq('id', id);
 
@@ -548,7 +616,11 @@ export const moveCategoryDown = async (id: string): Promise<boolean> => {
 
     // Atualizar a categoria seguinte
     const { error: updateNextError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .update({ order_index: currentOrderIndex } as any)
       .eq('id', nextCategory.id);
 
@@ -569,7 +641,11 @@ export const restoreCategory = async (deletedCategory: DeletedCategory) => {
   try {
     // Inserir a categoria de volta na tabela principal
     const { error: insertError } = await supabase
+<<<<<<< HEAD
       .from('c_community_categories')
+=======
+      .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .insert({
         name: deletedCategory.name,
         slug: deletedCategory.slug,
@@ -624,7 +700,11 @@ export const migrateCategoriesDataToSupabase = async (categories: any[]): Promis
     // Use fetchWithTimeout para evitar problemas de conexão
     const insertPromise = async () => {
       return await supabase
+<<<<<<< HEAD
         .from('c_community_categories')
+=======
+        .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .insert(categoryData as any[])
         .select();
     };
@@ -649,7 +729,11 @@ export const syncCategoriesToCommunityCategories = async (): Promise<void> => {
 
     // 1. Obter todas as categorias da tabela categories
     const { data: categoriesData, error: categoriesError } = await supabase
+<<<<<<< HEAD
       .from('c_categories')
+=======
+      .from('categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       .select('*');
 
     if (categoriesError) {
@@ -666,7 +750,11 @@ export const syncCategoriesToCommunityCategories = async (): Promise<void> => {
     // 2. Para cada categoria, verificar se já existe na tabela community_categories
     for (const category of categoriesData) {
       const { data: existingData, error: checkError } = await supabase
+<<<<<<< HEAD
         .from('c_community_categories')
+=======
+        .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         .select('id')
         .eq('name', category.name)
         .maybeSingle();
@@ -679,7 +767,11 @@ export const syncCategoriesToCommunityCategories = async (): Promise<void> => {
       // Se a categoria não existir em community_categories, inseri-la
       if (!existingData) {
         const { error: insertError } = await supabase
+<<<<<<< HEAD
           .from('c_community_categories')
+=======
+          .from('community_categories')
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           .insert({
             name: category.name,
             slug: category.slug,

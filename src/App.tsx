@@ -26,7 +26,10 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { testAndFixCategorySync } from "./components/admin/communities/categoryIntegration";
+<<<<<<< HEAD
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+=======
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
 
 const App = () => {
   const { user, loading, refreshSession, attemptSessionRecovery } = useAuth();
@@ -319,7 +322,10 @@ const App = () => {
       <Route path="/admin-delete" element={<ProtectedRoute element={<AdminDelete />} />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
+<<<<<<< HEAD
     <InstallPrompt />
+=======
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   );
 };
 

@@ -5,7 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+<<<<<<< HEAD
 import {
+=======
+import { 
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   Dialog,
   DialogContent,
   DialogDescription,
@@ -29,14 +33,23 @@ const Auth = () => {
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const navigate = useNavigate();
+<<<<<<< HEAD
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
+=======
+  
+  // Função para lidar com a solicitação de redefinição de senha
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     if (!resetEmail || !resetEmail.includes("@")) {
       toast.error("Por favor, informe um email válido");
       return;
     }
+<<<<<<< HEAD
 
     setLoading(true);
     let resetSuccess = false;
@@ -53,6 +66,24 @@ const Auth = () => {
           .eq('email', resetEmail)
           .maybeSingle();
 
+=======
+    
+    setLoading(true);
+    let resetSuccess = false;
+    
+    try {
+      // Tentar obter o nome do usuário a partir do email
+      let userName = "";
+      
+      try {
+        // Buscar diretamente na tabela de perfis por um campo que possa conter o email
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('username, full_name, avatar_url')
+          .or(`email.eq.${resetEmail},user_email.eq.${resetEmail}`)
+          .maybeSingle();
+        
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         if (profileError) {
           console.warn("Erro ao buscar perfil:", profileError);
         } else if (profileData) {
@@ -69,12 +100,20 @@ const Auth = () => {
         // Usar a parte local do email como nome de usuário (antes do @)
         userName = resetEmail.split('@')[0];
       }
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       // Enviar solicitação para Supabase
       const { data, error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: window.location.origin + "/reset-password",
       });
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       if (error) {
         // Verificar se o erro é apenas porque o email não está cadastrado
         if (error.message.includes("Email not found")) {
@@ -87,11 +126,16 @@ const Auth = () => {
         } else {
           console.error("Erro ao solicitar redefinição de senha:", error.message);
           toast.error("Não foi possível enviar o email de redefinição. Tente novamente.");
+<<<<<<< HEAD
           // IMPORTANT: Do NOT return here, instead let the finally block execute to reset loading state
+=======
+          return;
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         }
       } else {
         resetSuccess = true;
       }
+<<<<<<< HEAD
 
       // Enviar dados para webhook do n8n, incluindo o nome do usuário
       // Sempre tentamos enviar para o webhook, independentemente do resultado no Supabase
@@ -114,6 +158,32 @@ const Auth = () => {
           duration: 10000
         });
 
+=======
+      
+      // Enviar dados para webhook do n8n, incluindo o nome do usuário
+      // Sempre tentamos enviar para o webhook, independentemente do resultado no Supabase
+      try {
+        const webhookResponse = await sendPasswordResetWebhook({
+          email: resetEmail,
+          requested_at: new Date().toISOString(),
+          user_name: userName, // Incluir nome do usuário no payload
+          success: resetSuccess
+        });
+        
+        console.log("Resposta do webhook de redefinição:", webhookResponse);
+      } catch (webhookError) {
+        console.error("Erro ao enviar para webhook de redefinição:", webhookError);
+        // Não interrompemos o fluxo se o webhook falhar
+      }
+      
+      // Se chegamos até aqui e tivemos sucesso ou o email não foi encontrado mas estamos dando
+      // feedback positivo por segurança, exibimos a mensagem de sucesso
+      if (resetSuccess) {
+        toast.success(`Email de redefinição enviado para ${resetEmail}. Verifique sua caixa de entrada e também a pasta de spam.`, {
+          duration: 10000
+        });
+        
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         // Fechar o modal e limpar o campo
         setResetPasswordOpen(false);
         setResetEmail("");
@@ -130,19 +200,33 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Tentativa de login com:", email);
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     if (!email || !password) {
       toast.error("Por favor, preencha todos os campos");
       return;
     }
+<<<<<<< HEAD
 
     setLoading(true);
 
+=======
+    
+    setLoading(true);
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     try {
       // Credenciais de desenvolvimento para bypass
       if (email === "admin@teste.com" && password === "admin123") {
         console.log("Usando credenciais de desenvolvimento para bypass");
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         // Criar uma sessão simulada e armazenar no localStorage
         const fakeSession = {
           access_token: "fake-token-for-development",
@@ -162,27 +246,43 @@ const Auth = () => {
             role: "authenticated"
           }
         };
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         // Armazenar no localStorage para simular sessão do Supabase
         localStorage.setItem('sb-auth-token', JSON.stringify({
           currentSession: fakeSession,
           expiresAt: Date.now() + 3600000
         }));
+<<<<<<< HEAD
 
         // Simular evento de login
         window.dispatchEvent(new Event('supabase.auth.signin'));
 
+=======
+        
+        // Simular evento de login
+        window.dispatchEvent(new Event('supabase.auth.signin'));
+        
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
         console.log("Login de desenvolvimento bem-sucedido!");
         toast.success("Login de desenvolvimento realizado com sucesso!");
         navigate("/", { replace: true });
         return;
       }
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       // Login normal com Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+<<<<<<< HEAD
 
       if (error) {
         console.error("Erro no login:", error.message);
@@ -192,6 +292,17 @@ const Auth = () => {
         return;
       }
 
+=======
+      
+      if (error) {
+        console.error("Erro no login:", error.message);
+        toast.error(error.message.includes("Invalid login") ? 
+                   "Email ou senha incorretos" : 
+                   "Erro ao fazer login. Tente novamente.");
+        return;
+      }
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       if (data.session) {
         console.log("Login bem-sucedido!");
         toast.success("Login realizado com sucesso!");
@@ -204,24 +315,42 @@ const Auth = () => {
       setLoading(false);
     }
   };
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
   // Função real de cadastro usando Supabase
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Tentativa de cadastro com:", name, email);
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     if (!name || !email || !password) {
       toast.error("Por favor, preencha todos os campos");
       return;
     }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     if (password.length < 6) {
       toast.error("A senha deve ter pelo menos 6 caracteres");
       return;
     }
+<<<<<<< HEAD
 
     setLoading(true);
 
+=======
+    
+    setLoading(true);
+    
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -232,6 +361,7 @@ const Auth = () => {
           },
         },
       });
+<<<<<<< HEAD
 
       if (error) {
         console.error("Erro no cadastro:", error.message);
@@ -241,6 +371,17 @@ const Auth = () => {
         return;
       }
 
+=======
+      
+      if (error) {
+        console.error("Erro no cadastro:", error.message);
+        toast.error(error.message.includes("already registered") ? 
+                   "Este email já está cadastrado" : 
+                   "Erro ao criar conta. Tente novamente.");
+        return;
+      }
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       // Enviar dados para webhook do n8n (opcional)
       try {
         if (data.user) {
@@ -254,7 +395,11 @@ const Auth = () => {
       } catch (webhookError) {
         console.error("Erro ao enviar para webhook:", webhookError);
       }
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       if (data.session) {
         toast.success("Conta criada com sucesso!");
         navigate("/", { replace: true });
@@ -323,14 +468,23 @@ const Auth = () => {
                       className="py-2"
                     />
                   </div>
+<<<<<<< HEAD
                   <Button
                     type="submit"
+=======
+                  <Button 
+                    type="submit" 
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                     className="w-full bg-[#ff4400] hover:bg-[#ff4400]/90 py-2 mt-2"
                     disabled={loading}
                   >
                     {loading ? "Verificando..." : "Entrar"}
                   </Button>
+<<<<<<< HEAD
 
+=======
+                  
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                   <Button
                     type="button"
                     variant="link"
@@ -379,8 +533,13 @@ const Auth = () => {
                       className="py-2"
                     />
                   </div>
+<<<<<<< HEAD
                   <Button
                     type="submit"
+=======
+                  <Button 
+                    type="submit" 
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                     className="w-full bg-[#ff4400] hover:bg-[#ff4400]/90 py-2 mt-2"
                     disabled={loading}
                   >
@@ -392,7 +551,11 @@ const Auth = () => {
           </CardContent>
           <CardFooter className="flex flex-col space-y-2 sm:space-y-3 px-4 sm:px-6 pt-2 pb-4">
             <div className="text-center text-xs sm:text-sm text-muted-foreground">
+<<<<<<< HEAD
               Ao continuar, você concorda com nossos
+=======
+              Ao continuar, você concorda com nossos 
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
               <Button variant="link" className="px-1 text-xs text-[#006bf7] h-auto">Termos de Serviço</Button>
               e
               <Button variant="link" className="px-1 text-xs text-[#006bf7] h-auto">Política de Privacidade</Button>
@@ -400,7 +563,11 @@ const Auth = () => {
           </CardFooter>
         </Card>
       </div>
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
       {/* Modal de Redefinição de Senha */}
       <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
         <DialogContent className="sm:max-w-[425px] p-4 sm:p-6 max-h-[90vh] overflow-auto">
@@ -410,7 +577,11 @@ const Auth = () => {
               Informe seu email para receber um link de redefinição de senha.
             </DialogDescription>
           </DialogHeader>
+<<<<<<< HEAD
 
+=======
+          
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
           <form onSubmit={handleResetPassword} className="space-y-4 py-2 sm:py-4">
             <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="reset-email" className="text-sm sm:text-base">Email</Label>
@@ -424,19 +595,32 @@ const Auth = () => {
                 className="py-2"
               />
             </div>
+<<<<<<< HEAD
 
             <DialogFooter className="pt-2 sm:pt-4 flex flex-col sm:flex-row gap-2 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
+=======
+            
+            <DialogFooter className="pt-2 sm:pt-4 flex flex-col sm:flex-row gap-2 sm:gap-0">
+              <Button 
+                type="button" 
+                variant="outline" 
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 onClick={() => setResetPasswordOpen(false)}
                 disabled={loading}
                 className="order-2 sm:order-1 sm:mr-2 w-full sm:w-auto"
               >
                 Cancelar
               </Button>
+<<<<<<< HEAD
               <Button
                 type="submit"
+=======
+              <Button 
+                type="submit" 
+>>>>>>> ec7a81647a509e3df9940de4e7db217a340f7e94
                 className="bg-[#ff4400] hover:bg-[#ff4400]/90 order-1 sm:order-2 w-full sm:w-auto"
                 disabled={loading}
               >
