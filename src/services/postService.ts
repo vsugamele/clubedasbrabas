@@ -241,6 +241,16 @@ export async function fetchPosts(options: FetchPostsOptions = {}): Promise<{ pos
         console.warn(`Categoria ID ${categoryId} não encontrada no mapa para post ${rawPost.id}`);
       }
       
+      let pollData = undefined;
+      const rawPoll = rawPost.poll_data;
+      if (rawPoll) {
+        try {
+          pollData = typeof rawPoll === 'string' ? JSON.parse(rawPoll) : rawPoll;
+        } catch (e) {
+          console.error(`Erro ao parsear poll_data do post ${rawPost.id}:`, e);
+        }
+      }
+
       return {
         id: rawPost.id,
         title: rawPost.title || '',
@@ -256,7 +266,8 @@ export async function fetchPosts(options: FetchPostsOptions = {}): Promise<{ pos
         comments: rawPost.comments_count || 0,
         isPinned: rawPost.is_pinned || false,
         isDeleted: rawPost.is_deleted || false,
-        media: media
+        media: media,
+        poll: pollData
       };
     }));
     

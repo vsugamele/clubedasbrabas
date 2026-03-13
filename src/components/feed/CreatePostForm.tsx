@@ -32,8 +32,7 @@ import {
 import { postCategories } from "@/data/postCategories";
 import {
   fetchCategories,
-  fetchCommunities,
-  uploadGif
+  fetchCommunities
 } from "@/services/postService";
 import { createPost } from "@/services/postService";
 // Funções inlined do mediaService para evitar problemas de importação no Vercel
@@ -212,11 +211,6 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
   // Media attachments
   const [attachments, setAttachments] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // GIF support
-  const [showGifSearch, setShowGifSearch] = useState(false);
-  const [gifSearchQuery, setGifSearchQuery] = useState("");
-  const [selectedGif, setSelectedGif] = useState<string | null>(null);
 
   // Poll support
   const [showPollCreator, setShowPollCreator] = useState(false);
@@ -465,17 +459,6 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
     }
   };
 
-  const handleGifSelect = (gifUrl: string) => {
-    setSelectedGif(gifUrl);
-    setShowGifSearch(false);
-  };
-
-  const handleGifSearch = () => {
-    // In a real implementation, you would search for GIFs using an API like Giphy or Tenor
-    // For now, we'll simulate a search result with placeholder GIFs
-    console.log("Searching for GIFs:", gifSearchQuery);
-  };
-
   const handleCommunitySelect = (value: string, type: 'community' | 'category' | 'none') => {
     setSelectedOption(type);
     console.log(`handleCommunitySelect: ${type} = ${value}`);
@@ -584,11 +567,10 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
     // Verificar se há conteúdo ou anexos
     const hasContent = content.trim().length > 0;
     const hasAttachments = attachments.length > 0;
-    const hasGif = selectedGif !== null;
     const hasPoll = showPollCreator && pollQuestion.trim() && pollOptions.filter(opt => opt.trim()).length >= 2;
 
     // Se não houver conteúdo nem anexos, não prosseguir
-    if (!hasContent && !hasAttachments && !hasGif && !hasPoll) {
+    if (!hasContent && !hasAttachments && !hasPoll) {
       toast.error("Adicione algum conteúdo à sua publicação.");
       return;
     }
@@ -598,7 +580,6 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
       console.log("Iniciando envio de post", {
         hasContent,
         hasAttachments,
-        hasGif,
         hasPoll,
         content,
         attachmentsCount: attachments.length
@@ -606,19 +587,11 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
 
       // Prepare media data
       const mediaData: {
-        type: "image" | "video" | "gif";
+        type: "image" | "video";
         url: string;
         aspectRatio?: number;
         isBase64?: boolean;
       }[] = [];
-
-      // Handle GIF if selected
-      if (selectedGif) {
-        mediaData.push({
-          type: "gif",
-          url: selectedGif
-        });
-      }
 
       // Handle file attachments (images and videos)
       let uploadSuccess = false;
@@ -710,12 +683,11 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
         uploadSuccess,
         hasContent,
         hasAttachments,
-        hasGif,
         hasPoll
       });
 
       // Se tinha anexos para upload mas nenhum foi bem-sucedido, e não há outro conteúdo
-      if (hasAttachments && !uploadSuccess && !hasContent && !hasGif && !hasPoll) {
+      if (hasAttachments && !uploadSuccess && !hasContent && !hasPoll) {
         console.error("Falha no upload de todos os anexos e não há outro conteúdo");
         toast.error("Não foi possível enviar os arquivos. Tente novamente ou adicione algum texto.");
         setIsSubmitting(false);
@@ -809,8 +781,6 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
 
         // Reset form
         setContent("");
-        setSelectedGif(null);
-        setShowGifSearch(false);
         setShowPollCreator(false);
         setPollQuestion("");
         setPollOptions(["", ""]);
@@ -822,11 +792,13 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
           const newPost: PostData = {
             id: postId,
             content,
+            authorId: user?.id || null,
             author: {
               id: user?.id || '',
               name: profile?.full_name || user?.email?.split('@')[0] || 'Usuário',
-              avatar: profile?.avatar_url,
+              avatar: profile?.avatar_url || null,
             },
+            categoryId: finalCategoryId || null,
             category: category || { id: 'other', name: 'Categoria' },
             createdAt: new Date().toISOString(), // Convertendo para string ISO
             likes: 0,
@@ -1026,75 +998,10 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
             </div>
           </div>
 
-          {selectedGif && (
-            <div className="relative rounded-md overflow-hidden">
-              <img
-                src={selectedGif}
-                alt="Selected GIF"
-                className="w-full max-h-[200px] object-contain bg-muted"
-              />
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2 h-6 w-6"
-                onClick={() => setSelectedGif(null)}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-
           <AttachmentsPreview
             attachments={attachments}
             onRemove={removeAttachment}
           />
-
-          {showGifSearch && (
-            <div className="p-3 border rounded-md bg-muted/50">
-              <div className="flex gap-2 mb-3">
-                <Input
-                  placeholder="Pesquisar GIFs..."
-                  value={gifSearchQuery}
-                  onChange={(e) => setGifSearchQuery(e.target.value)}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleGifSearch}
-                >
-                  <Search className="h-4 w-4 mr-1" />
-                  Buscar
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowGifSearch(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
-                {/* Placeholder GIFs - in a real app, these would come from an API */}
-                <img
-                  src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM29zcjdvYjM2NTQ1eW1ucXp3N2x3NnhqdzRkMHBkOXFiZG5lYzhmeSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41JMg1yXmGNDHSHm/giphy.gif"
-                  alt="GIF 1"
-                  className="w-full h-40 object-cover rounded cursor-pointer hover:ring-2 ring-primary"
-                  onClick={() => handleGifSelect("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM29zcjdvYjM2NTQ1eW1ucXp3N2x3NnhqdzRkMHBkOXFiZG5lYzhmeSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41JMg1yXmGNDHSHm/giphy.gif")}
-                />
-                <img
-                  src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjYyZG0wbDJqajExaXVnY2FubG92ZHkzbzluaGdkdTB5cXM5NzM4MCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3oEjHGr1Fhz0kyv8Ig/giphy.gif"
-                  alt="GIF 2"
-                  className="w-full h-40 object-cover rounded cursor-pointer hover:ring-2 ring-primary"
-                  onClick={() => handleGifSelect("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjYyZG0wbDJqajExaXVnY2FubG92ZHkzbzluaGdkdTB5cXM5NzM4MCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3oEjHGr1Fhz0kyv8Ig/giphy.gif")}
-                />
-              </div>
-            </div>
-          )}
 
           {showPollCreator && (
             <div className="p-3 border rounded-md bg-muted/50">
@@ -1182,18 +1089,7 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
                 variant="outline"
                 size="sm"
                 className="text-gray-500"
-                disabled={isSubmitting || showPollCreator}
-                onClick={() => setShowGifSearch(prev => !prev)}
-              >
-                <Smile className="h-4 w-4 mr-1" />
-                GIF
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="text-gray-500"
-                disabled={isSubmitting || showGifSearch}
+                disabled={isSubmitting}
                 onClick={() => setShowPollCreator(prev => !prev)}
               >
                 <BarChart3 className="h-4 w-4 mr-1" />
@@ -1294,7 +1190,7 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
               <Button
                 type="submit"
                 className="bg-[#ff4400] hover:bg-[#ff4400]/90 ml-auto"
-                disabled={(!content.trim() && !selectedGif && !showPollCreator && attachments.length === 0) || isSubmitting}
+                disabled={(!content.trim() && !showPollCreator && attachments.length === 0) || isSubmitting}
               >
                 {isSubmitting ? (
                   <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></div>
