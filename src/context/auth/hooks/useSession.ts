@@ -123,6 +123,13 @@ export function useSession() {
               await refreshSession();
             }
           }, 500);
+        } else if (event === 'PASSWORD_RECOVERY') {
+          console.log("Evento de recuperação de senha recebido, redirecionando...");
+          setTimeout(() => {
+            if (window.location.pathname !== '/reset-password') {
+              window.location.href = '/reset-password';
+            }
+          }, 100);
         }
         
         console.log("Auth state updated, loading set to false");

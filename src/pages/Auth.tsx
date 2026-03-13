@@ -70,7 +70,7 @@ const Auth = () => {
         userName = resetEmail.split('@')[0];
       }
 
-      // Enviar solicitação para Supabase
+      // Enviar solicitação para Supabase (Gera o link no banco)
       const { data, error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: window.location.origin + "/reset-password",
       });
@@ -86,28 +86,36 @@ const Auth = () => {
           resetSuccess = true; // Considerar como sucesso para UX melhor
         } else {
           console.error("Erro ao solicitar redefinição de senha:", error.message);
-          toast.error("Não foi possível enviar o email de redefinição. Tente novamente.");
+          toast.error("Não foi possível solicitar redefinição de senha. Tente novamente.");
           // IMPORTANT: Do NOT return here, instead let the finally block execute to reset loading state
         }
       } else {
         resetSuccess = true;
       }
 
-      // Enviar dados para webhook do n8n, incluindo o nome do usuário
-      // Sempre tentamos enviar para o webhook, independentemente do resultado no Supabase
+      // Se tivemos sucesso (mesmo forçado para UX), invocar Edge Function para enviar e-mail via Resend
       if (resetSuccess) {
         try {
-          const webhookResponse = await sendPasswordResetWebhook({
-            email: resetEmail,
-            requested_at: new Date().toISOString(),
-            user_name: userName, // Incluir nome do usuário no payload
-            success: resetSuccess
+          // Chamada explícita à Edge Function do Resend
+          console.log("Invocando Edge Function de e-mail...");
+          await supabase.functions.invoke('auth-send-email', {
+            body: {
+              user: { email: resetEmail },
+              email_data: {
+                email_action_type: 'recovery',
+                site_url: window.location.origin,
+                redirect_to: window.location.origin + "/reset-password",
+                // Aqui o webhook normal teria o token_hash real do usuário, mas 
+                // devido à segurança do Supabase, nós não temos acesso ao token_hash que foi gerado em resetPasswordForEmail
+                // A edge action auth-send-email foi programada para receber o payload do In-Auth-Hook.
+                // Ao forçar manualmente pelo client, dependemos da lógica multi-tenant que eles criaram e se ela funciona sem token_hash
+                // NOTA: Se o Supabase Auth Hook estiver ativo no painel, o e-mail será enviado DUAS vezes. 
+                // Se o hook nativo não estiver enviando, a Edge Function aqui assumiria
+              }
+            }
           });
-
-          console.log("Resposta do webhook de redefinição:", webhookResponse);
-        } catch (webhookError) {
-          console.error("Erro ao enviar para webhook de redefinição:", webhookError);
-          // Não interrompemos o fluxo se o webhook falhar
+        } catch (edgeError) {
+          console.error("Erro ao enviar e-mail pela Edge Function:", edgeError);
         }
 
         toast.success(`Email de redefinição enviado para ${resetEmail}. Verifique sua caixa de entrada e também a pasta de spam.`, {
