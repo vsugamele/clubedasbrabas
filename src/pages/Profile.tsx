@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, MapPin, AtSign, Calendar, Globe, Settings, LogOut } from "lucide-react";
+import { Upload, MapPin, AtSign, Calendar, Globe, Settings, LogOut, Download } from "lucide-react";
 import SendMessageButton from "@/components/profile/SendMessageButton";
 
 interface ProfileData {
@@ -590,11 +590,19 @@ const Profile = () => {
                   </div>
                   
                   {/* Add Logout button to profile page for easier access */}
-                  <div className="pt-6 border-t dark:border-gray-700">
+                  <div className="pt-6 border-t dark:border-gray-700 flex flex-col gap-3 sm:flex-row">
+                    <Button 
+                      variant="outline"
+                      onClick={() => window.dispatchEvent(new Event('show-pwa-install'))}
+                      className="border-primary text-primary hover:bg-primary/5"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Instalar App
+                    </Button>
                     <Button 
                       variant="destructive" 
                       onClick={() => signOut()}
-                      className="bg-red-600 hover:bg-red-700"
+                      className="bg-red-600 hover:bg-red-700 sm:ml-auto"
                     >
                       <LogOut className="h-4 w-4 mr-2" />
                       Sair da conta

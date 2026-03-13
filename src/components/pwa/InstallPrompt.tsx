@@ -64,8 +64,28 @@ export function InstallPrompt() {
             }
         }
 
-        return () => window.removeEventListener('beforeinstallprompt', handler);
-    }, [isSubscribed, permission]);
+        // Custom event to show prompt manually (from Profile button)
+        const handleManualShow = () => {
+             // Re-evaluate standalone state just in case
+             const currentStandalone = window.matchMedia('(display-mode: standalone)').matches
+                || (window.navigator as any).standalone;
+             
+             if (ios && !currentStandalone) {
+                 setStep('ios-instructions');
+             } else if (currentStandalone) {
+                 toast.info("O app já está instalado no seu dispositivo!");
+             } else {
+                 setStep('install');
+             }
+        };
+
+        window.addEventListener('show-pwa-install', handleManualShow);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handler);
+            window.removeEventListener('show-pwa-install', handleManualShow);
+        };
+    }, [isSubscribed, permission, isIos]);
 
     const handleInstall = async () => {
         if (!deferredPrompt) return;
