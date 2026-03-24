@@ -82,12 +82,11 @@ const TrendingPosts = ({ initialPosts }: TrendingPostsProps) => {
           <div className="space-y-4">
             {posts.map((post, index) => (
               <div 
-                key={post.id}
+                key={post.id} 
+                className="flex gap-3 p-3 rounded-lg transition-all cursor-pointer bg-card hover:bg-muted/50 border border-border/50"
                 onClick={() => handlePostClick(post.id)}
-                className={`flex gap-3 p-3 rounded-lg transition-all cursor-pointer 
-                  ${index === 0 ? 'bg-orange-50 border border-[#ff4400]/30' : 'hover:bg-gray-50'}`}
               >
-                <Avatar className="h-12 w-12">
+                <Avatar className="h-12 w-12 border border-border">
                   <AvatarImage src={post.authorAvatar || undefined} alt={post.author} />
                   <AvatarFallback>{getInitials(post.author)}</AvatarFallback>
                 </Avatar>

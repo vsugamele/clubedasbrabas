@@ -953,13 +953,13 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
                 placeholder="Compartilhe algo interessante... Use @ para mencionar usuários"
                 value={content}
                 onChange={handleTextareaChange}
-                className="w-full border rounded-md p-3 min-h-[80px] max-h-[200px] resize-none focus:outline-none focus:ring-1 focus:ring-brand-500 bg-transparent"
+                className="w-full border border-border/50 rounded-md p-3 min-h-[80px] max-h-[200px] resize-none focus:outline-none focus:ring-1 focus:ring-primary bg-transparent text-foreground"
                 disabled={isSubmitting}
               />
 
               {mentionSearch !== null && (
                 <div className="absolute top-full left-0 right-0 mt-1 z-50">
-                  <div className="bg-white dark:bg-gray-800 shadow-lg rounded-md border border-gray-200 dark:border-gray-700 w-full max-h-60 overflow-y-auto">
+                  <div className="bg-popover shadow-lg rounded-md border border-border w-full max-h-60 overflow-y-auto z-50">
                     {isMentionLoading ? (
                       <div className="p-2 text-sm text-gray-500 dark:text-gray-400">
                         Buscando usuários...
@@ -973,7 +973,7 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
                         {mentionUsers.map((user, index) => (
                           <li
                             key={user.id}
-                            className="px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                            className="px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-muted"
                             onClick={() => handleSelectMention(user)}
                           >
                             <Avatar className="h-6 w-6">
@@ -1189,7 +1189,7 @@ const CreatePostForm = ({ communityId, onPostCreated }: CreatePostFormProps) => 
 
               <Button
                 type="submit"
-                className="bg-[#ff4400] hover:bg-[#ff4400]/90 ml-auto"
+                className="bg-primary hover:bg-primary/90 ml-auto text-primary-foreground font-semibold"
                 disabled={(!content.trim() && !showPollCreator && attachments.length === 0) || isSubmitting}
               >
                 {isSubmitting ? (

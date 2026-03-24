@@ -147,7 +147,7 @@ const RightSidebar = ({ events, trendingPosts }: RightSidebarProps) => {
       <TrendingPosts initialPosts={trendingPosts} />
       
       {/* Lista de Categorias */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow p-4">
+      <div className="bg-card rounded-lg border border-border/50 p-4">
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-medium">Categorias</h3>
           {error && (

@@ -114,7 +114,7 @@ export const PostContent = ({ content, media, poll, postId, onPollVoted }: PostC
               className={`rounded-lg overflow-hidden ${media.length > 1 ? "" : "w-full max-w-full"}`}
             >
               {item.type === "image" ? (
-                <div className="relative w-full max-h-[80vh] flex items-center justify-center bg-black/5">
+                <div className="relative w-full max-h-[80vh] flex items-center justify-center bg-muted/20">
                   <img
                     src={item.url}
                     alt="Media content"
@@ -123,7 +123,7 @@ export const PostContent = ({ content, media, poll, postId, onPollVoted }: PostC
                   />
                 </div>
               ) : item.type === "video" ? (
-                <div className="relative w-full max-h-[80vh] flex items-center justify-center bg-black/5">
+                <div className="relative w-full max-h-[80vh] flex items-center justify-center bg-muted/20">
                   <video
                     src={item.url}
                     className="max-w-full max-h-[80vh] object-contain"
@@ -132,7 +132,7 @@ export const PostContent = ({ content, media, poll, postId, onPollVoted }: PostC
                   />
                 </div>
               ) : (
-                <div className="relative w-full max-h-[80vh] flex items-center justify-center bg-black/5">
+                <div className="relative w-full max-h-[80vh] flex items-center justify-center bg-muted/20">
                   <img
                     src={item.url}
                     alt="GIF content"

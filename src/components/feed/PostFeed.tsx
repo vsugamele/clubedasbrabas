@@ -238,13 +238,13 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
           canPostInCurrentCommunity() ? (
             <CreatePostForm communityId={communityId} onPostCreated={handlePostCreated} />
           ) : (
-            <div className="text-center py-12 border rounded-lg bg-gray-50">
-              <p className="text-gray-500 mb-4">Você não tem permissão para postar nessa comunidade.</p>
+            <div className="text-center py-12 border border-border/50 rounded-lg bg-card text-muted-foreground">
+              <p className="mb-4">Você não tem permissão para postar nessa comunidade.</p>
             </div>
           )
         ) : (
-          <div className="text-center py-12 border rounded-lg bg-gray-50">
-            <p className="text-gray-500 mb-4">Faça login para criar publicações.</p>
+          <div className="text-center py-12 border border-border/50 rounded-lg bg-card text-muted-foreground">
+            <p className="mb-4">Faça login para criar publicações.</p>
           </div>
         )}
         <div className="flex flex-col items-center py-12 text-center">
@@ -269,17 +269,17 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
           canPostInCurrentCommunity() ? (
             <CreatePostForm communityId={communityId} onPostCreated={handlePostCreated} />
           ) : (
-            <div className="text-center py-12 border rounded-lg bg-gray-50">
-              <p className="text-gray-500 mb-4">Você não tem permissão para postar nessa comunidade.</p>
+            <div className="text-center py-12 border border-border/50 rounded-lg bg-card text-muted-foreground">
+              <p className="mb-4">Você não tem permissão para postar nessa comunidade.</p>
             </div>
           )
         ) : (
-          <div className="text-center py-12 border rounded-lg bg-gray-50">
-            <p className="text-gray-500 mb-4">Faça login para criar publicações.</p>
+          <div className="text-center py-12 border border-border/50 rounded-lg bg-card text-muted-foreground">
+            <p className="mb-4">Faça login para criar publicações.</p>
           </div>
         )}
-        <div className="text-center py-12 border rounded-lg bg-gray-50">
-          <p className="text-gray-500 mb-4">Não há publicações para exibir</p>
+        <div className="text-center py-12 border border-border/50 rounded-lg bg-card text-muted-foreground">
+          <p className="mb-4">Não há publicações para exibir</p>
           <Button 
             onClick={handleRetry}
             variant="outline"
@@ -299,13 +299,13 @@ const PostFeed = ({ communityId, categoryId, isLoading: initialLoading }: PostFe
         canPostInCurrentCommunity() ? (
           <CreatePostForm communityId={communityId} onPostCreated={handlePostCreated} />
         ) : (
-          <div className="text-center py-12 border rounded-lg bg-gray-50">
-            <p className="text-gray-500 mb-4">Você não tem permissão para postar nessa comunidade.</p>
+          <div className="text-center py-12 border border-border/50 rounded-lg bg-card text-muted-foreground">
+            <p className="mb-4">Você não tem permissão para postar nessa comunidade.</p>
           </div>
         )
       ) : (
-        <div className="text-center py-12 border rounded-lg bg-gray-50">
-          <p className="text-gray-500 mb-4">Faça login para criar publicações.</p>
+        <div className="text-center py-12 border border-border/50 rounded-lg bg-card text-muted-foreground">
+          <p className="mb-4">Faça login para criar publicações.</p>
         </div>
       )}
       {sortedPosts.map((post) => (

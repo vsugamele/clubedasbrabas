@@ -12,6 +12,7 @@ import { UserNotifications } from "@/components/UserNotifications";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 // Default links as fallback
 const defaultNavLinks = [
@@ -26,7 +27,11 @@ interface NavLink {
   path: string;
 }
 
-const Navbar = () => {
+interface NavbarProps {
+  onMenuClick?: () => void;
+}
+
+const Navbar = ({ onMenuClick }: NavbarProps) => {
   const {
     user,
     profile,
@@ -36,18 +41,14 @@ const Navbar = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [darkMode, setDarkMode] = useState(localStorage.getItem("darkMode") === "true");
   const [navLinks, setNavLinks] = useState<NavLink[]>(defaultNavLinks);
 
-  // CORREÇÃO: Verificação de admin simplificada por email
   const isAdmin = user?.email === 'vsugamele@gmail.com';
 
-  // Fetch navbar links from database
   useEffect(() => {
     const fetchNavLinks = async () => {
       try {
-        // Using type assertion since navbar_links table types may not be generated yet
         const { data, error } = await (supabase as any)
           .from("c_navbar_links")
           .select("name, path")
@@ -56,7 +57,7 @@ const Navbar = () => {
 
         if (error) {
           console.error("Error fetching navbar links:", error);
-          return; // Keep default links
+          return;
         }
 
         if (data && data.length > 0) {
@@ -64,14 +65,12 @@ const Navbar = () => {
         }
       } catch (error) {
         console.error("Error fetching navbar links:", error);
-        // Keep default links on error
       }
     };
 
     fetchNavLinks();
   }, []);
 
-  // Initialize dark mode
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -81,16 +80,8 @@ const Navbar = () => {
     localStorage.setItem("darkMode", darkMode.toString());
   }, [darkMode]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Searching for:", searchQuery);
-  };
-
   const handleLogout = async () => {
     try {
-      console.log("Attempting logout");
-
-      // Salvar o perfil atual antes de fazer logout
       if (profile) {
         localStorage.setItem('last_user_profile', JSON.stringify(profile));
       }
@@ -108,7 +99,7 @@ const Navbar = () => {
       toast.error("Erro ao sair, mas você será redirecionado");
       navigate("/auth", { replace: true });
     } finally {
-      setMobileMenuOpen(false);
+      if (onMenuClick) onMenuClick();
     }
   };
 
@@ -116,54 +107,65 @@ const Navbar = () => {
     setDarkMode(!darkMode);
   };
 
-  return <header className="sticky top-0 z-40 w-full border-b bg-background shadow-sm hidden md:block">
-    <div className="container flex h-16 items-center">
-      <div className="mr-4 flex">
-        <Link to="/" className="flex items-center">
-          {/* Logo removido */}
-          <span className="text-xl font-bold text-[#ff4400]">Clube das Brabas</span>
-        </Link>
-      </div>
-
-      <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
-        {navLinks.map(link => <Button key={link.path} variant="ghost" asChild className={location.pathname === link.path ? "font-medium text-[#ff4400]" : "text-muted-foreground hover:text-[#ff4400]/80"}>
-          <Link to={link.path}>{link.name}</Link>
-        </Button>)}
-
-        {/* Admin panel link - only show if user is admin */}
-        {isAdmin && <Button variant="ghost" asChild className={location.pathname === "/admin" ? "font-medium text-[#ff4400]" : "text-muted-foreground hover:text-[#ff4400]/80"}>
-          <Link to="/admin">
-            <Shield className="mr-1 h-4 w-4 text-[#ff4400]" />
-            Admin
-          </Link>
-        </Button>}
-      </div>
-
-      <div className="hidden md:flex flex-1 items-center justify-center px-2">
-        {/* Search bar removed per user request */}
-      </div>
-
-      <div className="flex md:hidden flex-1 justify-end">
-        <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-          {mobileMenuOpen ? <X /> : <Menu />}
+  return <header className="sticky top-0 z-30 w-full bg-background border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="flex h-16 items-center px-4 md:px-8">
+      
+      {/* Mobile Menu Button - Left */}
+      <div className="flex md:hidden flex-1 justify-start">
+        <Button variant="ghost" size="icon" onClick={() => {
+          if (onMenuClick) onMenuClick();
+        }}>
+          <Menu className="h-5 w-5 hover:text-primary transition-colors" />
         </Button>
       </div>
 
-      <div className="hidden md:flex items-center space-x-3">
-        {/* Dark mode toggle */}
-        <div className="flex items-center space-x-2">
-          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      {/* Centered Desktop Navigation */}
+      <div className="hidden md:flex flex-1 items-center justify-center space-x-8">
+        {navLinks.map(link => (
+          <Link 
+            key={link.path} 
+            to={link.path}
+            className={cn(
+              "text-sm font-semibold tracking-wide transition-colors uppercase", 
+              location.pathname === link.path 
+                ? "text-primary" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {link.name}
+          </Link>
+        ))}
+
+        {isAdmin && (
+          <Link 
+            to="/admin"
+            className={cn(
+              "flex items-center text-sm font-semibold tracking-wide transition-colors uppercase", 
+              location.pathname === "/admin" 
+                ? "text-primary" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Shield className="mr-1 h-4 w-4" />
+            Admin
+          </Link>
+        )}
+      </div>
+
+      {/* Right User Actions */}
+      <div className="flex flex-1 md:flex-none justify-end items-center space-x-4">
+        <div className="hidden sm:flex items-center space-x-2">
+          <Sun className="h-4 w-4 text-muted-foreground" />
           <Switch checked={darkMode} onCheckedChange={toggleDarkMode} />
-          <Moon className="h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <Moon className="h-4 w-4 text-muted-foreground" />
         </div>
 
         {user ? <>
           <NotificationsDropdown />
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar className="h-8 w-8 border-2 border-[#ff4400]/20">
+              <Button variant="ghost" size="icon" className="rounded-full w-9 h-9 border border-border/50">
+                <Avatar className="h-full w-full">
                   {profile?.avatar_url ? (
                     <img
                       src={profile.avatar_url}
@@ -171,87 +173,47 @@ const Navbar = () => {
                       className="h-full w-full rounded-full object-cover"
                     />
                   ) : (
-                    <AvatarFallback className="bg-[#ff920e]/20 text-[#ff4400]">
+                    <AvatarFallback className="bg-muted text-primary">
                       {profile?.full_name?.substring(0, 2).toUpperCase() || user.email?.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   )}
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="border-[#ff920e]/20">
-              <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-56 bg-popover border-border">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{profile?.full_name || 'Usuário'}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                </div>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to={user ? `/profile/${user.id}` : "/profile"} className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4 text-[#ff4400]" />
+                  <User className="mr-2 h-4 w-4" />
                   <span>Perfil</span>
                 </Link>
               </DropdownMenuItem>
 
-              {/* Admin panel link in dropdown - only show if user is admin */}
               {isAdmin && <DropdownMenuItem asChild>
                 <Link to="/admin" className="cursor-pointer">
-                  <Shield className="mr-2 h-4 w-4 text-[#ff4400]" />
+                  <Shield className="mr-2 h-4 w-4 text-primary" />
                   <span>Painel Admin</span>
                 </Link>
               </DropdownMenuItem>}
 
-              <DropdownMenuItem onClick={handleLogout} className="text-[#ff4400] cursor-pointer">
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-red-500 cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Sair</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </> : <Button asChild className="bg-[#ff4400] hover:bg-[#ff4400]/90 text-white">
+        </> : <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold uppercase py-1 px-4 h-8">
           <Link to="/auth">Entrar</Link>
         </Button>}
       </div>
     </div>
-
-    {mobileMenuOpen && <div className="md:hidden border-t p-4 space-y-4 bg-white dark:bg-background shadow-md">
-      {/* Search bar removed per user request */}
-
-      <div className="space-y-1">
-        {/* Dark mode toggle in mobile menu */}
-        <div className="flex items-center justify-between py-2">
-          <span className="text-sm font-medium">Modo escuro</span>
-          <div className="flex items-center space-x-2">
-            <Sun className="h-[1rem] w-[1rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Switch checked={darkMode} onCheckedChange={toggleDarkMode} />
-            <Moon className="h-[1rem] w-[1rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          </div>
-        </div>
-
-        {navLinks.map(link => <Button key={link.path} variant="ghost" asChild className={`w-full justify-start ${location.pathname === link.path ? "font-medium text-[#ff4400]" : "text-muted-foreground hover:text-[#ff4400]/80"}`} onClick={() => setMobileMenuOpen(false)}>
-          <Link to={link.path}>{link.name}</Link>
-        </Button>)}
-
-        {/* Admin panel link in mobile menu - only show if user is admin */}
-        {isAdmin && <Button variant="ghost" asChild className={`w-full justify-start ${location.pathname === "/admin" ? "font-medium text-[#ff4400]" : "text-muted-foreground hover:text-[#ff4400]/80"}`} onClick={() => setMobileMenuOpen(false)}>
-          <Link to="/admin">
-            <Shield className="mr-2 h-4 w-4 text-[#ff4400]" />
-            <span>Painel Admin</span>
-          </Link>
-        </Button>}
-      </div>
-
-      {user ? <div className="pt-2 border-t">
-        <Button variant="ghost" asChild className="w-full justify-start" onClick={() => setMobileMenuOpen(false)}>
-          <Link to={user ? `/profile/${user.id}` : "/profile"}>
-            <User className="mr-2 h-4 w-4 text-[#ff4400]" />
-            <span>Perfil</span>
-          </Link>
-        </Button>
-        <Button variant="ghost" className="w-full justify-start text-[#ff4400]" onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Sair</span>
-        </Button>
-      </div> : <Button asChild className="w-full bg-[#ff4400] hover:bg-[#ff4400]/90 text-white">
-        <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-          Entrar
-        </Link>
-      </Button>}
-    </div>}
   </header>;
 };
 export default Navbar;

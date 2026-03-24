@@ -109,7 +109,7 @@ const PostCard = ({
   const postId = id || post?.id;
   const postAuthor = author || post?.author;
   const postCategory = category || post?.category;
-  const postCommunity = community || post?.community;
+  const postCommunity = community || (post as any)?.community;
   const postCreatedAt = createdAt || post?.createdAt;
   const postContent = content || post?.content;
   const postMedia = media || post?.media;
@@ -241,10 +241,10 @@ const PostCard = ({
   const postDate = postCreatedAt instanceof Date ? postCreatedAt : new Date(postCreatedAt);
 
   return (
-    <Card className="w-full mb-6 overflow-hidden transition-all animate-fade-in">
+    <Card className="w-full mb-6 overflow-hidden transition-all hover:shadow-md border-border/50 bg-card animate-fade-in">
       {pinned && (
-        <div className="bg-brand-50 border-b border-brand-100 flex items-center gap-2 px-4 py-1.5 text-sm text-brand-700">
-          <Pin className="h-4 w-4" />
+        <div className="bg-primary/10 border-b border-primary/20 flex items-center gap-2 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
+          <Pin className="h-3.5 w-3.5" />
           <span>Post fixado</span>
         </div>
       )}

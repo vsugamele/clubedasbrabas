@@ -79,30 +79,29 @@ const NavItem = ({ href, icon, label, active, onClick, external, highlighted, cl
     >
       <div
         className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+          "flex items-center gap-3 px-4 py-2 mt-1 transition-all border-l-[3px]",
           active
-            ? "bg-gradient-to-r from-orange-500/20 to-orange-400/10 text-orange-600 dark:from-orange-900/40 dark:to-orange-800/20 dark:text-orange-400 font-medium"
-            : "text-gray-800 dark:text-white hover:bg-orange-50/60 dark:hover:bg-orange-900/20",
-          highlighted && "border border-orange-300 dark:border-orange-700",
+            ? "border-primary text-primary font-medium bg-primary/5"
+            : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          highlighted && "text-primary",
           className
         )}
       >
         <div className={cn(
-          "flex items-center justify-center w-8 h-8 rounded-full",
-          active
-            ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400"
-            : "bg-orange-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
-          highlighted && "bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400"
+          "flex items-center justify-center w-5 h-5",
+          active ? "text-primary" : "text-muted-foreground/80",
+          highlighted && "text-primary"
         )}>
           {icon}
         </div>
         <span className={cn(
-          "font-medium",
-          highlighted && "text-orange-600 dark:text-orange-400"
+          "text-[14px] font-normal",
+          active ? "text-primary font-medium" : "text-muted-foreground/90",
+          highlighted && "text-primary"
         )}>
           {label}
         </span>
-        {external && <ExternalLink className="h-3 w-3 ml-auto" />}
+        {external && <ExternalLink className="h-3 w-3 ml-auto opacity-50" />}
       </div>
     </Link>
   );
@@ -419,15 +418,15 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
       <div className="mb-2">
         <div
           onClick={onToggle}
-          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-orange-50/50 dark:bg-gray-800/50 hover:bg-orange-100/70 dark:hover:bg-gray-800/70 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer group"
         >
-          <div className="flex items-center gap-2">
-            <Folder className="h-4 w-4 text-orange-500 dark:text-orange-400" />
-            <span className="font-medium text-gray-800 dark:text-gray-100">{category.name}</span>
+          <div className="flex items-center gap-3">
+            <Folder className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <span className="text-[14px] font-normal text-foreground/90 group-hover:text-foreground">{category.name}</span>
           </div>
           <ChevronDown
             className={cn(
-              "h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform",
+              "h-3.5 w-3.5 text-muted-foreground/70 transition-transform",
               isExpanded && "transform rotate-180"
             )}
           />
@@ -440,9 +439,9 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
     <div className="flex flex-col justify-between h-full">
       <div className="space-y-6 mt-4">
         <div className="space-y-2 px-2">
-          <div className="px-3 py-2 flex justify-between items-center">
-            <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 tracking-wider">
-              CATEGORIAS E COMUNIDADES
+          <div className="px-3 py-2 flex justify-between items-center mb-1">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+              Comunidades
             </h2>
             <Button
               variant="ghost"
@@ -500,7 +499,7 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
                             <Link
                               key={community.id}
                               to={`/c/${community.id}`}
-                              className="flex items-center gap-2 px-3 py-2 mt-1 rounded-md hover:bg-orange-50/80 dark:hover:bg-gray-800/60 text-gray-700 dark:text-gray-200"
+                              className="flex items-center gap-3 px-3 py-1.5 mt-0.5 rounded-md hover:bg-muted text-[13px] text-muted-foreground hover:text-foreground transition-colors"
                             >
                               {community.icon ? (
                                 <span className="text-lg">{community.icon}</span>
@@ -544,7 +543,7 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
                           <Link
                             key={community.id}
                             to={`/c/${community.id}`}
-                            className="flex items-center gap-2 px-3 py-2 mt-1 rounded-md hover:bg-orange-50/80 dark:hover:bg-gray-800/60 text-gray-700 dark:text-gray-200"
+                            className="flex items-center gap-3 px-3 py-1.5 mt-0.5 rounded-md hover:bg-muted text-[13px] text-muted-foreground hover:text-foreground transition-colors"
                           >
                             {community.icon ? (
                               <span className="text-lg">{community.icon}</span>
@@ -567,7 +566,7 @@ const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
         {visibleExternalLinks && visibleExternalLinks.length > 0 && (
           <div className="space-y-2 px-2 mt-4">
             <div className="px-3 py-2">
-              <span className="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400">Links Úteis</span>
+              <span className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Links Úteis</span>
             </div>
             <div className="space-y-1">
               <div className="relative mb-2">

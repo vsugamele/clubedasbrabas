@@ -23,7 +23,7 @@ const EventsList = ({ events }: EventsListProps) => {
     <Card className="overflow-hidden">
       <CardContent className="p-5">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-brand-600" />
+          <Calendar className="h-5 w-5 text-primary" />
           <span>Próximos Eventos</span>
         </h3>
         
@@ -32,7 +32,7 @@ const EventsList = ({ events }: EventsListProps) => {
             <div key={event.id} className="group animate-fade-in">
               <div className="flex gap-3">
                 <div className="flex flex-col items-center min-w-fit">
-                  <div className="text-2xl font-bold text-brand-600">
+                  <div className="text-2xl font-bold text-primary">
                     {event.date.getDate()}
                   </div>
                   <div className="text-xs uppercase text-muted-foreground">
@@ -41,7 +41,7 @@ const EventsList = ({ events }: EventsListProps) => {
                 </div>
                 
                 <div className="space-y-1">
-                  <h4 className="font-medium line-clamp-2 group-hover:text-brand-600 transition-colors">
+                  <h4 className="font-medium line-clamp-2 group-hover:text-primary transition-colors">
                     <Link to={`/eventos/${event.id}`}>{event.title}</Link>
                   </h4>
                   <p className="text-sm text-muted-foreground">com {event.presenter}</p>

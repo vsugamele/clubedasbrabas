@@ -47,8 +47,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex flex-col w-full overflow-hidden bg-orange-50/30">
-        {/* Mobile Sidebar */}
+      <div className="min-h-screen flex w-full overflow-hidden bg-background">
+        {/* Mobile Sidebar Overlay */}
         <div 
           className={cn(
             "fixed inset-0 z-50 bg-black/50 md:hidden transition-opacity duration-200",
@@ -57,93 +57,48 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           onClick={toggleMobileSidebar}
         />
         
+        {/* Mobile Sidebar Container */}
         <div 
           className={cn(
-            "fixed top-0 left-0 z-50 h-full w-[280px] bg-white shadow-lg md:hidden transition-transform duration-300 ease-in-out transform",
+            "fixed top-0 left-0 z-50 h-full w-[280px] bg-sidebar shadow-lg md:hidden transition-transform duration-300 ease-in-out transform flex flex-col border-r border-border",
             mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <div className="flex justify-between items-center p-4 border-b border-orange-200 bg-orange-50">
-            <h2 className="font-bold text-lg text-orange-600">Clube das Brabas</h2>
-            <button onClick={toggleMobileSidebar} className="p-1 rounded-full hover:bg-orange-100 text-orange-600">
+          <div className="flex justify-between items-center p-4 border-b border-border bg-sidebar">
+            <h2 className="font-bold text-lg text-primary uppercase tracking-wider">Clube das Brabas</h2>
+            <button onClick={toggleMobileSidebar} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="overflow-y-auto h-[calc(100%-60px)] bg-white">
+          <div className="overflow-y-auto flex-1 bg-sidebar">
             <Sidebar isMobile={true} onClose={toggleMobileSidebar} />
           </div>
         </div>
         
-        <Navbar />
-        <div className="sticky top-0 z-30 w-full bg-white border-b border-gray-200 md:hidden">
-          <div className="flex items-center justify-between px-4 py-2">
-            <div className="flex items-center">
-              <button
-                className="flex items-center justify-center mr-3"
-                onClick={toggleMobileSidebar}
-              >
-                <Menu className="h-5 w-5 text-gray-600" />
-              </button>
-              
-              <div className="flex items-center space-x-2">
-                <h1 className="text-lg font-bold text-[#ff4400]">Clube das Brabas</h1>
-              </div>
-            </div>
-            
-            <MobileTopNav />
+        {/* Desktop Sidebar - Left Column */}
+        <aside className="hidden md:flex w-64 lg:w-72 flex-col h-screen sticky top-0 border-r border-border bg-sidebar shadow-sm z-20">
+          <div className="p-6 pb-2 border-b border-border/50">
+            <h1 className="text-sm font-black text-primary uppercase tracking-widest mb-1">CLUBE DAS BRABAS</h1>
+            <p className="text-[10px] text-muted-foreground tracking-widest uppercase font-semibold">Premium Education</p>
           </div>
-          
-          <div className="flex items-center justify-between px-2 py-1 bg-gray-50">
-            <div className="grid grid-cols-3 w-full">
-              <Link 
-                to="/" 
-                className={cn(
-                  "flex flex-col items-center justify-center py-1 px-3 rounded-full text-sm font-medium",
-                  location.pathname === '/' 
-                    ? "bg-[#ff4400] text-white" 
-                    : "text-gray-600 hover:bg-gray-200"
-                )}
-              >
-                Feed
-              </Link>
-              
-              <Link 
-                to="/links" 
-                className={cn(
-                  "flex flex-col items-center justify-center py-1 px-3 rounded-full text-sm font-medium",
-                  location.pathname === '/links' 
-                    ? "bg-[#ff4400] text-white" 
-                    : "text-gray-600 hover:bg-gray-200"
-                )}
-              >
-                Links Úteis
-              </Link>
-              
-              <Link 
-                to="/eventos" 
-                className={cn(
-                  "flex flex-col items-center justify-center py-1 px-3 rounded-full text-sm font-medium",
-                  location.pathname.startsWith('/eventos') 
-                    ? "bg-[#ff4400] text-white" 
-                    : "text-gray-600 hover:bg-gray-200"
-                )}
-              >
-                Eventos
-              </Link>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex flex-1 w-full">
-          <div className="hidden md:block">
+          <div className="flex-1 overflow-y-auto no-scrollbar py-4">
             <Sidebar />
           </div>
-          <main className="flex-1 transition-opacity duration-300 ease-in-out opacity-100">
-            <div className="container py-6 pb-20 md:pb-6 animate-slide-up">
+        </aside>
+
+        {/* Right Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-background">
+          <Navbar onMenuClick={toggleMobileSidebar} />
+          
+          <main className="flex-1 overflow-y-auto scroll-smooth">
+            <div className="container py-6 pb-24 md:pb-8 animate-in fade-in duration-500">
               {children}
             </div>
           </main>
         </div>
+        
+        {/* Removed MobileNavbar to keep it cleaner, as the top nav does that job now. 
+            If it's necessary for logic, we can keep it. */}
         <MobileNavbar />
       </div>
     </SidebarProvider>

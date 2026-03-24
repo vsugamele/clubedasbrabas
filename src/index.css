@@ -50,52 +50,43 @@
   }
 
   .dark {
-    /* Modern dark theme with cleaner neutrals */
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    /* Authentic Curls Academy inspired theme */
+    --background: 0 0% 7%;     /* #121212 - Deep dark background */
+    --foreground: 0 0% 95%;    /* #F3F4F6 - Off-white text */
 
-    /* Cards with subtle elevation */
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 11%;          /* #1C1C1C - Cards */
+    --card-foreground: 0 0% 95%;
 
-    /* Popovers slightly lighter for depth */
-    --popover: 222 47% 10%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 9%;        /* #171717 - Popovers */
+    --popover-foreground: 0 0% 95%;
 
-    /* Brand orange remains vibrant */
-    --primary: 15 100% 55%;
+    --primary: 24 100% 50%;    /* #FF6600 - Vibrant Orange Accent */
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary orange with warm glow */
-    --secondary: 30 100% 55%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 0 0% 15%;     /* #262626 - Secondary buttons/areas */
+    --secondary-foreground: 0 0% 95%;
 
-    /* Muted areas with better contrast */
-    --muted: 217 33% 14%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 15%;         /* #262626 */
+    --muted-foreground: 0 0% 65%; /* #A3A3A3 - Muted text */
 
-    /* Accent yellow pops nicely */
-    --accent: 45 100% 55%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 24 100% 50%;     /* #FF6600 */
+    --accent-foreground: 0 0% 100%;
 
-    /* Destructive with better visibility */
-    --destructive: 0 72% 51%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders and inputs with subtle visibility */
-    --border: 217 33% 20%;
-    --input: 217 33% 18%;
-    --ring: 15 100% 55%;
+    --border: 0 0% 15%;        /* #262626 - Subtle borders */
+    --input: 0 0% 15%;         /* #262626 - Input fields */
+    --ring: 24 100% 50%;       /* #FF6600 - Focus rings */
 
-    /* Sidebar with cohesive dark theme */
-    --sidebar-background: 222 47% 7%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 15 100% 55%;
+    --sidebar-background: 0 0% 7%; /* #121212 - Sidebar blends with background */
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 24 100% 50%; /* #FF6600 */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 14%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 18%;
-    --sidebar-ring: 15 100% 55%;
+    --sidebar-accent: 0 0% 11%;     /* #1C1C1C - Sidebar hover */
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 11%;     /* #1C1C1C */
+    --sidebar-ring: 24 100% 50%;
   }
 }
 
