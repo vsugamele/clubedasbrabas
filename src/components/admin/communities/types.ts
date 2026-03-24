@@ -104,6 +104,7 @@ export interface Event {
   date: Date;
   timeStart: string;
   timeEnd: string;
+  endDate?: Date;
   location?: string;
   link?: string;
   createdAt: string;
@@ -117,6 +118,7 @@ export interface EventForm {
   date: Date;
   timeStart: string;
   timeEnd: string;
+  endDate?: Date;
   location?: string;
   link?: string;
 }
@@ -129,6 +131,7 @@ export interface SupabaseEvent {
   date: string;
   time_start: string;
   time_end: string;
+  end_date?: string;
   location?: string;
   link?: string;
   created_at: string;
@@ -144,6 +147,7 @@ export function mapEventFromSupabase(event: SupabaseEvent): Event {
     date: new Date(event.date),
     timeStart: event.time_start,
     timeEnd: event.time_end,
+    endDate: event.end_date ? new Date(event.end_date) : undefined,
     location: event.location,
     link: event.link,
     createdAt: event.created_at,
@@ -160,6 +164,7 @@ export function mapEventToSupabase(event: Event | EventForm): Record<string, any
   if ('date' in event) mapped.date = event.date.toISOString();
   if ('timeStart' in event) mapped.time_start = event.timeStart;
   if ('timeEnd' in event) mapped.time_end = event.timeEnd;
+  if ('endDate' in event && event.endDate) mapped.end_date = event.endDate.toISOString();
   if ('location' in event) mapped.location = event.location;
   if ('link' in event) mapped.link = event.link;
   

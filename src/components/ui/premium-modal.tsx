@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 interface PremiumModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  feature?: 'messaging' | 'posting' | 'gallery' | 'general';
+  feature?: 'messaging' | 'posting' | 'gallery' | 'tracks' | 'general';
 }
 
 export function PremiumModal({ open, onOpenChange, feature = 'general' }: PremiumModalProps) {
@@ -22,6 +22,8 @@ export function PremiumModal({ open, onOpenChange, feature = 'general' }: Premiu
         return "Criar postagens ilimitadas para compartilhar todo seu conhecimento e experiência!";
       case 'gallery':
         return "Acessar todas as galerias de referências para se inspirar e elevar seu trabalho!";
+      case 'tracks':
+        return "Acessar todas as trilhas exclusivas para dominar técnicas e se especializar no mercado!";
       default:
         return "Acessar todos os recursos premium e elevar seu nível de profissionalismo!";
     }
@@ -29,39 +31,39 @@ export function PremiumModal({ open, onOpenChange, feature = 'general' }: Premiu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900 mb-4">
-            <Award className="h-10 w-10 text-amber-600 dark:text-amber-300" />
+      <DialogContent className="sm:max-w-md w-[95vw] max-h-[90vh] overflow-y-auto p-6">
+        <DialogHeader className="text-center space-y-2">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 shadow-[0_0_20px_rgba(255,102,0,0.15)] mb-1">
+            <Award className="h-8 w-8 text-primary" />
           </div>
-          <DialogTitle className="text-xl font-bold text-center">
-            SE VOCÊ QUER SE DESTACAR NO MERCADO DAS CACHEADAS VOCÊ PRECISA ESTAR DENTRO DO CLUBE DAS BRABAS!
+          <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight text-center px-1">
+            Destaque-se no mercado das cacheadas com o <span className="text-primary">Clube das Brabas</span>
           </DialogTitle>
         </DialogHeader>
-        <div className="text-center space-y-2 pt-2 px-6">
-          <DialogDescription className="text-lg">
-            Entenda, o Clube das Brabas é o foguete que vai elevar seu nível de profissionalismo no mercado das cacheadas.
+        <div className="text-center space-y-3 pt-2">
+          <DialogDescription className="text-sm md:text-base leading-relaxed">
+            O Clube das Brabas é o foguete que vai elevar seu nível de profissionalismo no mercado.
           </DialogDescription>
-          <div className="font-medium text-amber-600 dark:text-amber-400">
+          <div className="font-semibold px-3 py-3 bg-muted/30 rounded-lg text-primary text-sm border border-border/50">
             {getFeatureSpecificText()}
           </div>
         </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row sm:justify-center gap-2 pt-4">
+        <DialogFooter className="flex flex-col gap-2 pt-2 pb-0">
           <Button 
             variant="default" 
             onClick={() => {
               onOpenChange(false);
-              navigate('/premium'); // Redireciona para a página de adesão premium
+              navigate('/premium');
             }}
-            className="w-full bg-amber-500 hover:bg-amber-600"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25"
           >
-            QUERO FAZER PARTE DO CLUBE DAS BRABAS
+            Quero fazer parte do Clube
           </Button>
           <Button 
-            variant="outline" 
+            variant="ghost" 
             onClick={() => onOpenChange(false)} 
-            className="w-full"
+            className="w-full text-muted-foreground hover:text-foreground"
           >
             Continuar no plano gratuito
           </Button>

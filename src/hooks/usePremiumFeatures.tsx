@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 export function usePremiumFeatures() {
   const { user } = useAuth();
   const [showPremiumModal, setShowPremiumModal] = useState(false);
-  const [currentFeature, setCurrentFeature] = useState<'messaging' | 'posting' | 'gallery' | 'general'>('general');
+  const [currentFeature, setCurrentFeature] = useState<'messaging' | 'posting' | 'gallery' | 'tracks' | 'general'>('general');
   const { toast } = useToast();
   const [userIsPremium, setUserIsPremium] = useState<boolean | null>(null);
   const [premiumCheckLoading, setPremiumCheckLoading] = useState(true);
@@ -281,6 +281,33 @@ export function usePremiumFeatures() {
   }, [userIsPremium, isPremium]);
 
   /**
+   * Verifica se o usuário pode acessar trilhas
+   * Usuários gratuitos não podem acessar trilhas
+   */
+  const canAccessTracks = useCallback(async (): Promise<boolean> => {
+    // Usar o valor em cache se disponível
+    if (userIsPremium !== null) {
+      if (!userIsPremium) {
+        setCurrentFeature('tracks');
+        setShowPremiumModal(true);
+        return false;
+      }
+      return true;
+    }
+    
+    // Se ainda não verificamos o status premium
+    const isPremiumUser = await isPremium();
+    
+    if (!isPremiumUser) {
+      setCurrentFeature('tracks');
+      setShowPremiumModal(true);
+      return false;
+    }
+    
+    return true;
+  }, [userIsPremium, isPremium, setCurrentFeature, setShowPremiumModal]);
+
+  /**
    * Verifica se o usuário pode criar uma nova postagem
    * Usuários gratuitos só podem criar 2 postagens
    */
@@ -335,6 +362,7 @@ export function usePremiumFeatures() {
     isPremium,
     canSendMessages,
     canAccessGallery,
+    canAccessTracks,
     canCreatePost,
     showPremiumModal,
     setShowPremiumModal,

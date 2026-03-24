@@ -21,10 +21,11 @@ const formSchema = z.object({
   description: z.string().min(10, "A descrição deve ter pelo menos 10 caracteres"),
   presenter: z.string().min(3, "O nome do apresentador deve ter pelo menos 3 caracteres"),
   date: z.date({ required_error: "Uma data é obrigatória" }),
+  endDate: z.date().optional(),
   timeStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:MM)"),
   timeEnd: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:MM)"),
   location: z.string().optional(),
-  link: z.string().url("O link deve ser uma URL válida").optional(),
+  link: z.string().url("O link deve ser uma URL válida").optional().or(z.literal('')),
 });
 
 interface EventFormDialogProps {
@@ -45,6 +46,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSuccess }: EventF
       description: event?.description || "",
       presenter: event?.presenter || "",
       date: event?.date || new Date(),
+      endDate: event?.endDate || undefined,
       timeStart: event?.timeStart || "09:00",
       timeEnd: event?.timeEnd || "17:00",
       location: event?.location || "",
@@ -59,6 +61,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSuccess }: EventF
         description: event.description,
         presenter: event.presenter,
         date: new Date(event.date),
+        endDate: event.endDate ? new Date(event.endDate) : undefined,
         timeStart: event.timeStart,
         timeEnd: event.timeEnd,
         location: event.location || "",
@@ -70,6 +73,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSuccess }: EventF
         description: "",
         presenter: "",
         date: new Date(),
+        endDate: undefined,
         timeStart: "09:00",
         timeEnd: "17:00",
         location: "",
@@ -86,6 +90,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSuccess }: EventF
         description: values.description,
         presenter: values.presenter,
         date: values.date,
+        endDate: values.endDate,
         timeStart: values.timeStart,
         timeEnd: values.timeEnd,
         location: values.location,
@@ -215,6 +220,47 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSuccess }: EventF
                 )}
               />
               
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data Final (opcional)</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal border-[#ff920e]/20 focus-visible:ring-[#ff4400]",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP", { locale: ptBR })
+                            ) : (
+                              <span>Selecione uma data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="location"

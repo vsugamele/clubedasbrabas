@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, ChevronRight, Loader2 } from "lucide-react";
+import { BookOpen, ChevronRight, Loader2, Lock, Award } from "lucide-react";
 import { Link } from "react-router-dom";
+import { usePremiumFeatures } from "@/hooks/usePremiumFeatures";
+import { PremiumModal } from "@/components/ui/premium-modal";
 
 interface Module {
     id: string;
@@ -18,9 +20,22 @@ const TracksList = () => {
     const [modules, setModules] = useState<Module[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const { canAccessTracks, showPremiumModal, setShowPremiumModal, currentFeature } = usePremiumFeatures();
+    const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+    const [checkingPermission, setCheckingPermission] = useState(true);
+
     useEffect(() => {
-        fetchModules();
-    }, []);
+        const checkAccess = async () => {
+            setCheckingPermission(true);
+            const permission = await canAccessTracks();
+            setHasPermission(permission);
+            setCheckingPermission(false);
+            if (permission) {
+                fetchModules();
+            }
+        };
+        checkAccess();
+    }, [canAccessTracks]);
 
     const fetchModules = async () => {
         try {
@@ -40,6 +55,11 @@ const TracksList = () => {
 
     return (
         <MainLayout>
+            <PremiumModal
+                open={showPremiumModal}
+                onOpenChange={setShowPremiumModal}
+                feature={currentFeature}
+            />
             <div className="container py-8 animate-fade-in">
                 <div className="flex flex-col mb-8">
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
@@ -50,7 +70,28 @@ const TracksList = () => {
                     </p>
                 </div>
 
-                {loading ? (
+                {checkingPermission ? (
+                    <div className="flex justify-center p-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : !hasPermission ? (
+                    <div className="text-center p-12 border border-primary/20 rounded-lg bg-primary/5 max-w-2xl mx-auto">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                            <Lock className="h-10 w-10 text-primary" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-foreground mb-3">Acesso Exclusivo para Membros Premium</h3>
+                        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                            As trilhas de aprendizagem são recursos exclusivos para assinantes do Clube das Brabas. Eleve o seu plano para ter acesso às aulas completas.
+                        </p>
+                        <Button 
+                            onClick={() => setShowPremiumModal(true)}
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 px-8 rounded-full mx-auto flex items-center shadow-lg shadow-primary/25"
+                        >
+                            <Award className="mr-2 h-5 w-5" />
+                            Fazer parte do Clube das Brabas
+                        </Button>
+                    </div>
+                ) : loading ? (
                     <div className="flex justify-center p-12">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
