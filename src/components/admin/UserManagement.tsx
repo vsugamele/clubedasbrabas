@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { assignUserRole, getUserRole, getAllUserRoles, isAdminByEmail } from "./hooks/utils/roleUtils";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { UserRole } from './hooks/types';
@@ -40,6 +42,8 @@ interface UserData {
   subscription_type?: 'free' | 'premium' | null;
   subscription_start_date?: string | null;
   subscription_end_date?: string | null;
+  post_count?: number;
+  like_count?: number;
 }
 
 // Tipo para a resposta da função getAllUserRoles
@@ -151,7 +155,7 @@ const UserManagement = () => {
       setDeletingUser(true);
 
       // Chamar a função do banco que deleta completamente o usuário
-      const { data, error } = await supabase.rpc('delete_user_completely', {
+      const { data, error } = await supabase.rpc('delete_user_completely' as any, {
         target_user_id: userId
       });
 
@@ -160,7 +164,7 @@ const UserManagement = () => {
       }
 
       // Verificar resultado da função
-      const result = data as { success: boolean; error?: string; message?: string };
+      const result = data as unknown as { success: boolean; error?: string; message?: string };
 
       if (!result.success) {
         throw new Error(result.error || 'Erro desconhecido ao deletar usuário');
@@ -298,6 +302,22 @@ const UserManagement = () => {
         throw error;
       }
 
+      // Buscar estatisticas de posts e curtidas
+      const userStatsMap: Record<string, {post_count: number, total_likes: number}> = {};
+      try {
+        const { data: statsData, error: statsError } = await supabase.rpc('get_admin_user_stats' as any);
+        if (!statsError && statsData) {
+          (statsData as any[]).forEach((stat: any) => {
+            userStatsMap[stat.user_id] = {
+              post_count: Number(stat.post_count) || 0,
+              total_likes: Number(stat.total_likes) || 0
+            };
+          });
+        }
+      } catch (e) {
+        console.error("Erro ao buscar estatísticas de usuários:", e);
+      }
+
       // Processar os dados para garantir compatibilidade com nossa interface UserData
       const usersWithActiveStatus = data.map(user => {
         // Modelo base do usuário com os campos do Supabase
@@ -325,7 +345,10 @@ const UserManagement = () => {
           // Campos de assinatura (campos personalizados)
           subscription_type: user.subscription_type || 'free',
           subscription_start_date: user.subscription_start_date || null,
-          subscription_end_date: user.subscription_end_date || null
+          subscription_end_date: user.subscription_end_date || null,
+          
+          post_count: userStatsMap[user.id]?.post_count || 0,
+          like_count: userStatsMap[user.id]?.total_likes || 0
         };
 
         return userData;
@@ -591,13 +614,12 @@ const UserManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Usuário</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Contato</TableHead>
+                  <TableHead>Email / Contato</TableHead>
                   <TableHead>Criado em</TableHead>
                   <TableHead>Último login</TableHead>
-                  <TableHead>Papel</TableHead>
-                  <TableHead>Plano</TableHead>
-                  <TableHead className="w-[120px] text-center">Status</TableHead>
+                  <TableHead className="text-center">Posts</TableHead>
+                  <TableHead className="text-center">Curtidas</TableHead>
+                  <TableHead>Papel / Plano</TableHead>
                   <TableHead className="w-[120px] text-center">Ativo/Inativo</TableHead>
                   <TableHead className="w-[100px] text-center">Ações</TableHead>
                 </TableRow>
@@ -605,18 +627,31 @@ const UserManagement = () => {
               <TableBody>
                 {getFilteredUsers().map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium whitespace-nowrap">
                       {user.full_name || user.username || "N/A"}
                     </TableCell>
                     <TableCell>
-                      {user.email || "N/A"}
+                      <div className="flex flex-col text-sm">
+                        <span>{user.email || "N/A"}</span>
+                        <span className="text-muted-foreground text-xs">{user.contact || ""}</span>
+                      </div>
                     </TableCell>
-                    <TableCell>{user.contact || "Não disponível"}</TableCell>
-                    <TableCell>{user.created_at}</TableCell>
-                    <TableCell>{user.last_sign_in_at}</TableCell>
+                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                      {user.created_at ? format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR }) : "N/A"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                      {user.last_sign_in_at ? format(new Date(user.last_sign_in_at), "dd/MM/yy HH:mm", { locale: ptBR }) : "Nunca"}
+                    </TableCell>
+                    <TableCell className="text-center font-semibold">
+                      {user.post_count || 0}
+                    </TableCell>
+                    <TableCell className="text-center font-semibold text-primary">
+                      {user.like_count || 0}
+                    </TableCell>
                     <TableCell>
-                      <Select
-                        value={getUserRoleFromCache(user.id)}
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={getUserRoleFromCache(user.id)}
                         onValueChange={async (value) => {
                           setUpdatingRole(true);
                           setUpdatingRoleUserId(user.id);
@@ -656,11 +691,9 @@ const UserManagement = () => {
                           </SelectItem>
                         </SelectContent>
                       </Select>
-                    </TableCell>
-                    <TableCell>
                       <Badge
                         variant={user.subscription_type === 'premium' ? "default" : "secondary"}
-                        className={user.subscription_type === 'premium' ? "bg-amber-500 hover:bg-amber-600" : ""}
+                        className={user.subscription_type === 'premium' ? "bg-amber-500 hover:bg-amber-600 w-fit" : "w-fit"}
                       >
                         <div className="flex items-center">
                           {user.subscription_type === 'premium' ? (
@@ -675,15 +708,8 @@ const UserManagement = () => {
                           )}
                         </div>
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={user.last_sign_in_at ? "default" : "destructive"}
-                        className={`mx-auto ${user.last_sign_in_at ? "bg-green-500 hover:bg-green-600" : ""}`}
-                      >
-                        {user.last_sign_in_at ? "Acessou" : "Nunca Acessou"}
-                      </Badge>
-                    </TableCell>
+                    </div>
+                  </TableCell>
                     <TableCell className="text-center">
                       {updatingActiveStatus && updatingActiveUserId === user.id ? (
                         <Button variant="ghost" size="icon" disabled>
